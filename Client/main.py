@@ -4,7 +4,6 @@ import threading
 
 import utente
 nome_utente = input("Inserisci il tuo nome: ")
-destinatario = input("Inserisci il destinatario: ")
 utente = utente.utente(nome_utente)
 server = ("26.195.124.237", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -12,15 +11,17 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 def stampa_messaggi_arrivati():
     while True:
         try:
+            print("prima")
             data = s.recvfrom(1024)
-            if data is None:
+            print("dopo")
+            if not data:
                 break
 
             try:
-                messaggio = json.loads(data)
-                print(messaggio)
+                messaggio = json.loads(data.decode())
+
             except json.decoder.JSONDecodeError:
-                pass
+                break
 
         except ConnectionResetError:
             break
@@ -29,9 +30,11 @@ def stampa_messaggi_arrivati():
 
 
 if __name__ == "__main__":
-    stampa = threading.Thread(target=stampa_messaggi_arrivati)
-    s.sendto(utente.get_nome().encode(), server)
 
+    s.sendto(json.dumps(utente.registrazione()).encode(), server)
+    destinatario = input("Inserisci il destinatario: ")
+    stampa = threading.Thread(target=stampa_messaggi_arrivati)
+    stampa.start()
     while True:
         messaggio = input(f"Inserisci un messaggio per {destinatario}: ")
         if messaggio == "exit":
