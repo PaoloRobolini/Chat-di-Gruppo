@@ -5,7 +5,7 @@ import os
 from sys import orig_argv
 
 # Parametri server
-HOST = '26.195.124.237'  # radmin PC BAOLO
+HOST = '127.0.0.1'  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
@@ -23,20 +23,18 @@ def handle_client(socket, data, client_address):
         messaggio = {}
         pass
 
-    if messaggio["comando"] == "registrazione":
+    if messaggio["comando"] == "registrazione" and messaggio["nome"] not in client:
         with lock_client:
             client[messaggio["nome"]] = client_address
             print(client)
 
     elif messaggio["comando"] == "messaggio" and messaggio["destinatario"] in client:
         destination_address = client[messaggio["destinatario"]]
-        print(f"[{client_address}] ha inviato: {messaggio} a {destination_address}")
         dati_nuovi = {
             "mittente": messaggio["mittente"],
             "messaggio": messaggio["messaggio"],
-
         }
-
+        print(f"[{client_address}] ha inviato: {dati_nuovi} a {destination_address}")
         socket.sendto(json.dumps(dati_nuovi).encode(), destination_address)
 
         # cerco di salvare il messaggio boh
@@ -72,7 +70,7 @@ print(f"[SERVER] In ascolto su {server_address}...")
 # Loop per accettare connessioni
 while True:
     data, client_address = server_socket.recvfrom(1024)
-    print(f"[SERVER] {data}")
+    print(f"[SERVER] {data.decode()}")
     print(f"[SERVER] {client_address}")
     if  data and client_address:
         client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
