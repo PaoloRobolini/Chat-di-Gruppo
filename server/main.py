@@ -2,47 +2,49 @@ import json
 import socket
 import threading
 import os
+from sys import orig_argv
 
 # Parametri server
-HOST = '127.0.0.1'  # localhost
-PORT = 18474
-
+HOST = '26.195.124.237'  # radmin PC BAOLO
+PORT = 65432
+server_address = (HOST, PORT)
+lock_client = threading.Lock()
 client = {
-    "alice": "192.168.1.10",
-    "bob": "192.168.1.20",
-    "carlo": "192.168.1.30"
 }
 
 
 # Funzione per gestire ogni client connesso
-def handle_client(client_socket, client_address):
+def handle_client(socket, client_address):
     print(f"[+] Connessione da {client_address}")
+
     while True:
         try:
-            message = client_socket.recv(1024)
-            if not message:
+            data = socket.recv(1024).decode()
+            if not data:
                 break
 
-            messaggio = []
-            data = message.decode()
-            messaggio = data.split(";")
+            messaggio = {}
+            try:
+                messaggio = json.loads(data)
+            except json.decoder.JSONDecodeError:
+                messaggio = {}
+                pass
 
-            print(f"[{client_address}] ha inviato: {data}")
+            print(f"[{client_address}] ha inviato: {messaggio}")
 
-            if len(messaggio) == 2:
-                if not messaggio[0] in client:
-                    client[messaggio[0]] = client_address
-            elif messaggio[1] in client:
-                ip_destinatario = client.get(messaggio[1])
-                data.encode()
-                data.sendall(ip_destinatario)
-                #cerco di salvare il messaggio boh
-                dati_file_nuovi = {
-                    "mittente": messaggio[0],
-                    "messaggio": messaggio[2],
-                    "data_ora": messaggio[3]
+            if messaggio["destinatario"] in client:
+
+                dati_nuovi = {
+                    "mittente": messaggio["mittente"],
+                    "messaggio": messaggio["messaggio"],
+                    "data": messaggio["data"]
+
                 }
-                nome_file = messaggio[0] + "_" + messaggio[1] + ".json"
+
+                socket.sendto(json.dumps(dati_nuovi).encode(), client.get(messaggio["destinatario"]))
+
+                #cerco di salvare il messaggio boh
+                """nome_file = messaggio[0] + "_" + messaggio[1] + ".json"
                 nome_file2 = messaggio[1] + "_" + messaggio[0] + ".json"
                 if os.path.exists(nome_file):
                     with open(nome_file, "r") as json_file:
@@ -58,7 +60,7 @@ def handle_client(client_socket, client_address):
                         json.dump(dati_file, json_file, indent=4)
                 else:
                     with open(nome_file, "w") as json_file:
-                        json.dump(dati_file_nuovi, json_file, indent=4)
+                        json.dump(dati_file_nuovi, json_file, indent=4)"""
 
 
             else:
@@ -68,18 +70,24 @@ def handle_client(client_socket, client_address):
             break
 
     print(f"[-] Disconnessione da {client_address}")
-    client_socket.close()
+    socket.close()
 
 # Creazione del socket server
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((HOST, PORT))
-server_socket.listen()
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket.bind(server_address)
 
-print(f"[SERVER] In ascolto su {HOST}:{PORT}...")
+print(f"[SERVER] In ascolto su {server_address}...")
 
 # Loop per accettare connessioni
 while True:
-    client_socket, client_address = server_socket.accept()
-
-    client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
+    try:
+        data, client_address = server_socket.recvfrom(1024)
+        print(f"{client_address}")
+        with lock_client:
+            client[data.decode()] = client_address
+        print(client)
+    except ConnectionResetError:
+        pass
+    client_thread = threading.Thread(target=handle_client, args=(server_socket, client_address))
+    client_thread.daemon = True
     client_thread.start()
