@@ -1,44 +1,51 @@
 import json
 import socket
 import threading
-
 import utente
+
 nome_utente = input("Inserisci il tuo nome: ")
 utente = utente.utente(nome_utente)
-server = ("26.195.124.237", 65432)
+server = ("127.0.0.1", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
 
 def stampa_messaggi_arrivati():
     while True:
         try:
-            print("prima")
-            data = s.recvfrom(1024)
-            print("dopo")
-            if not data:
-                break
+            # Riceve sia i dati che l'indirizzo del mittente
+            data, addr = s.recvfrom(1024)
+            messaggio = data.decode()
 
+            # Decodifica e processa il messaggio
             try:
-                messaggio = json.loads(data.decode())
+                messaggio = json.loads(messaggio)
+                if "mittente" in messaggio:  # Verifica che sia un messaggio valido
+                    print(f"\nMessaggio da {messaggio["mittente"]} > {messaggio['messaggio']}")
 
             except json.decoder.JSONDecodeError:
-                break
+                print("Ricevuto messaggio non valido")
 
-        except ConnectionResetError:
-            break
-
-
+        except ConnectionResetError as e:
+            print(f"Errore nella ricezione: {e}")
+            pass
 
 
 if __name__ == "__main__":
-
+    # Registrazione iniziale
     s.sendto(json.dumps(utente.registrazione()).encode(), server)
-    destinatario = input("Inserisci il destinatario: ")
-    stampa = threading.Thread(target=stampa_messaggi_arrivati)
+
+    # Thread per la ricezione messaggi
+    stampa = threading.Thread(target=stampa_messaggi_arrivati, daemon=True)
     stampa.start()
+
+    # Ciclo principale per l'invio messaggi
     while True:
-        messaggio = input(f"Inserisci un messaggio per {destinatario}: ")
-        if messaggio == "exit":
+        destinatario = input("Inserisci il destinatario (o 'exit' per uscire): ")
+        if destinatario.lower() == 'exit':
             break
 
-        messaggio = utente.crea_messaggio(destinatario, messaggio)
+        testo = input(f"Inserisci un messaggio per {destinatario}: ")
+        messaggio = utente.crea_messaggio(destinatario, testo)
         s.sendto(json.dumps(messaggio).encode(), server)
+
+    print("Disconnessione...")
