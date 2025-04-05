@@ -6,4 +6,9 @@ class utente:
         return self.__nome
 
     def crea_messaggio(self, destinatario, messaggio):
-        return self.__nome + ";" + destinatario + ";" + messaggio
+        dizionario = {
+            "mittente": self.__nome,
+            "destinatario": destinatario,
+            "messaggio": messaggio
+        }
+        return dizionario
