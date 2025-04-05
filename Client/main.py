@@ -6,7 +6,7 @@ import utente
 nome_utente = input("Inserisci il tuo nome: ")
 destinatario = input("Inserisci il destinatario: ")
 utente = utente.utente(nome_utente)
-server = ("127.0.0.1", 65432)
+server = ("26.195.124.237", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def stampa_messaggi_arrivati():
@@ -38,4 +38,4 @@ if __name__ == "__main__":
             break
 
         messaggio = utente.crea_messaggio(destinatario, messaggio)
-        s.sendto(messaggio.encode("utf-8"), server)
+        s.sendto(json.dumps(messaggio).encode(), server)
