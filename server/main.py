@@ -5,7 +5,7 @@ import os
 from sys import orig_argv
 
 # Parametri server
-HOST = '10.4.54.27'  # radmin PC BAOLO
+HOST = '26.21.230.217'  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
@@ -24,31 +24,39 @@ def handle_client(socket, data, client_address):
 
     comando = messaggio['comando']
 
+    # Aggiunta di un nuovo client al dizionario client
     if comando == "registrazione" and messaggio["nome"] not in client:
         client[messaggio["nome"]] = client_address
-        print(client)
+        print(f"\nAggiunto {messaggio['nome']} ai client, indirizzo: {client_address}")
 
+
+    # Unione ad un gruppo da parte di un client, in caso il gruppo non esiste viene creato
     elif comando == "unisci_gruppo":
+        print("\n")
         if not messaggio["nome_gruppo"] in client:
             client[messaggio["nome_gruppo"]] = []
             print(f"creato il gruppo {messaggio['nome_gruppo']}")
 
-        print(f"Si è unito al gruppo {client_address}")
-        print(client)
+        print(f"Si è unito al gruppo {messaggio['nome_gruppo']} {client_address}")
         client[messaggio["nome_gruppo"]].append(client_address)
 
-
+    # Inoltro di un messaggio ad un altro client o gruppo
     elif comando == "messaggio" and messaggio["destinatario"] in client:
-        destination_address = client[messaggio["destinatario"]]
 
+        destination_address = client[messaggio["destinatario"]]
+        print(f"\nDestinazione del pacchatto: {destination_address}")
         dati_nuovi = {
             "mittente": messaggio["mittente"],
             "messaggio": messaggio["messaggio"],
         }
+        #Invio dei messaggi ad un gruppo
         if type(destination_address) is list:
+
             for destinazione in destination_address:
-                print(f"[{client_address}] ha inviato: {dati_nuovi} a {destinazione}")
-                socket.sendto(json.dumps(dati_nuovi).encode(), destinazione)
+                if destinazione != client_address:
+                    print(f"[{client_address}] ha inviato: {dati_nuovi} a {destinazione}")
+                    socket.sendto(json.dumps(dati_nuovi).encode(), destinazione)
+        #Invio ad un singolo client
         else:
             print(f"[{client_address}] ha inviato: {dati_nuovi} a {destination_address}")
             socket.sendto(json.dumps(dati_nuovi).encode(), destination_address)
@@ -88,8 +96,6 @@ print(f"[SERVER] In ascolto su {server_address}...")
 # Loop per accettare connessioni
 while True:
     data, client_address = server_socket.recvfrom(1024)
-    print(f"[SERVER] {data.decode()}")
-    print(f"[SERVER] {client_address}")
     if  data and client_address:
         client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
         client_thread.daemon = True
