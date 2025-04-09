@@ -5,7 +5,7 @@ import utente
 
 nome_utente = input("Inserisci il tuo nome: ")
 utente = utente.utente(nome_utente)
-server = ("127.0.0.1", 65432)
+server = ("10.4.54.27", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
@@ -20,7 +20,7 @@ def stampa_messaggi_arrivati():
             try:
                 messaggio = json.loads(messaggio)
                 if "mittente" in messaggio:  # Verifica che sia un messaggio valido
-                    print(f"\nMessaggio da {messaggio["mittente"]} > {messaggio['messaggio']}")
+                    print(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
 
             except json.decoder.JSONDecodeError:
                 print("Ricevuto messaggio non valido")
@@ -32,7 +32,7 @@ def stampa_messaggi_arrivati():
 
 if __name__ == "__main__":
     # Registrazione iniziale
-    s.sendto(json.dumps(utente.registrazione()).encode(), server)
+    s.sendto(json.dumps(utente.crea_azione(comando="registrazione")).encode(), server)
 
     # Thread per la ricezione messaggi
     stampa = threading.Thread(target=stampa_messaggi_arrivati, daemon=True)
@@ -45,7 +45,9 @@ if __name__ == "__main__":
             break
 
         testo = input(f"Inserisci un messaggio per {destinatario}: ")
-        messaggio = utente.crea_messaggio(destinatario, testo)
+        messaggio = utente.crea_azione(comando="messaggio", destinatario=destinatario, messaggio=testo)
         s.sendto(json.dumps(messaggio).encode(), server)
+        
 
     print("Disconnessione...")
+    s.close()
