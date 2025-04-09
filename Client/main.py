@@ -8,6 +8,23 @@ utente = utente.utente(nome_utente)
 server = ("10.4.54.27", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+def menu_opzioni():
+    opzioni_valide = {
+        0 : "Esci dal programma",
+        1 : "Registrati nel server",
+        2 : "Invia un messaggio a una persona",
+        3 : "Invia un messaggio a un gruppo"
+    }
+    stringa_input = "Inserisci una tra le seguenti opzioni:\n"
+
+    for numero_opzione, opzione_valida in opzioni_valide.items():
+        stringa_input += f"{numero_opzione}) {opzione_valida}" + "\n"
+
+    opzione_utente = int(input(stringa_input))
+    if opzione_utente < 0 or opzione_utente >= len(opzioni_valide):
+        menu_opzioni()
+    return opzione_utente
+
 
 def stampa_messaggi_arrivati():
     while True:
@@ -40,13 +57,26 @@ if __name__ == "__main__":
 
     # Ciclo principale per l'invio messaggi
     while True:
-        destinatario = input("Inserisci il destinatario (o 'exit' per uscire): ")
-        if destinatario.lower() == 'exit':
-            break
-
-        testo = input(f"Inserisci un messaggio per {destinatario}: ")
-        messaggio = utente.crea_azione("unisci_gruppo", nome_gruppo=destinatario, messaggio=testo)
-        s.sendto(json.dumps(messaggio).encode(), server)
+        opzione = menu_opzioni()
+        operazione = {}
+        match opzione:
+            case 1:
+                scegli_operazione = "registrazione"
+            case 2:
+                scegli_operazione = "messaggio"
+                destinatario = input("Inserisci il destinatario: \n")
+                messaggio = input(f"Cosa vuoi scrivere a {destinatario}? ")
+                operazione["destinatario"] = destinatario
+                operazione["messaggio"] = messaggio
+            case 3:
+                scegli_operazione = "unisci_gruppo"
+                nome_gruppo = input("Inserisci il nome del gruppo: \n")
+                operazione["nome_gruppo"] = nome_gruppo
+            case 0:
+                break
+        operazione["comando"] = scegli_operazione
+        azione = utente.crea_azione(**operazione)
+        s.sendto(json.dumps(azione).encode(), server)
 
     print("Disconnessione...")
     s.close()
