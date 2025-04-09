@@ -45,9 +45,8 @@ if __name__ == "__main__":
             break
 
         testo = input(f"Inserisci un messaggio per {destinatario}: ")
-        messaggio = utente.crea_azione(comando="messaggio", destinatario=destinatario, messaggio=testo)
+        messaggio = utente.crea_azione("unisci_gruppo", nome_gruppo=destinatario, messaggio=testo)
         s.sendto(json.dumps(messaggio).encode(), server)
-        
 
     print("Disconnessione...")
     s.close()

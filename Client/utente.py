@@ -6,6 +6,7 @@ class utente:
         return self.__nome
 
     def crea_azione(self, comando, **kwargs):
+        print(comando)
         if comando == "messaggio":  #crea un messaggio per l'utente
             return {
                 "comando": "messaggio",
