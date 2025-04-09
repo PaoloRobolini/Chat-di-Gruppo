@@ -5,7 +5,7 @@ import utente
 
 nome_utente = input("Inserisci il tuo nome: ")
 utente = utente.utente(nome_utente)
-server = ("10.4.54.27", 65432)
+server = ("26.21.230.217", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def menu_opzioni():
@@ -20,10 +20,13 @@ def menu_opzioni():
     for numero_opzione, opzione_valida in opzioni_valide.items():
         stringa_input += f"{numero_opzione}) {opzione_valida}" + "\n"
 
-    opzione_utente = int(input(stringa_input))
-    if opzione_utente < 0 or opzione_utente >= len(opzioni_valide):
+    try:
+        opzione_utente = int(input(stringa_input))
+        if opzione_utente < 0 or opzione_utente >= len(opzioni_valide):
+            menu_opzioni()
+        return opzione_utente
+    except ValueError:
         menu_opzioni()
-    return opzione_utente
 
 
 def stampa_messaggi_arrivati():

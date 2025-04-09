@@ -7,9 +7,9 @@ class utente:
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
-        print(comando)
+        #print(comando)
         if comando == "messaggio":  #crea un messaggio per l'utente
-            print(f"Invio un messaggio a {kwargs['destinatario']}")
+            #print(f"Invio un messaggio a {kwargs['destinatario']}")
             return {
                 "comando": "messaggio",
                 "mittente": self.__nome,
@@ -18,7 +18,7 @@ class utente:
             }
 
         elif comando == "unisci_gruppo":  #crea un messaggio per un gruppo
-            print(f"Invio un messaggio a {kwargs['nome_gruppo']}")
+            #print(f"Invio un messaggio a {kwargs['nome_gruppo']}")
             return {
                 "comando": "unisci_gruppo",
                 "nome_gruppo": kwargs["nome_gruppo"],
@@ -26,7 +26,7 @@ class utente:
             }
 
         elif comando == "registrazione":  #si registra presso il server
-            print("Mi registro nel server")
+            #print("Mi registro nel server")
             return {
                 "comando": "registrazione",
                 "nome": self.__nome,
