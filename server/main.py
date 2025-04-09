@@ -5,12 +5,11 @@ import os
 from sys import orig_argv
 
 # Parametri server
-HOST = '127.0.0.1'  # radmin PC BAOLO
+HOST = '10.4.54.27'  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
-client = {
-}
+client = {}
 
 
 # Funzione per gestire ogni client connesso
@@ -23,19 +22,38 @@ def handle_client(socket, data, client_address):
         messaggio = {}
         pass
 
-    if messaggio["comando"] == "registrazione" and messaggio["nome"] not in client:
-        with lock_client:
-            client[messaggio["nome"]] = client_address
-            print(client)
+    comando = messaggio['comando']
 
-    elif messaggio["comando"] == "messaggio" and messaggio["destinatario"] in client:
+    if comando == "registrazione" and messaggio["nome"] not in client:
+        client[messaggio["nome"]] = client_address
+        print(client)
+
+    elif comando == "unisci_gruppo":
+        if not messaggio["nome_gruppo"] in client:
+            client[messaggio["nome_gruppo"]] = []
+            print(f"creato il gruppo {messaggio['nome_gruppo']}")
+
+        print(f"Si è unito al gruppo {client_address}")
+        print(client)
+        client[messaggio["nome_gruppo"]].append(client_address)
+
+
+    elif comando == "messaggio" and messaggio["destinatario"] in client:
         destination_address = client[messaggio["destinatario"]]
+
         dati_nuovi = {
             "mittente": messaggio["mittente"],
             "messaggio": messaggio["messaggio"],
         }
-        print(f"[{client_address}] ha inviato: {dati_nuovi} a {destination_address}")
-        socket.sendto(json.dumps(dati_nuovi).encode(), destination_address)
+        if type(destination_address) is list:
+            for destinazione in destination_address:
+                print(f"[{client_address}] ha inviato: {dati_nuovi} a {destinazione}")
+                socket.sendto(json.dumps(dati_nuovi).encode(), destinazione)
+        else:
+            print(f"[{client_address}] ha inviato: {dati_nuovi} a {destination_address}")
+            socket.sendto(json.dumps(dati_nuovi).encode(), destination_address)
+
+
 
         # cerco di salvare il messaggio boh
         """nome_file = messaggio[0] + "_" + messaggio[1] + ".json"
