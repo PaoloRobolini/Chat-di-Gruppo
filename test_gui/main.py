@@ -12,14 +12,17 @@ if __name__ == '__main__':
     dpg.create_viewport(title="Chat", width=1280, height=720, min_width=800, min_height=600)
     dpg.setup_dearpygui()
 
+    with dpg.window(label="Lista DM", tag="lista_dm", width=LARGHEZZA_WIDGET, no_move=True, no_resize=True, no_close=True, no_collapse=True):
+        dpg.add_text("Lista DM")
+
     with dpg.window(label="Lista Gruppi", tag="lista_gruppi", width=LARGHEZZA_WIDGET, no_move=True, no_resize=True, no_close=True, no_collapse=True):
         dpg.add_text("Lista Gruppi")
 
     with dpg.window(label="Chat", tag="chat", pos=(LARGHEZZA_WIDGET, 0), no_move=True, no_resize=True, no_close=True, no_collapse=True):
         dpg.add_text(tag="chat_testo")
-        dpg.set_y_scroll("chat", dpg.get_item_height("chat"))
+        dpg.set_y_scroll("chat", 0)
 
-    with dpg.window(label="Input", tag="input", height=ALTEZZA_WIDGET, no_move=True, no_resize=True, no_close=True, no_collapse=True):
+    with dpg.window(label="Input", tag="input", height=ALTEZZA_WIDGET, no_move=True, no_resize=True, no_close=True, no_collapse=True, no_title_bar=True):
         dpg.add_input_text(tag="input_messaggio")
         dpg.add_button(tag="bottone_messaggio", label="Invia messaggio", callback=invia_messaggio)
 
@@ -29,7 +32,10 @@ if __name__ == '__main__':
     dpg.show_viewport()
 
     while dpg.is_dearpygui_running():
-        dpg.set_item_height("lista_gruppi", dpg.get_viewport_height())
+        dpg.set_item_height("lista_dm", dpg.get_viewport_height() // 2)
+
+        dpg.set_item_height("lista_gruppi", dpg.get_viewport_height() // 2)
+        dpg.set_item_pos("lista_gruppi", [0, dpg.get_viewport_height() // 2])
 
         dpg.set_item_width("chat", dpg.get_viewport_width() - (LARGHEZZA_WIDGET * 2))
         dpg.set_item_height("chat", dpg.get_viewport_height() - ALTEZZA_WIDGET)
