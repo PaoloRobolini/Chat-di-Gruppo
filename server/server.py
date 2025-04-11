@@ -13,10 +13,12 @@ server_address = (HOST, PORT)
 lock_client = threading.Lock()
 clients = {}
 
-def genera_ID(lunghezza):
-    caratteri = string.ascii_uppercase + string.digits
-    stringa_casuale = b'#'.join(random.choice(caratteri) for _ in range(lunghezza))
-    return stringa_casuale
+def get_ip(nome_da_cercare):
+    valori = clients.values()
+    for ip, nome_client in valori:
+        if nome_client == nome_da_cercare:
+            return ip
+    return None
 
 # Funzione per gestire ogni client connesso
 def handle_client(socket, data, client_address):
@@ -33,20 +35,15 @@ def handle_client(socket, data, client_address):
     # Aggiunta di un nuovo client al dizionario client
     if comando == "registrazione":
         id = messaggio["id"]
-        if id == "None" or id is None:
-            lunghezza = 10
-            id = genera_ID(lunghezza)
-            while id in clients:
-                for _ in range(10):
-                    id = genera_ID(lunghezza)
-                lunghezza += 1
+        if id == "None":
+            id = '#' + str(len(clients))
             socket.sendto(id, client_address)
         else:
-            clients[id] = client_address
+            clients[id] = (client_address, messaggio['username'])
         print(f"\nAggiunto {messaggio['nome']} ai client, indirizzo: {client_address}")
 
 
-    # Unione ad un gruppo da parte di un client, in caso il gruppo non esiste viene creato
+    # Unione a un gruppo da parte di un client, in caso il gruppo non esiste viene creato
     elif comando == "unisci_gruppo":
         print("\n")
         if not messaggio["nome_gruppo"] in clients:
@@ -56,23 +53,23 @@ def handle_client(socket, data, client_address):
         print(f"Si è unito al gruppo {messaggio['nome_gruppo']} {client_address}")
         clients[messaggio["nome_gruppo"]].append(client_address)
 
-    # Inoltro di un messaggio ad un altro client o gruppo
+    # Inoltro di un messaggio a un altro client o gruppo
     elif comando == "messaggio" and messaggio["destinatario"] in clients:
 
         destination_address = clients[messaggio["destinatario"]]
-        print(f"\nDestinazione del pacchatto: {destination_address}")
+        print(f"\nDestinazione del pacchetto: {destination_address}")
         dati_nuovi = {
             "mittente": messaggio["mittente"],
             "messaggio": messaggio["messaggio"],
         }
-        #Invio dei messaggi ad un gruppo
+        #Invio dei messaggi a un gruppo
         if type(destination_address) is list:
 
             for destinazione in destination_address:
                 if destinazione != client_address:
                     print(f"[{client_address}] ha inviato: {dati_nuovi} a {destinazione}")
                     socket.sendto(json.dumps(dati_nuovi).encode(), destinazione)
-        #Invio ad un singolo client
+        #Invio a un singolo client
         else:
             print(f"[{client_address}] ha inviato: {dati_nuovi} a {destination_address}")
             socket.sendto(json.dumps(dati_nuovi).encode(), destination_address)

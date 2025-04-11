@@ -39,10 +39,13 @@ class ChatScreen(Screen, utente):
             coda_manda_msg.put(azione)
 
 
-    def receive_message(self):
+    def receive_message(self, utente):
         ricevuto = coda_arrivo_msg.get(block=False, timeout=1)
         if ricevuto:
-            self.chat_history += ricevuto
+            if ricevuto[0] == '#':
+                utente.set_id(ricevuto)
+            else:
+                self.chat_history += ricevuto
 
 
 class ChatApp(App):

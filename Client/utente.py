@@ -7,7 +7,7 @@ class utente:
             f = open(percorso,"r")
             self.__id = f.read()
         except FileNotFoundError:
-            self.__id = None
+            self.__id = "None"
 
     def set_nome(self, nome):
         self.__nome = nome
