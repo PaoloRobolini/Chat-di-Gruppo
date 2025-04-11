@@ -1,0 +1,65 @@
+<LoginScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 40
+        spacing: 20
+
+        Label:
+            text: "Benvenuto in Terroni2!"
+            font_size: 32
+            size_hint_y: None
+            height: 50
+
+        TextInput:
+            id: username_input
+            hint_text: "Inserisci il tuo nome"
+            multiline: False
+            font_size: 20
+
+        Button:
+            text: "Entra in chat"
+            font_size: 20
+            size_hint_y: None
+            height: 50
+            on_release: root.login()
+
+<ChatScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+
+        Label:
+            text: "Chat - Utente: " + root.username
+            font_size: 24
+            size_hint_y: None
+            height: 40
+
+        ScrollView:
+            size_hint_y: 0.8
+            do_scroll_x: False
+            do_scroll_y: True
+
+            Label:
+                id: chat_label
+                text: root.chat_history
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+                halign: 'left'
+                valign: 'top'
+                padding: 10, 10
+
+        BoxLayout:
+            size_hint_y: None
+            height: 50
+            spacing: 10
+
+            TextInput:
+                id: message_input
+                hint_text: "Scrivi un messaggio..."
+                multiline: False
+
+            Button:
+                text: "Invia"
+                on_release: root.send_message()
