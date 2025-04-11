@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+<<<<<<< HEAD
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (Chat-di-Gruppo)" project-jdk-type="Python SDK" />
+=======
+  <component name="Black">
+    <option name="sdkName" value="Python 3.11 (raylib_e_arduino)" />
+  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (Chat-di-Gruppo)" project-jdk-type="Python SDK" />
+>>>>>>> a9e5bb849798c64f2fb81d3cfb1919e79ffb7dac
 </project>
