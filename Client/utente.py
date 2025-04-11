@@ -1,9 +1,16 @@
 class utente:
-    def __init__(self, nome):
+    def __init__(self, nome=""):
+        self.__nome = nome
+        self.__destinatario = None
+
+    def set_nome(self, nome):
         self.__nome = nome
 
     def get_nome(self):
         return self.__nome
+
+    def set_destinatario(self, destinatario):
+        self.__destinatario = destinatario
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -13,7 +20,7 @@ class utente:
             return {
                 "comando": "messaggio",
                 "mittente": self.__nome,
-                "destinatario": kwargs["destinatario"],
+                "destinatario": self.__destinatario,
                 "messaggio": kwargs["messaggio"]
             }
 
