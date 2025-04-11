@@ -20,6 +20,7 @@ class LoginScreen(Screen, utente):
         username = self.ids.username_input.text.strip()
         if username:
             utente.set_nome(self,username)
+            coda_manda_msg.put(utente.crea_azione(self,comando="registrazione"))
             chat_screen = self.manager.get_screen('chat')
             chat_screen.username = username
             self.manager.current = 'chat'
@@ -35,7 +36,8 @@ class ChatScreen(Screen, utente):
             self.chat_history += f"\n{self.username} > {message}"
             self.ids.message_input.text = ""
             azione = utente.crea_azione(self,comando="messaggio", messaggio=message)
-            coda_arrivo_msg.put(azione)
+            coda_manda_msg.put(azione)
+
 
     def receive_message(self):
         ricevuto = coda_arrivo_msg.get(block=False, timeout=1)
@@ -80,8 +82,11 @@ if __name__ == '__main__':
             s.sendto(json.dumps(messaggio).encode(), server)
 
 
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     thread_ricevi = threading.Thread(target=ricevi_messaggi, args=())
     thread_ricevi.start()
+    thread_manda = threading.Thread(target=manda_messaggi, args=())
+    thread_manda.start()
 
     ChatApp().run()

@@ -5,7 +5,7 @@ import os
 from sys import orig_argv
 
 # Parametri server
-HOST = '26.21.230.217'  # radmin PC BAOLO
+HOST = "26.21.230.217"  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
@@ -91,11 +91,12 @@ def handle_client(socket, data, client_address):
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_socket.bind(server_address)
 
-print(f"[SERVER] In ascolto su {server_address}...")
+print(f"[SERVER] In ascolto su {server_address}")
 
 # Loop per accettare connessioni
 while True:
     data, client_address = server_socket.recvfrom(1024)
+    print(f"[SERVER] {client_address}: {data.decode()}")
     if  data and client_address:
         client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
         client_thread.daemon = True
