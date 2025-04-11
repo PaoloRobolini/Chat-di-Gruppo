@@ -3,14 +3,20 @@ import socket
 import threading
 import os
 from sys import orig_argv
+import string
+import random
 
 # Parametri server
 HOST = "26.21.230.217"  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
-client = {}
+clients = {}
 
+def genera_ID(lunghezza):
+    caratteri = string.ascii_uppercase + string.digits
+    stringa_casuale = b'#'.join(random.choice(caratteri) for _ in range(lunghezza))
+    return stringa_casuale
 
 # Funzione per gestire ogni client connesso
 def handle_client(socket, data, client_address):
@@ -25,25 +31,35 @@ def handle_client(socket, data, client_address):
     comando = messaggio['comando']
 
     # Aggiunta di un nuovo client al dizionario client
-    if comando == "registrazione" and messaggio["nome"] not in client:
-        client[messaggio["nome"]] = client_address
+    if comando == "registrazione":
+        id = messaggio["id"]
+        if id == "None" or id is None:
+            lunghezza = 10
+            id = genera_ID(lunghezza)
+            while id in clients:
+                for _ in range(10):
+                    id = genera_ID(lunghezza)
+                lunghezza += 1
+            socket.sendto(id, client_address)
+        else:
+            clients[id] = client_address
         print(f"\nAggiunto {messaggio['nome']} ai client, indirizzo: {client_address}")
 
 
     # Unione ad un gruppo da parte di un client, in caso il gruppo non esiste viene creato
     elif comando == "unisci_gruppo":
         print("\n")
-        if not messaggio["nome_gruppo"] in client:
-            client[messaggio["nome_gruppo"]] = []
+        if not messaggio["nome_gruppo"] in clients:
+            clients[messaggio["nome_gruppo"]] = []
             print(f"creato il gruppo {messaggio['nome_gruppo']}")
 
         print(f"Si è unito al gruppo {messaggio['nome_gruppo']} {client_address}")
-        client[messaggio["nome_gruppo"]].append(client_address)
+        clients[messaggio["nome_gruppo"]].append(client_address)
 
     # Inoltro di un messaggio ad un altro client o gruppo
-    elif comando == "messaggio" and messaggio["destinatario"] in client:
+    elif comando == "messaggio" and messaggio["destinatario"] in clients:
 
-        destination_address = client[messaggio["destinatario"]]
+        destination_address = clients[messaggio["destinatario"]]
         print(f"\nDestinazione del pacchatto: {destination_address}")
         dati_nuovi = {
             "mittente": messaggio["mittente"],

@@ -2,6 +2,12 @@ class utente:
     def __init__(self, nome=""):
         self.__nome = nome
         self.__destinatario = None
+        percorso = "id.txt"
+        try:
+            f = open(percorso,"r")
+            self.__id = f.read()
+        except FileNotFoundError:
+            self.__id = None
 
     def set_nome(self, nome):
         self.__nome = nome
@@ -36,5 +42,5 @@ class utente:
             #print("Mi registro nel server")
             return {
                 "comando": "registrazione",
-                "nome": self.__nome,
+                "id": self.__id,
             }

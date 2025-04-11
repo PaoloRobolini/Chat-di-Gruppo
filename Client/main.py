@@ -85,8 +85,9 @@ if __name__ == '__main__':
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     thread_ricevi = threading.Thread(target=ricevi_messaggi, args=())
-    thread_ricevi.start()
     thread_manda = threading.Thread(target=manda_messaggi, args=())
+
+    thread_ricevi.start()
     thread_manda.start()
 
     ChatApp().run()
