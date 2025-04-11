@@ -2,7 +2,6 @@ import json
 import multiprocessing
 import socket
 import threading
-from multiprocessing import Queue
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -11,22 +10,26 @@ from kivy.lang import Builder
 from utente import utente
 
 Builder.load_file("chat.kv")
-server = ("26.21.230.217", 65432)
+ip_server = "127.0.0.1"
+porta_server = 65432
+server = (ip_server, porta_server)
 coda_arrivo_msg = multiprocessing.Queue()
 coda_manda_msg = multiprocessing.Queue()
 
-class LoginScreen(Screen, utente):
+global user
+
+class LoginScreen(Screen):
     def login(self):
         username = self.ids.username_input.text.strip()
         if username:
-            utente.set_nome(self,username)
-            coda_manda_msg.put(utente.crea_azione(self,comando="registrazione"))
+            user = utente(nome=username)
+            coda_manda_msg.put(user.crea_azione(comando="registrazione"))
             chat_screen = self.manager.get_screen('chat')
             chat_screen.username = username
             self.manager.current = 'chat'
 
 
-class ChatScreen(Screen, utente):
+class ChatScreen(Screen):
     username = StringProperty("")
     chat_history = StringProperty("")
 
@@ -35,22 +38,23 @@ class ChatScreen(Screen, utente):
         if message:
             self.chat_history += f"\n{self.username} > {message}"
             self.ids.message_input.text = ""
-            azione = utente.crea_azione(self,comando="messaggio", messaggio=message)
+            azione = user.crea_azione(comando="messaggio", messaggio=message)
             coda_manda_msg.put(azione)
 
 
-    def receive_message(self, utente):
+    def receive_message(self):
         ricevuto = coda_arrivo_msg.get(block=False, timeout=1)
         if ricevuto:
-            if ricevuto[0] == '#':
-                utente.set_id(ricevuto)
-            else:
+            print(ricevuto)
+            try:
+                id_ricevuto = ricevuto['id']
+                user.set_id(id_ricevuto)
+            except KeyError:
                 self.chat_history += ricevuto
 
 
 class ChatApp(App):
     def build(self):
-        self.utente = utente()
         sm = ScreenManager()
         sm.add_widget(LoginScreen(name='login'))
         sm.add_widget(ChatScreen(name='chat'))
@@ -69,12 +73,12 @@ if __name__ == '__main__':
                 # Decodifica e processa il messaggio
                 try:
                     messaggio = json.loads(messaggio)
+                    print(messaggio)
                     if "mittente" in messaggio:  # Verifica che sia un messaggio valido
                         coda_arrivo_msg.put(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
 
                 except json.decoder.JSONDecodeError:
                     coda_arrivo_msg.put("Errore: messaggio non valido")
-
             except ConnectionResetError as e:
                 coda_arrivo_msg.put(f"Errore nella ricezione: {e}")
                 pass

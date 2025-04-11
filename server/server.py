@@ -7,7 +7,7 @@ import string
 import random
 
 # Parametri server
-HOST = "26.21.230.217"  # radmin PC BAOLO
+HOST = "127.0.0.1"  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
@@ -36,8 +36,8 @@ def handle_client(socket, data, client_address):
     if comando == "registrazione":
         id = messaggio["id"]
         if id == "None":
-            id = '#' + str(len(clients))
-            socket.sendto(id, client_address)
+            id = {"id" : '#' + str(len(clients))}
+            socket.sendto(json.dumps(id).encode(), client_address)
         else:
             clients[id] = (client_address, messaggio['username'])
         print(f"\nAggiunto {messaggio['nome']} ai client, indirizzo: {client_address}")

@@ -5,9 +5,16 @@ class utente:
         percorso = "id.txt"
         try:
             f = open(percorso,"r")
-            self.__id = f.read()
+            id_letto = f.readline()
+            self.__id = id_letto if id_letto else "None"
         except FileNotFoundError:
             self.__id = "None"
+
+    def set_id(self, nuovo_id):
+        self.__id = nuovo_id
+        with open("id.txt", 'w') as file:
+            file.write(nuovo_id)
+            file.close()
 
     def set_nome(self, nome):
         self.__nome = nome
@@ -43,4 +50,5 @@ class utente:
             return {
                 "comando": "registrazione",
                 "id": self.__id,
+                "nome": self.__nome
             }
