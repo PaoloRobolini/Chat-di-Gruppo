@@ -5,8 +5,10 @@ import threading
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.properties import StringProperty
+from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
@@ -23,6 +25,7 @@ class LoginScreen(Screen):
         mail = self.ids.mail.text.strip()
         password = self.ids.password.text.strip()
         if mail and password:
+            global user
             user = utente(mail=mail, password=password)
             coda_manda_msg.put(user.crea_azione(comando="login"))
 
@@ -68,7 +71,7 @@ class LoginScreen(Screen):
                 chat = datachat.decode()
                 chat = json.loads(chat)
 
-                with open(nome_file, 'w') as file:
+                with open("datiChat/" + nome_file, 'w') as file:
                     json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
 
@@ -81,6 +84,7 @@ class SigninScreen(Screen):
         mail = self.ids.mail.text.strip()
         password = self.ids.password.text.strip()
         if username and mail and password:
+            global user
             user = utente(mail=mail, password=password, username=username)
             coda_manda_msg.put(user.crea_azione(comando="signin"))
 
@@ -121,6 +125,28 @@ class SigninScreen(Screen):
 class ChatScreen(Screen):
     username = StringProperty("")
     chat_history = StringProperty("")
+    contact_buttons = ListProperty([])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.contact_list_layout = None
+
+    def on_kv_post(self, base_widget):
+        self.contact_list_layout = self.ids.contact_list_sidebar
+
+    def on_contact_buttons(self, instance, value):
+        layout = self.ids.contact_list_sidebar
+        if layout:
+            self.contact_list_layout = layout # Assicurati che self.contact_list_layout sia aggiornato
+            self.contact_list_layout.clear_widgets()
+            for contact in self.contact_buttons:
+                btn = Button(text=contact, size_hint=(None, None), size=(50, 50))
+                btn.bind(on_press=self.on_contact_button_click)
+                self.contact_list_layout.add_widget(btn)
+
+    def on_contact_button_click(self, instance):
+        print(f"Hai cliccato sul contatto: {instance.text}")
+
 
     def send_message(self):
         message = self.ids.message_input.text.strip()
@@ -132,22 +158,34 @@ class ChatScreen(Screen):
 
 
     def receive_message(self):
-        ricevuto = coda_arrivo_msg.get(block=False, timeout=1)
-        if ricevuto:
-            print(ricevuto)
-            try:
-                id_ricevuto = ricevuto['id']
-                user.set_id(id_ricevuto)
-            except KeyError:
-                self.chat_history += ricevuto
+        try:
+            ricevuto = coda_arrivo_msg.get(block=False)
+            if ricevuto:
+                print(ricevuto)
+                try:
+                    id_ricevuto = ricevuto['id']
+                    global user
+                    user.set_id(id_ricevuto)
+                except KeyError:
+                    self.chat_history += ricevuto
+        except multiprocessing.Queue.Empty:
+            pass
 
     def aggiungicontatto(self):
-        chat_screen = self.manager.get_screen('aggiungicontatto')
         self.manager.current = 'aggiungicontatto'
 
+    def aggiungi_nuovo_contatto(self, contatto):
+        if contatto not in self.contact_buttons:
+            self.contact_buttons.append(contatto)
+
 class AggiungiContatto(Screen):
-    def aggiungi_contatto(self):
-        ...
+    def aggiungicontatto(self):
+        nuovo_contatto = self.ids.contatto.text.strip()
+        if nuovo_contatto:
+            chat_screen = self.manager.get_screen('chat')
+            chat_screen.aggiungi_nuovo_contatto(nuovo_contatto)
+            self.ids.contatto.text = ""
+            self.manager.current = 'chat'
 
 
 class ChatApp(App):
