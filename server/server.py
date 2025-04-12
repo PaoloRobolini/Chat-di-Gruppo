@@ -1,5 +1,6 @@
 import json
 import socket
+import struct
 import threading
 import os
 from sys import orig_argv
@@ -53,6 +54,37 @@ def handle_client(socket, data, client_address):
         else:
             socket.sendto(b"1", client_address)
         print("ho mandato i dati")
+
+        #manda dati chat contatti e gruppi
+
+        cartella = os.path.join(os.getcwd(), 'datiChat')
+
+        conta = 0
+
+        for nome_file in os.listdir(cartella):
+            if os.path.isfile(os.path.join(cartella, nome_file)):
+                if username_trovato in nome_file:
+                    conta += 1
+
+
+        data = str(conta)
+        socket.sendto(data.encode(), client_address)
+
+        for nome_file in os.listdir(cartella):
+            if os.path.isfile(os.path.join(cartella, nome_file)):
+                if username_trovato in nome_file:
+                    print(nome_file)
+                    with open("datiChat/" + nome_file, 'r') as file:
+                        dati = json.load(file)
+                        print("ho preso i dati del file")
+                        socket.sendto(json.dumps(nome_file).encode(), client_address)
+                        print("ho mandato il nome del file")
+                        socket.sendto(json.dumps(dati).encode(), client_address)
+                        print("ho mandato i dati del file")
+
+
+
+
 
     elif comando == "signin":
         username = messaggio["username"]

@@ -52,6 +52,29 @@ class LoginScreen(Screen):
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
 
+            #ricezione chat
+
+            data, addr = s.recvfrom(1024)
+            reply = data.decode()
+
+            print(reply)
+
+            for _ in range(int(reply)):
+                datachat, addr = s.recvfrom(1024)
+                nome_file = datachat.decode()
+                nome_file = nome_file.replace('"', '').replace("'", "")
+
+                datachat, addr = s.recvfrom(1024)
+                chat = datachat.decode()
+                chat = json.loads(chat)
+
+                with open(nome_file, 'w') as file:
+                    json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
+
+
+
+
+
 class SigninScreen(Screen):
     def signin(self):
         username = self.ids.username.text
@@ -118,6 +141,14 @@ class ChatScreen(Screen):
             except KeyError:
                 self.chat_history += ricevuto
 
+    def aggiungicontatto(self):
+        chat_screen = self.manager.get_screen('aggiungicontatto')
+        self.manager.current = 'aggiungicontatto'
+
+class AggiungiContatto(Screen):
+    def aggiungi_contatto(self):
+        ...
+
 
 class ChatApp(App):
     def build(self):
@@ -125,6 +156,7 @@ class ChatApp(App):
         sm.add_widget(LoginScreen(name='login'))
         sm.add_widget(ChatScreen(name='chat'))
         sm.add_widget(SigninScreen(name='signin'))
+        sm.add_widget(AggiungiContatto(name='aggiungicontatto'))
         return sm
 
 

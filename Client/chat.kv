@@ -78,41 +78,103 @@
 
 <ChatScreen>:
     BoxLayout:
-        orientation: 'vertical'
-        padding: 10
-        spacing: 10
+        orientation: 'horizontal'  # Cambiato per ospitare menu laterale
 
-        Label:
-            text: "Chat - Utente: " + root.username
-            font_size: 24
-            size_hint_y: None
-            height: 40
-
-        ScrollView:
-            size_hint_y: 0.8
-            do_scroll_x: False
-            do_scroll_y: True
-
-            Label:
-                id: chat_label
-                text: root.chat_history
-                text_size: self.width, None
-                size_hint_y: None
-                height: self.texture_size[1]
-                halign: 'left'
-                valign: 'top'
-                padding: 10, 10
-
+        # MENU LATERALE A SINISTRA
         BoxLayout:
-            size_hint_y: None
-            height: 50
+            orientation: 'vertical'
+            size_hint_x: None
+            width: 60
             spacing: 10
-
-            TextInput:
-                id: message_input
-                hint_text: "Scrivi un messaggio..."
-                multiline: False
+            padding: 5
 
             Button:
-                text: "Invia"
-                on_release: root.send_message()
+                size_hint: None, None
+                size: 50, 50
+                text: "+"
+                on_release: root.aggiungicontatto()
+
+            Button:
+                size_hint: None, None
+                size: 50, 50
+                text: "1"
+
+            Button:
+                size_hint: None, None
+                size: 50, 50
+                text: "2"
+
+            Button:
+                size_hint: None, None
+                size: 50, 50
+                text: "3"
+
+        # CONTENUTO PRINCIPALE DELLA CHAT
+        BoxLayout:
+            orientation: 'vertical'
+            padding: 10
+            spacing: 10
+
+            Label:
+                text: "Chat - Utente: " + root.username
+                font_size: 24
+                size_hint_y: None
+                height: 40
+
+            ScrollView:
+                size_hint_y: 0.8
+                do_scroll_x: False
+                do_scroll_y: True
+
+                Label:
+                    id: chat_label
+                    text: root.chat_history
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    halign: 'left'
+                    valign: 'top'
+                    padding: 10, 10
+
+            BoxLayout:
+                size_hint_y: None
+                height: 50
+                spacing: 10
+
+                TextInput:
+                    id: message_input
+                    hint_text: "Scrivi un messaggio..."
+                    multiline: False
+
+                Button:
+                    text: "Invia"
+                    on_release: root.send_message()
+
+<AggiungiContatto>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 40
+        spacing: 20
+
+        Label:
+            text: "Aggiungi un contato o unisciti a un gruppo"
+            font_size: 32
+            size_hint_y: None
+            height: 50
+
+        TextInput:
+            id: contatto
+            hint_text: "Inserisci il contatto da aggiungere"
+            font_size: 20
+
+        Label:
+            id: login_data_error
+            text: ""
+            font_size: 20
+
+        Button:
+            text: "aggiungi"
+            font_size: 20
+            size_hint_y: None
+            height: 50
+            on_release: root.aggiungicontatto()
