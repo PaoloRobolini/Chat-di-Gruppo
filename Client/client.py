@@ -4,7 +4,7 @@ import threading
 import utente
 
 nome_utente = input("Inserisci il tuo nome: ")
-utente = utente.utente(nome_utente)
+user = utente.utente(nome_utente)
 server = ("26.21.230.217", 65432)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -52,7 +52,7 @@ def stampa_messaggi_arrivati():
 
 if __name__ == "__main__":
     # Registrazione iniziale
-    s.sendto(json.dumps(utente.crea_azione(comando="registrazione")).encode(), server)
+    s.sendto(json.dumps(user.crea_azione(comando="registrazione")).encode(), server)
 
     # Thread per la ricezione messaggi
     stampa = threading.Thread(target=stampa_messaggi_arrivati, daemon=True)
@@ -78,7 +78,7 @@ if __name__ == "__main__":
             case 0:
                 break
         operazione["comando"] = scegli_operazione
-        azione = utente.crea_azione(**operazione)
+        azione = user.crea_azione(**operazione)
         s.sendto(json.dumps(azione).encode(), server)
 
     print("Disconnessione...")
