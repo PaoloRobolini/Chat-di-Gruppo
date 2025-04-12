@@ -1,14 +1,9 @@
 class utente:
-    def __init__(self, nome=""):
-        self.__nome = nome
+    def __init__(self, mail="", password="", username=""):
+        self.__username = username
+        self.__mail = mail
+        self.__password = password
         self.__destinatario = None
-        percorso = "id.txt"
-        try:
-            f = open(percorso,"r")
-            id_letto = f.readline()
-            self.__id = id_letto if id_letto else "None"
-        except FileNotFoundError:
-            self.__id = "None"
 
     def set_id(self, nuovo_id):
         self.__id = nuovo_id
@@ -27,8 +22,22 @@ class utente:
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
+        if comando == "login":  #si registra presso il server
+            #print("Mi registro nel server")
+            return {
+                "comando": "login",
+                "mail": self.__mail,
+                "password": self.__password
+            }
         #print(comando)
-        if comando == "messaggio":  #crea un messaggio per l'utente
+        elif comando == "signin":
+            return {
+                "comando": "signin",
+                "username": self.__username,
+                "mail": self.__mail,
+                "password": self.__password
+            }
+        elif comando == "messaggio":  #crea un messaggio per l'utente
             #print(f"Invio un messaggio a {kwargs['destinatario']}")
             return {
                 "comando": "messaggio",
@@ -45,10 +54,3 @@ class utente:
                 "nome_utente": self.__nome
             }
 
-        elif comando == "registrazione":  #si registra presso il server
-            #print("Mi registro nel server")
-            return {
-                "comando": "registrazione",
-                "id": self.__id,
-                "nome": self.__nome
-            }

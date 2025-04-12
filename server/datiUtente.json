@@ -1,0 +1,19 @@
+{
+    "utenti": [
+        {
+            "email": "baolo@gmail.com",
+            "password": "baolotrimon",
+            "username": "baolo"
+        },
+        {
+            "email": "terrone@gmail.com",
+            "password": "baolotrimon",
+            "username": "terrone"
+        },
+        {
+            "email": "terrone@",
+            "password": "1234",
+            "username": "baoloso"
+        }
+    ]
+}

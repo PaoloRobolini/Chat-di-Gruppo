@@ -33,14 +33,63 @@ def handle_client(socket, data, client_address):
     comando = messaggio['comando']
 
     # Aggiunta di un nuovo client al dizionario client
-    if comando == "registrazione":
-        id = messaggio["id"]
-        if id == "None":
-            id = {"id" : '#' + str(len(clients))}
-            socket.sendto(json.dumps(id).encode(), client_address)
+    if comando == "login":
+        print("sono entrato nel login")
+        mail = messaggio["mail"]
+        password = messaggio["password"]
+        print("ho preso i dati")
+
+        with open('datiUtente.json', 'r') as file:
+            dati = json.load(file)
+
+        username_trovato = None
+        for utente in dati["utenti"]:
+            if utente["email"] == mail and utente["password"] == password:
+                username_trovato = utente["username"]
+                break
+        print("posso mandare i dati")
+        if username_trovato:
+            socket.sendto(json.dumps(username_trovato).encode(), client_address)
         else:
-            clients[id] = (client_address, messaggio['username'])
-        print(f"\nAggiunto {messaggio['nome']} ai client, indirizzo: {client_address}")
+            socket.sendto(b"1", client_address)
+        print("ho mandato i dati")
+
+    elif comando == "signin":
+        username = messaggio["username"]
+        mail = messaggio["mail"]
+        password = messaggio["password"]
+
+        reply = ""
+
+        with open('datiUtente.json', 'r') as file:
+            dati = json.load(file)
+
+        for utente in dati["utenti"]:
+            if utente["email"] == mail:
+                reply = "1"
+
+        if reply == "1":
+            socket.sendto(reply.encode(), client_address)
+        else:
+            if "@" in mail:
+                reply = "0"
+                #salvataggio nuovo utente su file
+                nuovo_utente = {
+                    "email": mail,
+                    "password": password,
+                    "username": username,
+                }
+                dati["utenti"].append(nuovo_utente)
+
+                with open('datiUtente.json', 'w') as file:
+                    json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
+            else:
+                reply = "2"
+
+        socket.sendto(reply.encode(), client_address)
+
+
+
 
 
     # Unione a un gruppo da parte di un client, in caso il gruppo non esiste viene creato

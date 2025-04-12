@@ -11,17 +11,70 @@
             height: 50
 
         TextInput:
-            id: username_input
-            hint_text: "Inserisci il tuo nome"
-            multiline: False
+            id: mail
+            hint_text: "Inserisci il tuo indirizzo mail"
+            font_size: 20
+
+        TextInput:
+            id: password
+            hint_text: "Inserisci la password"
+            font_size: 20
+
+        Label:
+            id: login_data_error
+            text: ""
             font_size: 20
 
         Button:
-            text: "Entra in chat"
+            text: "Accedi"
             font_size: 20
             size_hint_y: None
             height: 50
             on_release: root.login()
+
+        Button:
+            text: "Non hai un account, registrati!"
+            font_size: 20
+            on_release: app.root.current = "signin"
+
+<SigninScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 40
+        spacing: 20
+
+        Label:
+            text: "Benvenuto in Biscord!"
+            font_size: 32
+            size_hint_y: None
+            height: 50
+
+        TextInput:
+            id: username
+            hint_text: "Inserisci il tuo username"
+            font_size: 20
+
+        TextInput:
+            id: mail
+            hint_text: "Inserisci il tuo indirizzo mail"
+            font_size: 20
+
+        TextInput:
+            id: password
+            hint_text: "Inserisci la password"
+            font_size: 20
+
+        Label:
+            id: signin_data_error
+            text: ""
+            font_size: 20
+
+        Button:
+            text: "Crea account"
+            font_size: 20
+            size_hint_y: None
+            height: 50
+            on_release: root.signin()
 
 <ChatScreen>:
     BoxLayout:
