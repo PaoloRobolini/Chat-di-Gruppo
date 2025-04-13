@@ -4,6 +4,7 @@ import socket
 import threading
 
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
@@ -12,7 +13,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "26.117.59.21"
+ip_server = "26.21.230.217"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -122,7 +123,7 @@ class ChatScreen(Screen):
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
 
-    def on_contact_buttons(self):
+    def on_contact_buttons(self, instance, value):
         self.ids.contact_list_sidebar.clear_widgets()
         for contact in self.contact_buttons:
             btn = Button(text=contact, size_hint=(None, None), size=(50, 50))
@@ -156,32 +157,40 @@ class ChatScreen(Screen):
 
 
     def receive_message(self, messaggio):
+        mittente = messaggio['mittente']
+        nuovo_messaggio = f"\n{mittente} > {messaggio['messaggio']}"
 
-        self.aggiungi_nuovo_contatto(messaggio['mittente'])
-        self.on_contact_buttons()
+        # 1. Aggiornamento lista contatti in modo thread-safe
+        if mittente not in self.contact_buttons:
+            Clock.schedule_once(
+                lambda dt: self.aggiungi_nuovo_contatto(mittente)
+            )
 
+        # 2. Aggiornamento cronologia chat solo se nella conversazione corretta
+        if mittente == user.get_destinatario():
+            Clock.schedule_once(
+                lambda dt: setattr(self, 'chat_history', self.chat_history + nuovo_messaggio)
+            )
 
-        try:
-            chat[messaggio['mittente']]
-        except KeyError:
-            chat[messaggio['mittente']] = ''
-        chat[messaggio['mittente']] += f"{messaggio['mittente']}> {messaggio['messaggio']} \n"
-        if messaggio['mittente'] == user.get_destinatario():
-            self.chat_history = chat[messaggio['mittente']]
-
-
-
-
-
-
+        # 3. Salvataggio messaggio nella struttura dati
+        Clock.schedule_once(
+            lambda dt: self.salva_messaggio(mittente, nuovo_messaggio)
+        )
 
     def aggiungicontatto(self):
         self.manager.current = 'aggiungicontatto'
 
     def aggiungi_nuovo_contatto(self, contatto):
+        # Metodo wrapper per l'aggiunta thread-safe
         if contatto not in self.contact_buttons:
-            self.contact_buttons.append(str(contatto))
-            self.chat_history = ''
+            self.contact_buttons.append(contatto)
+            self.property('contact_buttons').dispatch(self)  # Forza notifica cambio
+
+    def salva_messaggio(self, mittente, messaggio):
+        # Salvataggio nella struttura dati principale
+        if mittente not in chat:
+            chat[mittente] = ""
+        chat[mittente] += messaggio
 
 class AggiungiContatto(Screen):
     def aggiungicontatto(self):
@@ -210,33 +219,20 @@ if __name__ == '__main__':
     def ricevi_messaggi():
         while True:
             try:
-                # Riceve sia i dati che l'indirizzo del mittente
                 data, addr = s.recvfrom(1024)
                 if data:
-                    messaggio = data.decode()
-                    print("messaggio: " + messaggio)
-
-                    # Decodifica e processa il messaggio
                     try:
-                        messaggio = json.loads(messaggio)
-                        print(messaggio)
-                        if "mittente" in messaggio:  # Verifica che sia un messaggio valido
-                            print("c'e` il mittente")
-                            coda_arrivo_msg.put(messaggio)
-                            print(coda_arrivo_msg)
-
-                            app = App.get_running_app()
-                            chat_screen = app.root.get_screen('chat')
-                            chat_screen.receive_message(messaggio)
-
-
-                    except json.decoder.JSONDecodeError:
-                        coda_arrivo_msg.put("Errore: messaggio non valido")
-            except ConnectionResetError as e:
-                coda_arrivo_msg.put(f"Errore nella ricezione: {e}")
+                        messaggio = json.loads(data.decode())
+                        Clock.schedule_once(lambda dt: processa_messaggio(messaggio))
+                    except json.JSONDecodeError:
+                        pass
+            except (OSError, ConnectionResetError):
                 pass
-            except OSError as e:
-                pass
+
+
+    def processa_messaggio(messaggio):
+        chat_screen = App.get_running_app().root.get_screen('chat')
+        chat_screen.receive_message(messaggio)
 
 
     def manda_messaggi():

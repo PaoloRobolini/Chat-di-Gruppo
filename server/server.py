@@ -8,7 +8,7 @@ import string
 import random
 
 # Parametri server
-HOST = "26.117.59.21"  # radmin PC BAOLO
+HOST = "26.21.230.217"
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
@@ -229,8 +229,6 @@ while True:
         data, client_address = server_socket.recvfrom(1024)
         print(f"[SERVER] {client_address}: {data.decode()}")
         if data and client_address:
-            client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
-            client_thread.daemon = True
-            client_thread.start()
+            threading.Thread(target=handle_client, args=(server_socket, data, client_address)).start()
     except ConnectionResetError:
         continue
