@@ -83,6 +83,18 @@ def handle_client(socket, data, client_address):
                         socket.sendto(json.dumps(dati).encode(), client_address)
                         print("ho mandato i dati del file")
 
+        #aggiornamento ip e porta nel file datiutente
+        with open('datiUtente.json', 'r') as file:
+            dati = json.load(file)
+
+        for utente in dati["utenti"]:
+            if utente["email"] == mail:
+                utente["address"] = tuple(client_address)
+
+        with open('datiUtente.json', 'w') as file:
+            json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
+
+
     elif comando == "signin":
         username = messaggio["username"]
         mail = messaggio["mail"]
@@ -107,7 +119,7 @@ def handle_client(socket, data, client_address):
                     "email": mail,
                     "password": password,
                     "username": username,
-                    "ip": client_address,
+                    "address": tuple(client_address),
                 }
                 dati["utenti"].append(nuovo_utente)
 
@@ -149,9 +161,14 @@ def handle_client(socket, data, client_address):
 
         for utente in dati["utenti"]:
             if utente["username"] == destinatario:
-                ip = utente["ip"]
+                ip = utente["address"]
                 ip = tuple(ip)
-                socket.sendto(json.dumps(messaggio).encode(), ip)
+                nuovo_messaggio = {
+                    "mittente" : mittente,
+                    "messaggio" : messaggio
+                }
+                socket.sendto(json.dumps(nuovo_messaggio).encode(), ip)
+                print("ho mandato i dati")
 
 
 
@@ -208,9 +225,12 @@ print(f"[SERVER] In ascolto su {server_address}")
 
 # Loop per accettare connessioni
 while True:
-    data, client_address = server_socket.recvfrom(1024)
-    print(f"[SERVER] {client_address}: {data.decode()}")
-    if  data and client_address:
-        client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
-        client_thread.daemon = True
-        client_thread.start()
+    try:
+        data, client_address = server_socket.recvfrom(1024)
+        print(f"[SERVER] {client_address}: {data.decode()}")
+        if data and client_address:
+            client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
+            client_thread.daemon = True
+            client_thread.start()
+    except ConnectionResetError:
+        continue

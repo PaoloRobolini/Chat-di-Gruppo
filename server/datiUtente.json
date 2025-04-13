@@ -1,66 +1,39 @@
 {
     "utenti": [
         {
-            "email": "baolo@gmail.com",
-            "password": "baolotrimon",
-            "username": "baolo"
-        },
-        {
-            "email": "terrone@gmail.com",
-            "password": "baolotrimon",
-            "username": "terrone"
-        },
-        {
-            "email": "terrone@",
-            "password": "1234",
-            "username": "baoloso"
-        },
-        {
-            "email": "terronegay@gmail.com",
-            "password": "ciao",
-            "username": "ciao"
-        },
-        {
-            "email": "a@",
-            "password": "a",
-            "username": "a"
-        },
-        {
-            "email": "ciao@",
-            "password": "ciao",
-            "username": "ciao"
-        },
-        {
-            "email": "vfd@fsdvfds",
-            "password": "cdssvcds",
-            "username": "mnclods"
-        },
-        {
-            "email": "aa@",
-            "password": "aa",
-            "username": "marco"
-        },
-        {
-            "email": "aaa@",
-            "password": "aaa",
-            "username": "paolo"
-        },
-        {
             "email": "prova1@",
             "password": "prova1",
             "username": "prova1",
-            "ip": [
+            "address": [
                 "127.0.0.1",
-                62690
+                57845
             ]
         },
         {
             "email": "prova2@",
             "password": "prova2",
             "username": "prova2",
-            "ip": [
+            "address": [
                 "127.0.0.1",
-                62691
+                57846
+            ]
+        },
+        {
+            "email": "b@",
+            "password": "b",
+            "username": "b",
+            "address": [
+                "127.0.0.1",
+                61918
+            ]
+        },
+        {
+            "email": "a@",
+            "password": "a",
+            "username": "a",
+            "address": [
+                "127.0.0.1",
+                49822
             ]
         }
     ]

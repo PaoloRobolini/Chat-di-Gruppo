@@ -45,6 +45,7 @@ class LoginScreen(Screen):
                 chat_screen = self.manager.get_screen('chat')
                 chat_screen.username = reply
                 self.manager.current = 'chat'
+                reply = reply.replace('"', '')
                 user.set_nome(reply)
             else:
                 self.ids.login_data_error.text = "mail o password non corrispondono"
@@ -69,6 +70,9 @@ class LoginScreen(Screen):
                 with open("datiChat/" + nome_file, 'w') as file:
                     json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
+            thread_ricevi = threading.Thread(target=ricevi_messaggi)
+
+            thread_ricevi.start()
 
 
 
@@ -95,6 +99,8 @@ class SigninScreen(Screen):
                 chat_screen = self.manager.get_screen('chat')
                 chat_screen.username = username
                 self.manager.current = 'chat'
+                thread_ricevi = threading.Thread(target=ricevi_messaggi)
+                thread_ricevi.start()
             elif reply == "1":
                 self.ids.signin_data_error.text = "la mail e` gia` associata a un account"
                 self.ids.mail.text = ""
@@ -131,25 +137,17 @@ class ChatScreen(Screen):
     def send_message(self):
         message = self.ids.message_input.text.strip()
         if message:
-            self.chat_history += f"\n{self.username} > {message}"
+            self.chat_history += f"\n{user.get_nome()} > {message}"
             self.ids.message_input.text = ""
             azione = user.crea_azione(comando="messaggio", messaggio=message)
             s.sendto(json.dumps(azione).encode(), server)
 
 
-    def receive_message(self):
-        try:
-            ricevuto = coda_arrivo_msg.get(block=False)
-            if ricevuto:
-                print(ricevuto)
-                try:
-                    id_ricevuto = ricevuto['id']
-                    global user
-                    user.set_id(id_ricevuto)
-                except KeyError:
-                    self.chat_history += ricevuto
-        except multiprocessing.Queue.Empty:
-            pass
+    def receive_message(self, messaggio):
+        print("sono entrato nel receivemessage")
+
+        print("ho ricevuto un messaggio: " + messaggio)
+        self.chat_history += messaggio
 
 
     def aggiungicontatto(self):
@@ -188,20 +186,30 @@ if __name__ == '__main__':
             try:
                 # Riceve sia i dati che l'indirizzo del mittente
                 data, addr = s.recvfrom(1024)
-                messaggio = data.decode()
+                if data:
+                    messaggio = data.decode()
+                    print("messaggio: " + messaggio)
 
-                # Decodifica e processa il messaggio
-                try:
-                    messaggio = json.loads(messaggio)
-                    print(messaggio)
-                    if "mittente" in messaggio:  # Verifica che sia un messaggio valido
-                        coda_arrivo_msg.put(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
+                    # Decodifica e processa il messaggio
+                    try:
+                        messaggio = json.loads(messaggio)
+                        print(messaggio)
+                        if "mittente" in messaggio:  # Verifica che sia un messaggio valido
+                            print("c'e` il mittente")
+                            coda_arrivo_msg.put(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
+                            print(coda_arrivo_msg)
+
+                            app = App.get_running_app()
+                            chat_screen = app.root.get_screen('chat')
+                            chat_screen.receive_message(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
 
 
-                except json.decoder.JSONDecodeError:
-                    coda_arrivo_msg.put("Errore: messaggio non valido")
+                    except json.decoder.JSONDecodeError:
+                        coda_arrivo_msg.put("Errore: messaggio non valido")
             except ConnectionResetError as e:
                 coda_arrivo_msg.put(f"Errore nella ricezione: {e}")
+                pass
+            except OSError as e:
                 pass
 
 
@@ -210,11 +218,6 @@ if __name__ == '__main__':
         s.sendto(json.dumps(messaggio).encode(), server)
 
 
-    thread_ricevi = threading.Thread(target=ricevi_messaggi, args=())
-    #thread_manda = threading.Thread(target=manda_messaggi, args=())
-
-    thread_ricevi.start()
-    #thread_manda.start()
 
 
     ChatApp().run()
