@@ -8,7 +8,7 @@ import string
 import random
 
 # Parametri server
-HOST = "127.0.0.1"  # radmin PC BAOLO
+HOST = "26.117.59.21"  # radmin PC BAOLO
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()

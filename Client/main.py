@@ -12,7 +12,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "127.0.0.1"
+ip_server = "26.117.59.21"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -20,6 +20,8 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 coda_arrivo_msg = multiprocessing.Queue()
 coda_manda_msg = multiprocessing.Queue()
+
+chat = {}
 
 global user
 
@@ -133,6 +135,8 @@ class ChatScreen(Screen):
         user.set_destinatario(testo)
         self.selected_contact = f"Chat con {testo}"
 
+        self.chat_history = chat[testo]
+
 
     def send_message(self):
         message = self.ids.message_input.text.strip()
@@ -144,10 +148,12 @@ class ChatScreen(Screen):
 
 
     def receive_message(self, messaggio):
-        print("sono entrato nel receivemessage")
-
         print("ho ricevuto un messaggio: " + messaggio)
-        self.chat_history += messaggio
+        if not chat[messaggio['mittente']]:
+            chat[messaggio['mittente']] = ''
+        chat[messaggio['mittente']] += messaggio['messaggio']
+
+
 
 
     def aggiungicontatto(self):
@@ -196,12 +202,12 @@ if __name__ == '__main__':
                         print(messaggio)
                         if "mittente" in messaggio:  # Verifica che sia un messaggio valido
                             print("c'e` il mittente")
-                            coda_arrivo_msg.put(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
+                            coda_arrivo_msg.put(messaggio)
                             print(coda_arrivo_msg)
 
                             app = App.get_running_app()
                             chat_screen = app.root.get_screen('chat')
-                            chat_screen.receive_message(f"\nMessaggio da {messaggio['mittente']} > {messaggio['messaggio']}")
+                            chat_screen.receive_message(messaggio)
 
 
                     except json.decoder.JSONDecodeError:
