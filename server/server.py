@@ -6,6 +6,7 @@ import os
 from sys import orig_argv
 import string
 import random
+from tempfile import NamedTemporaryFile
 
 # Parametri server
 HOST = "26.21.230.217"
@@ -13,6 +14,115 @@ PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
 clients = {}
+
+def genera_nome_file(nome1, nome2):
+    sorted_names = sorted([nome1, nome2])
+    return f"{sorted_names[0]}_{sorted_names[1]}.json"
+
+
+# Aggiungi queste variabili globali in cima al codice
+lock_for_locks = threading.Lock()
+locks_chat = {}
+open_handles = {}
+
+
+# Modifica la funzione salva_messaggio
+def salva_messaggio(cartella_chat, nuovo_messaggio):
+    if not {'mittente', 'messaggio', 'destinatario'}.issubset(nuovo_messaggio):
+        raise ValueError("Messaggio non valido")
+
+    nome_file = genera_nome_file(nuovo_messaggio['mittente'], nuovo_messaggio['destinatario'])
+    percorso = os.path.join(cartella_chat, nome_file)
+    os.makedirs(cartella_chat, exist_ok=True)
+
+    # Ottieni il lock specifico per questo file
+    with lock_for_locks:
+        if nome_file not in locks_chat:
+            locks_chat[nome_file] = threading.Lock()
+        file_lock = locks_chat[nome_file]
+
+    with file_lock:
+        try:
+            # Carica i dati esistenti
+            dati = {'chat': []}
+            if os.path.exists(percorso):
+                with open(percorso, 'r') as f:
+                    try:
+                        dati = json.load(f)
+                        if not isinstance(dati.get('chat'), list):
+                            raise ValueError("Formato file non valido")
+                    except json.JSONDecodeError:
+                        os.remove(percorso)
+                        dati = {'chat': []}
+
+            # Aggiungi nuovo messaggio
+            dati['chat'].append({
+                'mittente': nuovo_messaggio['mittente'].strip(),
+                'messaggio': nuovo_messaggio['messaggio'].strip()
+            })
+
+            # Scrittura atomica con gestione esplicita degli handle
+            temp_path = ''
+            try:
+                with NamedTemporaryFile('w', dir=cartella_chat, delete=False, encoding='utf-8') as tmp:
+                    temp_path = tmp.name
+                    json.dump(dati, tmp, indent=4)
+                    tmp.flush()  # Forza lo svuotamento del buffer
+
+                # Sostituzione atomica del file
+                os.replace(temp_path, percorso)
+
+            except Exception as e:
+                print(f"Errore durante il salvataggio: {e}")
+                if temp_path and os.path.exists(temp_path):
+                    os.remove(temp_path)
+                raise
+
+        except Exception as e:
+            print(f"Errore critico durante il salvataggio: {e}")
+
+    # Pulizia periodica dei lock (opzionale)
+    with lock_for_locks:
+        if nome_file not in open_handles:
+            del locks_chat[nome_file]
+
+
+# Modifica la funzione manda_chat_client
+def manda_chat_client(socket, username, client_address):
+    cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
+    os.makedirs(cartella_chat, exist_ok=True)
+
+    files_chat = [
+        f for f in os.listdir(cartella_chat)
+        if os.path.isfile(os.path.join(cartella_chat, f)) and username in f
+    ]
+
+    socket.sendto(str(len(files_chat)).encode(), client_address)
+
+    for nome_file in files_chat:
+        file_path = os.path.join(cartella_chat, nome_file)
+
+        # Ottieni il lock per questo file
+        with lock_for_locks:
+            if nome_file not in locks_chat:
+                locks_chat[nome_file] = threading.Lock()
+            file_lock = locks_chat[nome_file]
+
+        with file_lock:
+            try:
+                # Apri il file in modalità read con contest manager
+                with open(file_path, 'r') as f:
+                    dati = json.load(f)
+
+                # Invia i dati
+                socket.sendto(nome_file.encode(), client_address)
+                socket.sendto(json.dumps(dati).encode(), client_address)
+                print(f"Inviato: {nome_file}")
+
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"Errore lettura {nome_file}: {str(e)}")
+                continue
+
 
 # Funzione per gestire ogni client connesso
 def handle_client(socket, data, client_address):
@@ -50,31 +160,7 @@ def handle_client(socket, data, client_address):
         print("ho mandato i dati")
 
         #manda dati chat contatti e gruppi
-
-        cartella = os.path.join(os.getcwd(), 'datiChat')
-
-        conta = 0
-
-        for nome_file in os.listdir(cartella):
-            if os.path.isfile(os.path.join(cartella, nome_file)):
-                if username_trovato in nome_file:
-                    conta += 1
-
-
-        data = str(conta)
-        socket.sendto(data.encode(), client_address)
-
-        for nome_file in os.listdir(cartella):
-            if os.path.isfile(os.path.join(cartella, nome_file)):
-                if username_trovato in nome_file:
-                    print(nome_file)
-                    with open("datiChat/" + nome_file, 'r') as file:
-                        dati = json.load(file)
-                        print("ho preso i dati del file")
-                        socket.sendto(json.dumps(nome_file).encode(), client_address)
-                        print("ho mandato il nome del file")
-                        socket.sendto(json.dumps(dati).encode(), client_address)
-                        print("ho mandato i dati del file")
+        manda_chat_client(socket, username_trovato, client_address)
 
         #aggiornamento ip e porta nel file datiutente
         with lock_datiUtente:
@@ -148,46 +234,26 @@ def handle_client(socket, data, client_address):
 
     elif comando == "messaggio":
 
-        mittente = messaggio["mittente"]
         destinatario = messaggio["destinatario"]
-        messaggio = messaggio["messaggio"]
 
+        nuovo_messaggio = {
+            "mittente": messaggio["mittente"],
+            "destinatario": destinatario,
+            "messaggio": messaggio["messaggio"]
+        }
 
         with open('datiUtente.json', 'r') as file:
             dati = json.load(file)
 
         for utente in dati["utenti"]:
             if utente["username"] == destinatario:
-                ip = utente["address"]
-                ip = tuple(ip)
-                nuovo_messaggio = {
-                    "mittente" : mittente,
-                    "messaggio" : messaggio
-                }
-                socket.sendto(json.dumps(nuovo_messaggio).encode(), ip)
+                socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
                 print("ho mandato i dati")
 
-
-
         #cerco di salvare su file parte
-        cartella = os.path.join(os.getcwd(), 'datiChat')
+        salva_messaggio('datiChat', nuovo_messaggio)
 
-        for nome_file in os.listdir(cartella):
-            if os.path.isfile(os.path.join(cartella, nome_file)):
-                if mittente and destinatario in nome_file:
-                    print(nome_file)
-                    with open("datiChat/" + nome_file, 'r') as file:
-                        dati = json.load(file)
-                        nuovo_messaggio = {
-                            "mittente": mittente,
-                            "messsaggio": messaggio,
-                        }
-                        dati["chat"].append(nuovo_messaggio)
-                        print("ho preso i dati da mettere nel file")
 
-                        with open(nome_file, 'w') as file:
-                            json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
-                        print("li ho messi nel file")
 
 
         # cerco di salvare il messaggio boh
