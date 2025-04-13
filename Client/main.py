@@ -135,6 +135,7 @@ class ChatScreen(Screen):
         user.set_destinatario(testo)
         self.selected_contact = f"Chat con {testo}"
 
+        testo = testo.remove("'")
         self.chat_history = chat[testo]
 
 
