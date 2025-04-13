@@ -12,10 +12,10 @@ class utente:
             file.close()
 
     def set_nome(self, nome):
-        self.__nome = nome
+        self.__username = nome
 
     def get_nome(self):
-        return self.__nome
+        return self.__username
 
     def set_destinatario(self, destinatario):
         self.__destinatario = destinatario
@@ -41,7 +41,7 @@ class utente:
             #print(f"Invio un messaggio a {kwargs['destinatario']}")
             return {
                 "comando": "messaggio",
-                "mittente": self.__nome,
+                "mittente": self.__username,
                 "destinatario": self.__destinatario,
                 "messaggio": kwargs["messaggio"]
             }
@@ -51,6 +51,6 @@ class utente:
             return {
                 "comando": "unisci_gruppo",
                 "nome_gruppo": kwargs["nome_gruppo"],
-                "nome_utente": self.__nome
+                "nome_utente": self.__username,
             }
 

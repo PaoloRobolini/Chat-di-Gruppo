@@ -82,10 +82,6 @@ def handle_client(socket, data, client_address):
                         socket.sendto(json.dumps(dati).encode(), client_address)
                         print("ho mandato i dati del file")
 
-
-
-
-
     elif comando == "signin":
         username = messaggio["username"]
         mail = messaggio["mail"]
