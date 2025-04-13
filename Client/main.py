@@ -134,7 +134,7 @@ class ChatScreen(Screen):
             self.chat_history += f"\n{self.username} > {message}"
             self.ids.message_input.text = ""
             azione = user.crea_azione(comando="messaggio", messaggio=message)
-            coda_manda_msg.put(azione)
+            s.sendto(json.dumps(azione).encode(), server)
 
 
     def receive_message(self):
@@ -150,6 +150,7 @@ class ChatScreen(Screen):
                     self.chat_history += ricevuto
         except multiprocessing.Queue.Empty:
             pass
+
 
     def aggiungicontatto(self):
         self.manager.current = 'aggiungicontatto'
@@ -172,8 +173,8 @@ class ChatApp(App):
     def build(self):
         sm = ScreenManager()
         sm.add_widget(LoginScreen(name='login'))
-        sm.add_widget(ChatScreen(name='chat'))
         sm.add_widget(SigninScreen(name='signin'))
+        sm.add_widget(ChatScreen(name='chat'))
         sm.add_widget(AggiungiContatto(name='aggiungicontatto'))
         return sm
 
@@ -205,16 +206,15 @@ if __name__ == '__main__':
 
 
     def manda_messaggi():
-        while True:
-            messaggio = coda_manda_msg.get()
-            s.sendto(json.dumps(messaggio).encode(), server)
+        messaggio = coda_manda_msg.get()
+        s.sendto(json.dumps(messaggio).encode(), server)
 
 
     thread_ricevi = threading.Thread(target=ricevi_messaggi, args=())
-    thread_manda = threading.Thread(target=manda_messaggi, args=())
+    #thread_manda = threading.Thread(target=manda_messaggi, args=())
 
     thread_ricevi.start()
-    thread_manda.start()
+    #thread_manda.start()
 
 
     ChatApp().run()

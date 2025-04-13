@@ -44,6 +44,24 @@
             "email": "aaa@",
             "password": "aaa",
             "username": "paolo"
+        },
+        {
+            "email": "prova1@",
+            "password": "prova1",
+            "username": "prova1",
+            "ip": [
+                "127.0.0.1",
+                62690
+            ]
+        },
+        {
+            "email": "prova2@",
+            "password": "prova2",
+            "username": "prova2",
+            "ip": [
+                "127.0.0.1",
+                62691
+            ]
         }
     ]
 }
