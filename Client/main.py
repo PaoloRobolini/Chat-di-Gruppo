@@ -122,7 +122,7 @@ class ChatScreen(Screen):
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
 
-    def on_contact_buttons(self, instance, value):
+    def on_contact_buttons(self):
         self.ids.contact_list_sidebar.clear_widgets()
         for contact in self.contact_buttons:
             btn = Button(text=contact, size_hint=(None, None), size=(50, 50))
@@ -156,11 +156,21 @@ class ChatScreen(Screen):
 
 
     def receive_message(self, messaggio):
-        if not chat[messaggio['mittente']]:
+
+        self.aggiungi_nuovo_contatto(messaggio['mittente'])
+        self.on_contact_buttons()
+
+
+        try:
+            chat[messaggio['mittente']]
+        except KeyError:
             chat[messaggio['mittente']] = ''
         chat[messaggio['mittente']] += f"{messaggio['mittente']}> {messaggio['messaggio']} \n"
         if messaggio['mittente'] == user.get_destinatario():
             self.chat_history = chat[messaggio['mittente']]
+
+
+
 
 
 
@@ -170,7 +180,7 @@ class ChatScreen(Screen):
 
     def aggiungi_nuovo_contatto(self, contatto):
         if contatto not in self.contact_buttons:
-            self.contact_buttons.append(contatto)
+            self.contact_buttons.append(str(contatto))
             self.chat_history = ''
 
 class AggiungiContatto(Screen):
