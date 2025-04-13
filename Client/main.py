@@ -145,7 +145,11 @@ class ChatScreen(Screen):
     def send_message(self):
         message = self.ids.message_input.text.strip()
         if message:
-            self.chat_history += f"\n{user.get_nome()} > {message}"
+            if not chat[user.get_destinatario()]:
+                chat[user.get_destinatario()] = ''
+            chat[user.get_destinatario()] += f"{user.get_nome()}> {message} \n"
+            self.chat_history = chat[user.get_destinatario()]
+
             self.ids.message_input.text = ""
             azione = user.crea_azione(comando="messaggio", messaggio=message)
             s.sendto(json.dumps(azione).encode(), server)
@@ -153,9 +157,14 @@ class ChatScreen(Screen):
 
     def receive_message(self, messaggio):
         print("ho ricevuto un messaggio: " + messaggio)
+        self.aggiungi_nuovo_contatto(messaggio['mittente'])
         if not chat[messaggio['mittente']]:
             chat[messaggio['mittente']] = ''
-        chat[messaggio['mittente']] += messaggio['messaggio']
+        chat[messaggio['mittente']] += f"{messaggio['mittente']}> {messaggio['messaggio']} \n"
+        if messaggio['mittente'] == user.get_destinatario():
+            self.chat_history = chat[messaggio['mittente']]
+
+
 
 
 
@@ -166,6 +175,7 @@ class ChatScreen(Screen):
     def aggiungi_nuovo_contatto(self, contatto):
         if contatto not in self.contact_buttons:
             self.contact_buttons.append(contatto)
+            self.chat_history = ''
 
 class AggiungiContatto(Screen):
     def aggiungicontatto(self):

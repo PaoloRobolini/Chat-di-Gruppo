@@ -20,6 +20,9 @@ class utente:
     def set_destinatario(self, destinatario):
         self.__destinatario = destinatario
 
+    def get_destinatario(self):
+        return self.__destinatario
+
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
         if comando == "login":  #si registra presso il server
