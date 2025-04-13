@@ -11,15 +11,8 @@ import random
 HOST = "26.21.230.217"
 PORT = 65432
 server_address = (HOST, PORT)
-lock_client = threading.Lock()
+lock_datiUtente = threading.Lock()
 clients = {}
-
-def get_ip(nome_da_cercare):
-    valori = clients.values()
-    for ip, nome_client in valori:
-        if nome_client == nome_da_cercare:
-            return ip
-    return None
 
 # Funzione per gestire ogni client connesso
 def handle_client(socket, data, client_address):
@@ -84,15 +77,17 @@ def handle_client(socket, data, client_address):
                         print("ho mandato i dati del file")
 
         #aggiornamento ip e porta nel file datiutente
-        with open('datiUtente.json', 'r') as file:
-            dati = json.load(file)
+        with lock_datiUtente:
+            with open('datiUtente.json', 'r') as file:
+                dati = json.load(file)
 
         for utente in dati["utenti"]:
             if utente["email"] == mail:
                 utente["address"] = tuple(client_address)
 
-        with open('datiUtente.json', 'w') as file:
-            json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
+        with lock_datiUtente:
+            with open('datiUtente.json', 'w') as file:
+                json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
 
 
     elif comando == "signin":
@@ -102,8 +97,9 @@ def handle_client(socket, data, client_address):
 
         reply = ""
 
-        with open('datiUtente.json', 'r') as file:
-            dati = json.load(file)
+        with lock_datiUtente:
+            with open('datiUtente.json', 'r') as file:
+                dati = json.load(file)
 
         for utente in dati["utenti"]:
             if utente["email"] == mail:
@@ -123,8 +119,9 @@ def handle_client(socket, data, client_address):
                 }
                 dati["utenti"].append(nuovo_utente)
 
-                with open('datiUtente.json', 'w') as file:
-                    json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
+                with lock_datiUtente:
+                    with open('datiUtente.json', 'w') as file:
+                        json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
             else:
                 reply = "2"
 

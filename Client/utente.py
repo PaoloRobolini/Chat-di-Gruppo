@@ -5,12 +5,6 @@ class utente:
         self.__password = password
         self.__destinatario = None
 
-    def set_id(self, nuovo_id):
-        self.__id = nuovo_id
-        with open("id.txt", 'w') as file:
-            file.write(nuovo_id)
-            file.close()
-
     def set_nome(self, nome):
         self.__username = nome
 
