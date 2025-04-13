@@ -8,7 +8,7 @@ import string
 import random
 
 # Parametri server
-HOST = "127.0.0.1"  # radmin PC BAOLO
+HOST = "26.21.230.217"
 PORT = 65432
 server_address = (HOST, PORT)
 lock_client = threading.Lock()
@@ -47,6 +47,7 @@ def handle_client(socket, data, client_address):
         for utente in dati["utenti"]:
             if utente["email"] == mail and utente["password"] == password:
                 username_trovato = utente["username"]
+
                 break
         print("posso mandare i dati")
         if username_trovato:
@@ -82,8 +83,16 @@ def handle_client(socket, data, client_address):
                         socket.sendto(json.dumps(dati).encode(), client_address)
                         print("ho mandato i dati del file")
 
+        #aggiornamento ip e porta nel file datiutente
+        with open('datiUtente.json', 'r') as file:
+            dati = json.load(file)
 
+        for utente in dati["utenti"]:
+            if utente["email"] == mail:
+                utente["address"] = tuple(client_address)
 
+        with open('datiUtente.json', 'w') as file:
+            json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
 
 
     elif comando == "signin":
@@ -110,6 +119,7 @@ def handle_client(socket, data, client_address):
                     "email": mail,
                     "password": password,
                     "username": username,
+                    "address": tuple(client_address),
                 }
                 dati["utenti"].append(nuovo_utente)
 
@@ -135,26 +145,52 @@ def handle_client(socket, data, client_address):
         clients[messaggio["nome_gruppo"]].append(client_address)
 
     # Inoltro di un messaggio a un altro client o gruppo
-    elif comando == "messaggio" and messaggio["destinatario"] in clients:
 
-        destination_address = clients[messaggio["destinatario"]]
-        print(f"\nDestinazione del pacchetto: {destination_address}")
-        dati_nuovi = {
-            "mittente": messaggio["mittente"],
-            "messaggio": messaggio["messaggio"],
-        }
-        #Invio dei messaggi a un gruppo
-        if type(destination_address) is list:
 
-            for destinazione in destination_address:
-                if destinazione != client_address:
-                    print(f"[{client_address}] ha inviato: {dati_nuovi} a {destinazione}")
-                    socket.sendto(json.dumps(dati_nuovi).encode(), destinazione)
-        #Invio a un singolo client
-        else:
-            print(f"[{client_address}] ha inviato: {dati_nuovi} a {destination_address}")
-            socket.sendto(json.dumps(dati_nuovi).encode(), destination_address)
 
+
+    elif comando == "messaggio":
+
+        mittente = messaggio["mittente"]
+        destinatario = messaggio["destinatario"]
+        messaggio = messaggio["messaggio"]
+
+
+        with open('datiUtente.json', 'r') as file:
+            dati = json.load(file)
+
+        for utente in dati["utenti"]:
+            if utente["username"] == destinatario:
+                ip = utente["address"]
+                ip = tuple(ip)
+                nuovo_messaggio = {
+                    "mittente" : mittente,
+                    "messaggio" : messaggio
+                }
+                socket.sendto(json.dumps(nuovo_messaggio).encode(), ip)
+                print("ho mandato i dati")
+
+
+
+        #cerco di salvare su file parte
+        cartella = os.path.join(os.getcwd(), 'datiChat')
+
+        for nome_file in os.listdir(cartella):
+            if os.path.isfile(os.path.join(cartella, nome_file)):
+                if mittente and destinatario in nome_file:
+                    print(nome_file)
+                    with open("datiChat/" + nome_file, 'r') as file:
+                        dati = json.load(file)
+                        nuovo_messaggio = {
+                            "mittente": mittente,
+                            "messsaggio": messaggio,
+                        }
+                        dati["chat"].append(nuovo_messaggio)
+                        print("ho preso i dati da mettere nel file")
+
+                        with open(nome_file, 'w') as file:
+                            json.dump(dati, file, indent=4)  # `indent=4` rende il file leggibile
+                        print("li ho messi nel file")
 
 
         # cerco di salvare il messaggio boh
@@ -189,9 +225,10 @@ print(f"[SERVER] In ascolto su {server_address}")
 
 # Loop per accettare connessioni
 while True:
-    data, client_address = server_socket.recvfrom(1024)
-    print(f"[SERVER] {client_address}: {data.decode()}")
-    if  data and client_address:
-        client_thread = threading.Thread(target=handle_client, args=(server_socket, data, client_address))
-        client_thread.daemon = True
-        client_thread.start()
+    try:
+        data, client_address = server_socket.recvfrom(1024)
+        print(f"[SERVER] {client_address}: {data.decode()}")
+        if data and client_address:
+            threading.Thread(target=handle_client, args=(server_socket, data, client_address)).start()
+    except ConnectionResetError:
+        continue

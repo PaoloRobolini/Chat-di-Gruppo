@@ -1,49 +1,67 @@
 {
     "utenti": [
         {
-            "email": "baolo@gmail.com",
-            "password": "baolotrimon",
-            "username": "baolo"
+            "email": "prova1@",
+            "password": "prova1",
+            "username": "prova1",
+            "address": [
+                "127.0.0.1",
+                57845
+            ]
         },
         {
-            "email": "terrone@gmail.com",
-            "password": "baolotrimon",
-            "username": "terrone"
+            "email": "prova2@",
+            "password": "prova2",
+            "username": "prova2",
+            "address": [
+                "127.0.0.1",
+                57846
+            ]
         },
         {
-            "email": "terrone@",
-            "password": "1234",
-            "username": "baoloso"
-        },
-        {
-            "email": "terronegay@gmail.com",
-            "password": "ciao",
-            "username": "ciao"
+            "email": "b@",
+            "password": "b",
+            "username": "b",
+            "address": [
+                "127.0.0.1",
+                61918
+            ]
         },
         {
             "email": "a@",
             "password": "a",
-            "username": "a"
+            "username": "a",
+            "address": [
+                "127.0.0.1",
+                49822
+            ]
         },
         {
-            "email": "ciao@",
-            "password": "ciao",
-            "username": "ciao"
+            "email": "matteo@",
+            "password": "matteo",
+            "username": "matteo",
+            "address": [
+                "26.21.230.217",
+                58011
+            ]
         },
         {
-            "email": "vfd@fsdvfds",
-            "password": "cdssvcds",
-            "username": "mnclods"
+            "email": "baolo@",
+            "password": "1234",
+            "username": "baolo",
+            "address": [
+                "26.28.150.98",
+                49648
+            ]
         },
         {
-            "email": "aa@",
-            "password": "aa",
-            "username": "marco"
-        },
-        {
-            "email": "aaa@",
-            "password": "aaa",
-            "username": "paolo"
+            "email": "marco@",
+            "password": "marco",
+            "username": "marco",
+            "address": [
+                "26.21.230.217",
+                58009
+            ]
         }
     ]
 }
