@@ -156,15 +156,11 @@ class ChatScreen(Screen):
 
 
     def receive_message(self, messaggio):
-        print("ho ricevuto un messaggio: " + messaggio)
-        self.aggiungi_nuovo_contatto(messaggio['mittente'])
         if not chat[messaggio['mittente']]:
             chat[messaggio['mittente']] = ''
         chat[messaggio['mittente']] += f"{messaggio['mittente']}> {messaggio['messaggio']} \n"
         if messaggio['mittente'] == user.get_destinatario():
             self.chat_history = chat[messaggio['mittente']]
-
-
 
 
 
