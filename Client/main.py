@@ -134,9 +134,12 @@ class ChatScreen(Screen):
         testo = instance.text
         user.set_destinatario(testo)
         self.selected_contact = f"Chat con {testo}"
-
         testo = testo.replace("'", '')
-        self.chat_history = chat[testo]
+        print(testo)
+        try:
+            self.chat_history = chat[testo]
+        except KeyError:
+            chat[testo] = ""
 
 
     def send_message(self):
