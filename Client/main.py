@@ -13,7 +13,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "26.21.230.217"
+ip_server = "192.168.1.9"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -32,19 +32,22 @@ def carica_chat():
     ]
 
     for i in range(len(files_chat)):
-        nome_file = files_chat[i]
-        altro_utente = nome_file[:-5]
-        altro_utente = altro_utente.split('_')
-        altro_utente.remove(user.get_nome())
-        altro_utente = altro_utente[0]
+        try:
+            nome_file = files_chat[i]
+            altro_utente = nome_file[:-5]
+            altro_utente = altro_utente.split('_')
+            altro_utente.remove(user.get_nome())
+            altro_utente = altro_utente[0]
 
-        with open('datichat/'+nome_file, 'r') as file:
-            dati = json.load(file)
-            chat[altro_utente] = ""
-            for message in dati['chat']:
-                chat[altro_utente] += f"\n{message['mittente']}> {message['messaggio']}"
-                chat_screen = App.get_running_app().root.get_screen('chat')
-                chat_screen.aggiungi_nuovo_contatto(altro_utente)
+            with open('datichat/' + nome_file, 'r') as file:
+                dati = json.load(file)
+                chat[altro_utente] = ""
+                for message in dati['chat']:
+                    chat[altro_utente] += f"\n{message['mittente']}> {message['messaggio']}"
+                    chat_screen = App.get_running_app().root.get_screen('chat')
+                    chat_screen.aggiungi_nuovo_contatto(altro_utente)
+        except ValueError:
+            ...
 
     print(chat)
 
@@ -74,36 +77,39 @@ class LoginScreen(Screen):
                 self.manager.current = 'chat'
                 reply = reply.replace('"', '')
                 user.set_nome(reply)
+
+                # ricezione chat
+                data, addr = s.recvfrom(1024)
+                reply = data.decode()
+
+                print(reply)
+
+                os.makedirs('datiChat', exist_ok=True)
+
+                for _ in range(int(reply)):
+                    datachat, addr = s.recvfrom(1024)
+                    nome_file = datachat.decode()
+                    nome_file = nome_file.replace('"', '').replace("'", "")
+
+                    datachat, addr = s.recvfrom(1024)
+                    chat = datachat.decode()
+                    chat = json.loads(chat)
+                    with open("datiChat/" + nome_file, 'w') as file:
+                        json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
+
+                carica_chat()
+
+                thread_ricevi = threading.Thread(target=ricevi_messaggi)
+                thread_manda = threading.Thread(target=manda_messaggi)
+                thread_manda.start()
+                thread_ricevi.start()
+
             else:
                 self.ids.login_data_error.text = "mail o password non corrispondono"
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
 
-            #ricezione chat
-            data, addr = s.recvfrom(1024)
-            reply = data.decode()
 
-            print(reply)
-
-            os.makedirs('datiChat', exist_ok=True)
-
-            for _ in range(int(reply)):
-                datachat, addr = s.recvfrom(1024)
-                nome_file = datachat.decode()
-                nome_file = nome_file.replace('"', '').replace("'", "")
-
-                datachat, addr = s.recvfrom(1024)
-                chat = datachat.decode()
-                chat = json.loads(chat)
-                with open("datiChat/" + nome_file, 'w') as file:
-                    json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
-
-            carica_chat()
-
-            thread_ricevi = threading.Thread(target=ricevi_messaggi)
-            thread_manda = threading.Thread(target=manda_messaggi)
-            thread_manda.start()
-            thread_ricevi.start()
 
 
 
@@ -190,8 +196,12 @@ class ChatScreen(Screen):
 
 
     def receive_message(self, messaggio):
-        mittente = messaggio['mittente']
-        nuovo_messaggio = f"\n{mittente} > {messaggio['messaggio']}"
+        nuovo_messaggio = f"\n{messaggio['mittente']} > {messaggio['messaggio']}"
+
+        if "nome_gruppo" in messaggio:
+            mittente = messaggio["nome_gruppo"]
+        else:
+            mittente = messaggio["mittente"]
 
         # 1. Aggiornamento lista contatti in modo thread-safe
         if mittente not in self.contact_buttons:

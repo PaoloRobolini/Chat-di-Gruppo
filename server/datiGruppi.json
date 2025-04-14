@@ -8,6 +8,13 @@
                 "matteo",
                 "a"
             ]
+        },
+        {
+            "nome": "ciccio",
+            "membri": [
+                "marco",
+                "marco2"
+            ]
         }
     ]
 }

@@ -9,7 +9,7 @@ import random
 from tempfile import NamedTemporaryFile
 
 # Parametri server
-HOST = "26.21.230.217"
+HOST = "192.168.1.9"
 PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
@@ -132,6 +132,8 @@ def manda_chat_client(socket, username, client_address):
                 continue
 
 
+
+
 # Funzione per gestire ogni client connesso
 def handle_client(socket, data, client_address):
 
@@ -247,7 +249,11 @@ def handle_client(socket, data, client_address):
 
         if not os.path.exists(f"datiGruppi/{nome_gruppo}.json"):
             with open(f"datiGruppi/{nome_gruppo}.json", 'w') as file:
-                json.dump({"gruppi": []}, file, indent=4)
+                messaggio_iniziale = {
+                    "mittente": "Il gruppo",
+                    "messaggio": "Gruppo creato"
+                }
+                json.dump({"gruppo": [messaggio_iniziale]}, file, indent=4)
 
         with open("datiGruppi.json", 'w') as file:
             json.dump(dati, file, indent=4)
@@ -257,9 +263,11 @@ def handle_client(socket, data, client_address):
 
     elif comando == "messaggio":
         if messaggio["destinatario"] in gruppi_attivi:
+            #Invio dei dati in un gruppo
             destinatario = messaggio["destinatario"]
 
             nuovo_messaggio = {
+                "nome_gruppo": destinatario,
                 "mittente": messaggio["mittente"],
                 "messaggio": messaggio["messaggio"]
             }
@@ -278,8 +286,10 @@ def handle_client(socket, data, client_address):
             with open('datiUtente.json', 'r') as file:
                 dati = json.load(file)
 
+            print(membri_gruppo)
             for utente in dati["utenti"]:
                 if utente["username"] in membri_gruppo and utente["username"] != messaggio["mittente"]:
+                    print(f"Messaggio inviato a: {utente['username']}")
                     socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
 
             with open(f"datiGruppi/{destinatario}.json", 'r') as file:
@@ -292,9 +302,11 @@ def handle_client(socket, data, client_address):
 
 
         else:
+            #Invio dei dati in una chat
             destinatario = messaggio["destinatario"]
 
             nuovo_messaggio = {
+                "gruppo": False,
                 "mittente": messaggio["mittente"],
                 "destinatario": destinatario,
                 "messaggio": messaggio["messaggio"]
