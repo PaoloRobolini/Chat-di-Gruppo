@@ -26,6 +26,10 @@ chat = {}
 
 global user
 
+def carica_grupi():
+    files_chat = [
+        f for f in os.listdir('datichat')
+    ]
 def carica_chat():
     files_chat = [
         f for f in os.listdir('datichat')
@@ -51,7 +55,24 @@ def carica_chat():
 
     print(chat)
 
+def scarica_chat(cartella):
+    data, addr = s.recvfrom(1024)
+    reply = data.decode()
 
+    print(reply)
+
+    os.makedirs(cartella, exist_ok=True)
+
+    for _ in range(int(reply)):
+        datachat, addr = s.recvfrom(1024)
+        nome_file = datachat.decode()
+        nome_file = nome_file.replace('"', '').replace("'", "")
+
+        datachat, addr = s.recvfrom(1024)
+        chat = datachat.decode()
+        chat = json.loads(chat)
+        with open(f"{cartella}/{nome_file}", 'w') as file:
+            json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
 class LoginScreen(Screen):
     def login(self):
@@ -78,25 +99,8 @@ class LoginScreen(Screen):
                 reply = reply.replace('"', '')
                 user.set_nome(reply)
 
-                # ricezione chat
-                data, addr = s.recvfrom(1024)
-                reply = data.decode()
-
-                print(reply)
-
-                os.makedirs('datiChat', exist_ok=True)
-
-                for _ in range(int(reply)):
-                    datachat, addr = s.recvfrom(1024)
-                    nome_file = datachat.decode()
-                    nome_file = nome_file.replace('"', '').replace("'", "")
-
-                    datachat, addr = s.recvfrom(1024)
-                    chat = datachat.decode()
-                    chat = json.loads(chat)
-                    with open("datiChat/" + nome_file, 'w') as file:
-                        json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
-
+                scarica_chat('datiChat')
+                scarica_chat('datiGruppi')
                 carica_chat()
 
                 thread_ricevi = threading.Thread(target=ricevi_messaggi)

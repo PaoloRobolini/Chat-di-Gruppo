@@ -14,7 +14,6 @@ PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
 clients = {}
-gruppi_attivi = set()
 
 def genera_nome_file(nome1, nome2):
     sorted_names = sorted([nome1, nome2])
@@ -88,6 +87,43 @@ def salva_messaggio(cartella_chat, nuovo_messaggio):
             del locks_chat[nome_file]
 
 
+def manda_gruppi_client(socket, username, client_address):
+    gruppi_utente = []
+
+    with lock_for_locks:
+        try:
+            with open("datiGruppi.json", 'r') as file:
+                dati = json.load(file)
+                gruppi_utente = [g["nome"] for g in dati["gruppi"] if username in g["membri"]]
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Errore lettura gruppi: {str(e)}")
+            gruppi_utente = []
+
+    socket.sendto(str(len(gruppi_utente)).encode(), client_address)
+
+    for nome_gruppo in gruppi_utente:
+        file_name = f"{nome_gruppo}.json"  # Aggiunta estensione
+        file_path = os.path.join("datiGruppi", file_name)
+
+        with lock_for_locks:
+            if nome_gruppo not in locks_chat:
+                locks_chat[nome_gruppo] = threading.Lock()
+            gruppo_lock = locks_chat[nome_gruppo]
+
+        with gruppo_lock:
+            try:
+                # Invia il nome completo del file con estensione
+                socket.sendto(file_name.encode(), client_address)
+                print(f"Inviato: {file_name}")
+
+                with open(file_path, 'r') as f:
+                    dati_gruppo = json.load(f)
+                    socket.sendto(json.dumps(dati_gruppo).encode(), client_address)
+
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                print(f"Errore gruppo {file_name}: {str(e)}")
+                socket.sendto(json.dumps({"gruppo": []}).encode(), client_address)
+
 # Modifica la funzione manda_chat_client
 def manda_chat_client(socket, username, client_address):
     cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
@@ -129,7 +165,7 @@ def manda_chat_client(socket, username, client_address):
 
             except (json.JSONDecodeError, IOError) as e:
                 print(f"Errore lettura {nome_file}: {str(e)}")
-                continue
+                ...
 
 
 
@@ -171,6 +207,7 @@ def handle_client(socket, data, client_address):
 
         #manda dati chat contatti e gruppi
         manda_chat_client(socket, username_trovato, client_address)
+        manda_gruppi_client(socket, username_trovato, client_address)
 
         #aggiornamento ip e porta nel file datiutente
         with lock_datiUtente:
@@ -223,83 +260,124 @@ def handle_client(socket, data, client_address):
 
         socket.sendto(reply.encode(), client_address)
 
+
+
     elif comando == "crea_gruppo":
+
         nome_gruppo = messaggio["nome_gruppo"]
         mittente = messaggio["mittente"]
 
-        dati = {}
-
-        with open("datiGruppi.json", 'r') as file:
-            dati = json.load(file)
-
-        aggiunto = False
-
-        for gruppo in dati["gruppi"]:
-            if gruppo["nome"] == nome_gruppo:
-                aggiunto = True
-                if not mittente in gruppo["membri"]:
-                    gruppo["membri"].append(mittente)
-
-        if not aggiunto:
-            gruppo = {
-                "nome": nome_gruppo,
-                "membri": [messaggio["mittente"]]
-            }
-            dati["gruppi"].append(gruppo)
-
-        if not os.path.exists(f"datiGruppi/{nome_gruppo}.json"):
-            with open(f"datiGruppi/{nome_gruppo}.json", 'w') as file:
-                messaggio_iniziale = {
-                    "mittente": "Il gruppo",
-                    "messaggio": "Gruppo creato"
-                }
-                json.dump({"gruppo": [messaggio_iniziale]}, file, indent=4)
-
-        with open("datiGruppi.json", 'w') as file:
-            json.dump(dati, file, indent=4)
-
-        gruppi_attivi.add(nome_gruppo)
-        print(f"Gruppi attivi: {gruppi_attivi}")
-
-    elif comando == "messaggio":
-        if messaggio["destinatario"] in gruppi_attivi:
-            #Invio dei dati in un gruppo
-            destinatario = messaggio["destinatario"]
-
-            nuovo_messaggio = {
-                "nome_gruppo": destinatario,
-                "mittente": messaggio["mittente"],
-                "messaggio": messaggio["messaggio"]
-            }
-
+        with lock_for_locks:
             with open("datiGruppi.json", 'r') as file:
                 dati = json.load(file)
-                for gruppo in dati["gruppi"]:
-                    if gruppo["nome"] == destinatario:
-                        membri_gruppo = gruppo["membri"]
-                        break
+            aggiunto = any(g["nome"] == nome_gruppo for g in dati["gruppi"])
+
+            if not aggiunto:
+                dati["gruppi"].append({"nome": nome_gruppo, "membri": [mittente]})
+            else:
+                for g in dati["gruppi"]:
+                    if g["nome"] == nome_gruppo and mittente not in g["membri"]:
+                        g["membri"].append(mittente)
 
             with open("datiGruppi.json", 'w') as file:
                 json.dump(dati, file, indent=4)
 
+        file_gruppo = os.path.join("datiGruppi", f"{nome_gruppo}.json")
 
+        with lock_for_locks:
+            if nome_gruppo not in locks_chat:
+                locks_chat[nome_gruppo] = threading.Lock()
+
+            gruppo_lock = locks_chat[nome_gruppo]
+
+        with gruppo_lock:
+
+            if not os.path.exists(file_gruppo):
+                with open(file_gruppo, 'w') as file:
+                    json.dump({"gruppo": [{
+                        "mittente": "Il gruppo",
+                        "messaggio": "Gruppo creato",
+                     }]}, file, indent=4)
+
+    elif comando == "messaggio":
+
+        gruppi_attivi = []
+
+        with open("datiGruppi.json", 'r') as file:
+            dati = json.load(file)
+
+        for gruppo in dati["gruppi"]:
+            if messaggio["destinatario"] == gruppo["nome"]:
+                gruppi_attivi.append(gruppo)
+
+        if messaggio["destinatario"] in gruppi_attivi:
+            destinatario = messaggio["destinatario"]
+            mittente = messaggio["mittente"]
+
+            # 1. Lettura sicura della lista membri con lock
+            with lock_for_locks:  # Lock globale per datiGruppi.json
+                with open("datiGruppi.json", 'r') as file:
+                    dati_gruppi = json.load(file)
+
+                    for gruppo in dati_gruppi["gruppi"]:
+                        if gruppo["nome"] == destinatario:
+                            membri_gruppo = gruppo["membri"].copy()
+                            break
+
+            # 2. Invio messaggio ai membri
             with open('datiUtente.json', 'r') as file:
-                dati = json.load(file)
+                dati_utenti = json.load(file)
 
-            print(membri_gruppo)
-            for utente in dati["utenti"]:
-                if utente["username"] in membri_gruppo and utente["username"] != messaggio["mittente"]:
-                    print(f"Messaggio inviato a: {utente['username']}")
-                    socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
+            for utente in dati_utenti["utenti"]:
+                if utente["username"] in membri_gruppo and utente["username"] != mittente:
+                    try:
+                        socket.sendto(json.dumps(messaggio).encode(), tuple(utente["address"]))
 
-            with open(f"datiGruppi/{destinatario}.json", 'r') as file:
-                dati = json.load(file)
+                    except Exception as e:
+                        print(f"Errore invio a {utente['username']}: {str(e)}")
 
-            dati["gruppo"].append(nuovo_messaggio)
+            # 3. Scrittura sicura nel file del gruppo con lock specifico
+            file_gruppo = os.path.join("datiGruppi", f"{destinatario}.json")
 
-            with open(f"datiGruppi/{destinatario}.json", 'w') as file:
-                json.dump(dati, file, indent=4)
+            with lock_for_locks:  # Ottieni lock per questo gruppo
 
+                if destinatario not in locks_chat:
+                    locks_chat[destinatario] = threading.Lock()
+
+                gruppo_lock = locks_chat[destinatario]
+
+            with gruppo_lock:
+                # Scrittura atomica con file temporaneo
+                temp_path = ''
+
+                try:
+                    # Carica dati esistenti
+                    if os.path.exists(file_gruppo):
+                        with open(file_gruppo, 'r') as f:
+                            dati = json.load(f)
+                    else:
+                        dati = {"gruppo": []}
+
+                    # Aggiungi messaggio
+                    dati["gruppo"].append({
+                        "mittente": mittente,
+                        "messaggio": messaggio["messaggio"]
+                    })
+
+                    # Scrittura atomica
+                    with NamedTemporaryFile('w', dir="datiGruppi", delete=False, encoding='utf-8') as tmp:
+                        temp_path = tmp.name
+                        json.dump(dati, tmp, indent=4)
+                        tmp.flush()
+                    os.replace(temp_path, file_gruppo)
+
+                except Exception as e:
+                    ...
+                    if temp_path and os.path.exists(temp_path):
+                        os.remove(temp_path)
+                finally:
+                    if temp_path and os.path.exists(temp_path):
+                        os.remove(temp_path)
 
         else:
             #Invio dei dati in una chat
