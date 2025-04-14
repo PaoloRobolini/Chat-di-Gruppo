@@ -28,8 +28,25 @@ global user
 
 def carica_grupi():
     files_chat = [
-        f for f in os.listdir('datichat')
+        f for f in os.listdir('datiGruppi')
     ]
+
+    for file in files_chat:
+        s.sendto(json.dumps(user.crea_azione(comando="is_in_gruppo", nome_gruppo=file[:-5])).encode(), server)
+        data, address = s.recvfrom(1024)
+        if data == b"yes":
+            with open(f"datiGruppi/{file}", "r") as f:
+                dati = json.load(f)
+                file = file[:-5]
+                chat[file] = ""
+                for message in dati['gruppo']:
+                    chat[file] += f"\n{message['mittente']}> {message['messaggio']}"
+                    chat_screen = App.get_running_app().root.get_screen('chat')
+                    chat_screen.aggiungi_nuovo_contatto(file)
+
+
+
+
 def carica_chat():
     files_chat = [
         f for f in os.listdir('datichat')
@@ -102,6 +119,7 @@ class LoginScreen(Screen):
                 scarica_chat('datiChat')
                 scarica_chat('datiGruppi')
                 carica_chat()
+                carica_grupi()
 
                 thread_ricevi = threading.Thread(target=ricevi_messaggi)
                 thread_manda = threading.Thread(target=manda_messaggi)

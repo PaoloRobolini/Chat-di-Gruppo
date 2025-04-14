@@ -50,6 +50,11 @@ class utente:
                 "nome_gruppo": kwargs["nome_gruppo"],
                 "mittente": self.__username
             }
+        elif comando == "is_in_gruppo": return {
+            "comando": "is_in_gruppo",
+            "nome_gruppo": kwargs["nome_gruppo"],
+            "mittente": self.__username
+        }
 
 
 

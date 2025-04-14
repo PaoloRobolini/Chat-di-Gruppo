@@ -401,6 +401,18 @@ def handle_client(socket, data, client_address):
             salva_messaggio('datiChat', nuovo_messaggio)
 
 
+    elif comando == "is_in_gruppo":
+        with open("datiGruppi.json", 'r') as file:
+            dati = json.load(file)
+
+        for gruppo in dati["gruppi"]:
+            if gruppo["nome"] == messaggio["nome_gruppo"] and messaggio["mittente"] in gruppo["membri"]:
+                socket.sendto(b"yes", client_address)
+                return
+
+        socket.sendto(b"no", client_address)
+
+
     else:
         print("destinatario non trovato")
 

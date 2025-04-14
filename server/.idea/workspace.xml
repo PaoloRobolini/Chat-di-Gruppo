@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datiGruppi.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiGruppi.json" afterDir="false" />
+    <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="Aggiunta la funzione del server per mandare i gruppi">
       <change beforePath="$PROJECT_DIR$/datiUtente.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiUtente.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
     </list>
     <list id="b034be01-4cb6-4094-ad30-ec519b8b6d9c" name="Changes by alemi" comment="" />
     <list id="a14a1c2e-38cc-4582-8dff-a39e0f1dda26" name="Changes by Paolo" comment="" />
@@ -83,14 +79,36 @@
       <workItem from="1744558708290" duration="1795000" />
       <workItem from="1744568136449" duration="743000" />
       <workItem from="1744635178873" duration="10086000" />
-      <workItem from="1744648608422" duration="2507000" />
+      <workItem from="1744648608422" duration="5371000" />
     </task>
+    <task id="LOCAL-00001" summary="Sistemazione ricezione messaggi da parte di un gruppo">
+      <option name="closed" value="true" />
+      <created>1744651303562</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1744651303562</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Aggiunta la funzione del server per mandare i gruppi">
+      <option name="closed" value="true" />
+      <created>1744653956158</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1744653956158</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Sistemazione ricezione messaggi da parte di un gruppo" />
+    <MESSAGE value="Aggiunta la funzione del server per mandare i gruppi" />
+    <option name="LAST_COMMIT_MESSAGE" value="Aggiunta la funzione del server per mandare i gruppi" />
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744651110656" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744653978541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
