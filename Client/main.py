@@ -14,7 +14,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "10.4.54.27"
+ip_server = "26.21.230.217"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -26,6 +26,30 @@ coda_manda_msg = multiprocessing.Queue()
 chat = {}
 
 global user
+
+def carica_chat():
+    files_chat = [
+        f for f in os.listdir('datichat')
+    ]
+
+    for i in range(len(files_chat)):
+        nome_file = files_chat[i]
+        altro_utente = nome_file[:-5]
+        altro_utente = altro_utente.split('_')
+        altro_utente.remove(user.get_nome())
+        altro_utente = altro_utente[0]
+
+        with open('datichat/'+nome_file, 'r') as file:
+            dati = json.load(file)
+            chat[altro_utente] = ""
+            for message in dati['chat']:
+                chat[altro_utente] += f"\n{message['mittente']}> {message['messaggio']}"
+                chat_screen = App.get_running_app().root.get_screen('chat')
+                chat_screen.aggiungi_nuovo_contatto(altro_utente)
+
+    print(chat)
+
+
 
 class LoginScreen(Screen):
     def login(self):
@@ -62,6 +86,8 @@ class LoginScreen(Screen):
 
             print(reply)
 
+            os.makedirs('datiChat', exist_ok=True)
+
             for _ in range(int(reply)):
                 datachat, addr = s.recvfrom(1024)
                 nome_file = datachat.decode()
@@ -70,9 +96,10 @@ class LoginScreen(Screen):
                 datachat, addr = s.recvfrom(1024)
                 chat = datachat.decode()
                 chat = json.loads(chat)
-                os.makedirs('datiChat', exist_ok=True)
                 with open("datiChat/" + nome_file, 'w') as file:
                     json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
+
+            carica_chat()
 
             thread_ricevi = threading.Thread(target=ricevi_messaggi)
             thread_manda = threading.Thread(target=manda_messaggi)
