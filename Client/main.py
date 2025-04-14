@@ -1,5 +1,6 @@
 import json
 import multiprocessing
+import os
 import socket
 import threading
 
@@ -8,12 +9,11 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "26.21.230.217"
+ip_server = "192.168.1.9"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -25,6 +25,71 @@ coda_manda_msg = multiprocessing.Queue()
 chat = {}
 
 global user
+
+def carica_grupi():
+    files_chat = [
+        f for f in os.listdir('datiGruppi')
+    ]
+
+    for file in files_chat:
+        s.sendto(json.dumps(user.crea_azione(comando="is_in_gruppo", nome_gruppo=file[:-5])).encode(), server)
+        data, address = s.recvfrom(1024)
+        if data == b"yes":
+            with open(f"datiGruppi/{file}", "r") as f:
+                dati = json.load(f)
+                file = file[:-5]
+                chat[file] = ""
+                for message in dati['gruppo']:
+                    chat[file] += f"\n{message['mittente']}> {message['messaggio']}"
+                    chat_screen = App.get_running_app().root.get_screen('chat')
+                    chat_screen.aggiungi_nuovo_contatto(file)
+
+
+
+
+def carica_chat():
+    files_chat = [
+        f for f in os.listdir('datichat')
+    ]
+
+    for i in range(len(files_chat)):
+        try:
+            nome_file = files_chat[i]
+            altro_utente = nome_file[:-5]
+            altro_utente = altro_utente.split('_')
+            altro_utente.remove(user.get_nome())
+            altro_utente = altro_utente[0]
+
+            with open('datichat/' + nome_file, 'r') as file:
+                dati = json.load(file)
+                chat[altro_utente] = ""
+                for message in dati['chat']:
+                    chat[altro_utente] += f"\n{message['mittente']}> {message['messaggio']}"
+                    chat_screen = App.get_running_app().root.get_screen('chat')
+                    chat_screen.aggiungi_nuovo_contatto(altro_utente)
+        except ValueError:
+            ...
+
+    print(chat)
+
+def scarica_chat(cartella):
+    data, addr = s.recvfrom(1024)
+    reply = data.decode()
+
+    print(reply)
+
+    os.makedirs(cartella, exist_ok=True)
+
+    for _ in range(int(reply)):
+        datachat, addr = s.recvfrom(1024)
+        nome_file = datachat.decode()
+        nome_file = nome_file.replace('"', '').replace("'", "")
+
+        datachat, addr = s.recvfrom(1024)
+        chat = datachat.decode()
+        chat = json.loads(chat)
+        with open(f"{cartella}/{nome_file}", 'w') as file:
+            json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
 class LoginScreen(Screen):
     def login(self):
@@ -50,32 +115,23 @@ class LoginScreen(Screen):
                 self.manager.current = 'chat'
                 reply = reply.replace('"', '')
                 user.set_nome(reply)
+
+                scarica_chat('datiChat')
+                scarica_chat('datiGruppi')
+                carica_chat()
+                carica_grupi()
+
+                thread_ricevi = threading.Thread(target=ricevi_messaggi)
+                thread_manda = threading.Thread(target=manda_messaggi)
+                thread_manda.start()
+                thread_ricevi.start()
+
             else:
                 self.ids.login_data_error.text = "mail o password non corrispondono"
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
 
-            #ricezione chat
-            data, addr = s.recvfrom(1024)
-            reply = data.decode()
 
-            print(reply)
-
-            for _ in range(int(reply)):
-                datachat, addr = s.recvfrom(1024)
-                nome_file = datachat.decode()
-                nome_file = nome_file.replace('"', '').replace("'", "")
-
-                datachat, addr = s.recvfrom(1024)
-                chat = datachat.decode()
-                chat = json.loads(chat)
-
-                with open("datiChat/" + nome_file, 'w') as file:
-                    json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
-
-            thread_ricevi = threading.Thread(target=ricevi_messaggi)
-
-            thread_ricevi.start()
 
 
 
@@ -103,6 +159,8 @@ class SigninScreen(Screen):
                 chat_screen.username = username
                 self.manager.current = 'chat'
                 thread_ricevi = threading.Thread(target=ricevi_messaggi)
+                thread_manda = threading.Thread(target=manda_messaggi)
+                thread_manda.start()
                 thread_ricevi.start()
             elif reply == "1":
                 self.ids.signin_data_error.text = "la mail e` gia` associata a un account"
@@ -114,6 +172,8 @@ class SigninScreen(Screen):
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
                 self.ids.username.text = ""
+
+
 
 
 
@@ -148,17 +208,22 @@ class ChatScreen(Screen):
         if message:
             if not chat[user.get_destinatario()]:
                 chat[user.get_destinatario()] = ''
-            chat[user.get_destinatario()] += f"{user.get_nome()}> {message} \n"
+            chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message}"
             self.chat_history = chat[user.get_destinatario()]
 
             self.ids.message_input.text = ""
             azione = user.crea_azione(comando="messaggio", messaggio=message)
-            s.sendto(json.dumps(azione).encode(), server)
+            coda_manda_msg.put(azione)
+
 
 
     def receive_message(self, messaggio):
-        mittente = messaggio['mittente']
-        nuovo_messaggio = f"\n{mittente} > {messaggio['messaggio']}"
+        nuovo_messaggio = f"\n{messaggio['mittente']} > {messaggio['messaggio']}"
+
+        if "nome_gruppo" in messaggio:
+            mittente = messaggio["nome_gruppo"]
+        else:
+            mittente = messaggio["mittente"]
 
         # 1. Aggiornamento lista contatti in modo thread-safe
         if mittente not in self.contact_buttons:
@@ -192,14 +257,30 @@ class ChatScreen(Screen):
             chat[mittente] = ""
         chat[mittente] += messaggio
 
+
 class AggiungiContatto(Screen):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.contatto = True
+
     def aggiungicontatto(self):
         nuovo_contatto = self.ids.contatto.text.strip()
         if nuovo_contatto:
+            if not self.contatto:
+                coda_manda_msg.put(user.crea_azione(comando="crea_gruppo", nome_gruppo=nuovo_contatto))
+
             chat_screen = self.manager.get_screen('chat')
             chat_screen.aggiungi_nuovo_contatto(nuovo_contatto)
             self.ids.contatto.text = ""
             self.manager.current = 'chat'
+
+    def on_radio_select(self, instance, text):
+        if instance.state == "down":
+            if text == "Nuovo contatto":
+                self.contatto = True
+            else:
+                self.contatto = False
 
 
 class ChatApp(App):
@@ -236,8 +317,9 @@ if __name__ == '__main__':
 
 
     def manda_messaggi():
-        messaggio = coda_manda_msg.get()
-        s.sendto(json.dumps(messaggio).encode(), server)
+        while True:
+            messaggio = coda_manda_msg.get()
+            s.sendto(json.dumps(messaggio).encode(), server)
 
 
 

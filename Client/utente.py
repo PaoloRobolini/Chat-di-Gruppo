@@ -43,11 +43,19 @@ class utente:
                 "messaggio": kwargs["messaggio"]
             }
 
-        elif comando == "unisci_gruppo":  #crea un messaggio per un gruppo
+        elif comando == "crea_gruppo":  #crea un messaggio per un gruppo
             #print(f"Invio un messaggio a {kwargs['nome_gruppo']}")
             return {
-                "comando": "unisci_gruppo",
+                "comando": "crea_gruppo",
                 "nome_gruppo": kwargs["nome_gruppo"],
-                "nome_utente": self.__username,
+                "mittente": self.__username
             }
+        elif comando == "is_in_gruppo": return {
+            "comando": "is_in_gruppo",
+            "nome_gruppo": kwargs["nome_gruppo"],
+            "mittente": self.__username
+        }
+
+
+
 
