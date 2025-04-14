@@ -93,7 +93,7 @@ def manda_chat_client(socket, username, client_address):
     os.makedirs(cartella_chat, exist_ok=True)
 
     files_chat = [
-        f for f in os.listdir(cartella_chat)
+            f for f in os.listdir(cartella_chat)
         if os.path.isfile(os.path.join(cartella_chat, f)) and username in f
     ]
 

@@ -75,7 +75,8 @@ class LoginScreen(Screen):
                     json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
             thread_ricevi = threading.Thread(target=ricevi_messaggi)
-
+            thread_manda = threading.Thread(target=manda_messaggi)
+            thread_manda.start()
             thread_ricevi.start()
 
 
@@ -104,6 +105,8 @@ class SigninScreen(Screen):
                 chat_screen.username = username
                 self.manager.current = 'chat'
                 thread_ricevi = threading.Thread(target=ricevi_messaggi)
+                thread_manda = threading.Thread(target=manda_messaggi)
+                thread_manda.start()
                 thread_ricevi.start()
             elif reply == "1":
                 self.ids.signin_data_error.text = "la mail e` gia` associata a un account"
@@ -115,6 +118,8 @@ class SigninScreen(Screen):
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
                 self.ids.username.text = ""
+
+
 
 
 
@@ -149,12 +154,13 @@ class ChatScreen(Screen):
         if message:
             if not chat[user.get_destinatario()]:
                 chat[user.get_destinatario()] = ''
-            chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message} \n"
+            chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message}"
             self.chat_history = chat[user.get_destinatario()]
 
             self.ids.message_input.text = ""
             azione = user.crea_azione(comando="messaggio", messaggio=message)
-            s.sendto(json.dumps(azione).encode(), server)
+            coda_manda_msg.put(azione)
+
 
 
     def receive_message(self, messaggio):
@@ -237,8 +243,9 @@ if __name__ == '__main__':
 
 
     def manda_messaggi():
-        messaggio = coda_manda_msg.get()
-        s.sendto(json.dumps(messaggio).encode(), server)
+        while True:
+            messaggio = coda_manda_msg.get()
+            s.sendto(json.dumps(messaggio).encode(), server)
 
 
 
