@@ -14,6 +14,7 @@ PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
 clients = {}
+gruppi_attivi = set()
 
 def genera_nome_file(nome1, nome2):
     sorted_names = sorted([nome1, nome2])
@@ -251,46 +252,63 @@ def handle_client(socket, data, client_address):
         with open("datiGruppi.json", 'w') as file:
             json.dump(dati, file, indent=4)
 
-
-    elif comando == "messaggio_gruppo":
-        destinatario = messaggio["destinatario"]
-
-        nuovo_messaggio = {
-            "mittente": messaggio["mittente"],
-            "destinatario": destinatario,
-            "messaggio": messaggio["messaggio"]
-        }
-
-        with open("datiGruppi.json", 'r+w') as file:
-            dati = json.load(file)
-            membri_gruppo = dati["gruppi"][destinatario]
-            json.dump(dati, file, indent=4)
-
-        for utente in dati["utenti"]:
-            if utente["username"] in membri_gruppo and utente["username"] != messaggio["mittente"]:
-                socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
-
-
+        gruppi_attivi.add(nome_gruppo)
+        print(f"Gruppi attivi: {gruppi_attivi}")
 
     elif comando == "messaggio":
+        if messaggio["destinatario"] in gruppi_attivi:
+            destinatario = messaggio["destinatario"]
 
-        destinatario = messaggio["destinatario"]
+            nuovo_messaggio = {
+                "mittente": messaggio["mittente"],
+                "messaggio": messaggio["messaggio"]
+            }
 
-        nuovo_messaggio = {
-            "mittente": messaggio["mittente"],
-            "destinatario": destinatario,
-            "messaggio": messaggio["messaggio"]
-        }
+            with open("datiGruppi.json", 'r') as file:
+                dati = json.load(file)
+                for gruppo in dati["gruppi"]:
+                    if gruppo["nome"] == destinatario:
+                        membri_gruppo = gruppo["membri"]
+                        break
 
-        with open('datiUtente.json', 'r') as file:
-            dati = json.load(file)
+            with open("datiGruppi.json", 'w') as file:
+                json.dump(dati, file, indent=4)
 
-        for utente in dati["utenti"]:
-            if utente["username"] == destinatario:
-                socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
 
-        #cerco di salvare su file parte
-        salva_messaggio('datiChat', nuovo_messaggio)
+            with open('datiUtente.json', 'r') as file:
+                dati = json.load(file)
+
+            for utente in dati["utenti"]:
+                if utente["username"] in membri_gruppo and utente["username"] != messaggio["mittente"]:
+                    socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
+
+            with open(f"datiGruppi/{destinatario}.json", 'r') as file:
+                dati = json.load(file)
+
+            dati["gruppo"].append(nuovo_messaggio)
+
+            with open(f"datiGruppi/{destinatario}.json", 'w') as file:
+                json.dump(dati, file, indent=4)
+
+
+        else:
+            destinatario = messaggio["destinatario"]
+
+            nuovo_messaggio = {
+                "mittente": messaggio["mittente"],
+                "destinatario": destinatario,
+                "messaggio": messaggio["messaggio"]
+            }
+
+            with open('datiUtente.json', 'r') as file:
+                dati = json.load(file)
+
+            for utente in dati["utenti"]:
+                if utente["username"] == destinatario:
+                    socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
+
+            #cerco di salvare su file parte
+            salva_messaggio('datiChat', nuovo_messaggio)
 
 
     else:
