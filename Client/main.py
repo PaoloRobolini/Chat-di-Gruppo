@@ -13,7 +13,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "26.21.230.217"
+ip_server = "10.4.54.27"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -148,7 +148,7 @@ class ChatScreen(Screen):
         if message:
             if not chat[user.get_destinatario()]:
                 chat[user.get_destinatario()] = ''
-            chat[user.get_destinatario()] += f"{user.get_nome()}> {message} \n"
+            chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message} \n"
             self.chat_history = chat[user.get_destinatario()]
 
             self.ids.message_input.text = ""

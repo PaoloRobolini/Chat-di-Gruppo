@@ -9,7 +9,7 @@ import random
 from tempfile import NamedTemporaryFile
 
 # Parametri server
-HOST = "26.21.230.217"
+HOST = "10.4.54.27"
 PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
