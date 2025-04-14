@@ -9,7 +9,6 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from utente import utente
 
@@ -226,14 +225,30 @@ class ChatScreen(Screen):
             chat[mittente] = ""
         chat[mittente] += messaggio
 
+
 class AggiungiContatto(Screen):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.contatto = True
+
     def aggiungicontatto(self):
         nuovo_contatto = self.ids.contatto.text.strip()
         if nuovo_contatto:
+            if not self.contatto:
+                coda_manda_msg.put(user.crea_azione(comando="crea_gruppo", nome_gruppo=nuovo_contatto))
+
             chat_screen = self.manager.get_screen('chat')
             chat_screen.aggiungi_nuovo_contatto(nuovo_contatto)
             self.ids.contatto.text = ""
             self.manager.current = 'chat'
+
+    def on_radio_select(self, instance, text):
+        if instance.state == "down":
+            if text == "Nuovo contatto":
+                self.contatto = True
+            else:
+                self.contatto = False
 
 
 class ChatApp(App):

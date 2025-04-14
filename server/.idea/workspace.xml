@@ -5,9 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/datiGruppi.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/chat.kv" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/chat.kv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/utente.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/utente.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/datiUtente.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiUtente.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
+    </list>
+    <list id="b034be01-4cb6-4094-ad30-ec519b8b6d9c" name="Changes by alemi" comment="">
+      <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
+    </list>
+    <list id="a14a1c2e-38cc-4582-8dff-a39e0f1dda26" name="Changes by Paolo" comment="">
+      <change beforePath="$PROJECT_DIR$/../Client/utente.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/utente.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -30,6 +40,36 @@
     &quot;accountId&quot;: &quot;06075533-b6f0-4140-9ccb-3f9176709972&quot;
   }
 }</component>
+  <component name="LineStatusTrackerManager">
+    <file path="$PROJECT_DIR$/../Client/utente.py">
+      <ranges>
+        <range start1="45" end1="46" start2="45" end2="46" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="48" end1="49" start2="48" end2="49" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="50" end1="51" start2="50" end2="51" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="52" end1="52" start2="52" end2="54" changelist="a14a1c2e-38cc-4582-8dff-a39e0f1dda26" />
+      </ranges>
+    </file>
+    <file path="$PROJECT_DIR$/../Client/main.py">
+      <ranges>
+        <range start1="11" end1="12" start2="11" end2="11" changelist="b034be01-4cb6-4094-ad30-ec519b8b6d9c" />
+        <range start1="227" end1="227" start2="226" end2="227" changelist="b034be01-4cb6-4094-ad30-ec519b8b6d9c" />
+        <range start1="229" end1="229" start2="229" end2="234" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="232" end1="232" start2="237" end2="240" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="237" end1="237" start2="245" end2="252" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+      </ranges>
+    </file>
+    <file path="$PROJECT_DIR$/server.py">
+      <ranges>
+        <range start1="96" end1="97" start2="96" end2="96" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="99" end1="100" start2="98" end2="105" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="101" end1="102" start2="106" end2="109" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="214" end1="230" start2="221" end2="221" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="231" end1="231" start2="222" end2="271" changelist="a14a1c2e-38cc-4582-8dff-a39e0f1dda26" />
+        <range start1="250" end1="251" start2="290" end2="290" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+        <range start1="256" end1="278" start2="295" end2="295" changelist="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" />
+      </ranges>
+    </file>
+  </component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 3
@@ -54,6 +94,11 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Marco\Desktop\Informatica\Progetti\Python\Chat-di-Gruppo\server" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -74,7 +119,7 @@
       <workItem from="1744558394397" duration="119000" />
       <workItem from="1744558708290" duration="1795000" />
       <workItem from="1744568136449" duration="743000" />
-      <workItem from="1744635178873" duration="1149000" />
+      <workItem from="1744635178873" duration="7951000" />
     </task>
     <servers />
   </component>
@@ -82,6 +127,6 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744635731763" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744643779169" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

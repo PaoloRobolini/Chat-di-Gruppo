@@ -94,12 +94,19 @@ def manda_chat_client(socket, username, client_address):
 
     files_chat = [
             f for f in os.listdir(cartella_chat)
-        if os.path.isfile(os.path.join(cartella_chat, f)) and username in f
     ]
 
-    socket.sendto(str(len(files_chat)).encode(), client_address)
+    file_da_mandare = []
+    for file in files_chat:
+        nome = file[:-5]
+        nomi = nome.split('_')
+        if username in nomi:
+            file_da_mandare.append(file)
 
-    for nome_file in files_chat:
+
+    socket.sendto(str(len(file_da_mandare)).encode(), client_address)
+
+    for nome_file in file_da_mandare:
         file_path = os.path.join(cartella_chat, nome_file)
 
         # Ottieni il lock per questo file
@@ -213,22 +220,55 @@ def handle_client(socket, data, client_address):
 
         socket.sendto(reply.encode(), client_address)
 
+    elif comando == "crea_gruppo":
+        nome_gruppo = messaggio["nome_gruppo"]
+        mittente = messaggio["mittente"]
+
+        dati = {}
+
+        with open("datiGruppi.json", 'r') as file:
+            dati = json.load(file)
+
+        aggiunto = False
+
+        for gruppo in dati["gruppi"]:
+            if gruppo["nome"] == nome_gruppo:
+                aggiunto = True
+                if not mittente in gruppo["membri"]:
+                    gruppo["membri"].append(mittente)
+
+        if not aggiunto:
+            gruppo = {
+                "nome": nome_gruppo,
+                "membri": [messaggio["mittente"]]
+            }
+            dati["gruppi"].append(gruppo)
+
+        if not os.path.exists(f"datiGruppi/{nome_gruppo}.json"):
+            with open(f"datiGruppi/{nome_gruppo}.json", 'w') as file:
+                json.dump({"gruppi": []}, file, indent=4)
+
+        with open("datiGruppi.json", 'w') as file:
+            json.dump(dati, file, indent=4)
 
 
+    elif comando == "messaggio_gruppo":
+        destinatario = messaggio["destinatario"]
 
+        nuovo_messaggio = {
+            "mittente": messaggio["mittente"],
+            "destinatario": destinatario,
+            "messaggio": messaggio["messaggio"]
+        }
 
-    # Unione a un gruppo da parte di un client, in caso il gruppo non esiste viene creato
-    elif comando == "unisci_gruppo":
-        print("\n")
-        if not messaggio["nome_gruppo"] in clients:
-            clients[messaggio["nome_gruppo"]] = []
-            print(f"creato il gruppo {messaggio['nome_gruppo']}")
+        with open("datiGruppi.json", 'r+w') as file:
+            dati = json.load(file)
+            membri_gruppo = dati["gruppi"][destinatario]
+            json.dump(dati, file, indent=4)
 
-        print(f"Si è unito al gruppo {messaggio['nome_gruppo']} {client_address}")
-        clients[messaggio["nome_gruppo"]].append(client_address)
-
-    # Inoltro di un messaggio a un altro client o gruppo
-
+        for utente in dati["utenti"]:
+            if utente["username"] in membri_gruppo and utente["username"] != messaggio["mittente"]:
+                socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
 
 
 
@@ -248,32 +288,9 @@ def handle_client(socket, data, client_address):
         for utente in dati["utenti"]:
             if utente["username"] == destinatario:
                 socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
-                print("ho mandato i dati")
 
         #cerco di salvare su file parte
         salva_messaggio('datiChat', nuovo_messaggio)
-
-
-
-
-        # cerco di salvare il messaggio boh
-        """nome_file = messaggio[0] + "_" + messaggio[1] + ".json"
-        nome_file2 = messaggio[1] + "_" + messaggio[0] + ".json"
-        if os.path.exists(nome_file):
-            with open(nome_file, "r") as json_file:
-                dati_file = json.load(json_file)
-                dati_file.update(dati_file_nuovi)
-            with open(nome_file, "w") as json_file:
-                json.dump(dati_file, json_file, indent=4)
-        elif os.path.exists(nome_file2):
-            with open(nome_file2, "r") as json_file:
-                dati_file = json.load(json_file)
-                dati_file.update(dati_file_nuovi)
-            with open(nome_file2, "w") as json_file:
-                json.dump(dati_file, json_file, indent=4)
-        else:
-            with open(nome_file, "w") as json_file:
-                json.dump(dati_file_nuovi, json_file, indent=4)"""
 
 
     else:

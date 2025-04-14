@@ -159,6 +159,27 @@
             size_hint_y: None
             height: 50
 
+        BoxLayout:
+            orientation: 'horizontal'
+            padding: 10
+            spacing: 10
+
+            ToggleButton:
+                text: "Nuovo contatto"
+                group: "radio_group"
+                height: 40
+                width: 40
+                font_size: 20
+                on_state: root.on_radio_select(self, self.text)
+
+            ToggleButton:
+                text: "Nuovo gruppo"
+                group: "radio_group"
+                height: 40
+                width: 40
+                font_size: 20
+                on_state: root.on_radio_select(self, self.text)
+
         TextInput:
             id: contatto
             hint_text: "Inserisci il contatto da aggiungere"
