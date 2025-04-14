@@ -1,5 +1,6 @@
 import json
 import multiprocessing
+import os
 import socket
 import threading
 
@@ -69,7 +70,7 @@ class LoginScreen(Screen):
                 datachat, addr = s.recvfrom(1024)
                 chat = datachat.decode()
                 chat = json.loads(chat)
-
+                os.makedirs('datiChat', exist_ok=True)
                 with open("datiChat/" + nome_file, 'w') as file:
                     json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
