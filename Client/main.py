@@ -13,7 +13,9 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
+
 ip_server = "127.0.0.1"
+
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -26,7 +28,7 @@ chat = {}
 
 global user
 
-def carica_grupi():
+def carica_gruppi():
     files_chat = [
         f for f in os.listdir('datiGruppi')
     ]
@@ -70,13 +72,10 @@ def carica_chat():
         except ValueError:
             ...
 
-    print(chat)
 
 def scarica_chat(cartella):
     data, addr = s.recvfrom(1024)
     reply = data.decode()
-
-    print(reply)
 
     os.makedirs(cartella, exist_ok=True)
 
@@ -102,12 +101,8 @@ class LoginScreen(Screen):
             dati_serializzati = json.dumps(user.crea_azione(comando="login")).encode('utf-8')
             s.sendto(dati_serializzati, server)
 
-            print("messaggio mandato")
-
             data, addr = s.recvfrom(1024)
             reply = data.decode()
-
-            print(reply)
 
             if reply != "1":
                 chat_screen = self.manager.get_screen('chat')
@@ -119,7 +114,7 @@ class LoginScreen(Screen):
                 scarica_chat('datiChat')
                 scarica_chat('datiGruppi')
                 carica_chat()
-                carica_grupi()
+                carica_gruppi()
 
                 thread_ricevi = threading.Thread(target=ricevi_messaggi)
                 thread_manda = threading.Thread(target=manda_messaggi)
@@ -147,12 +142,8 @@ class SigninScreen(Screen):
             dati_serializzati = json.dumps(user.crea_azione(comando="signin")).encode('utf-8')
             s.sendto(dati_serializzati, server)
 
-            print("messaggio mandato")
-
             data, addr = s.recvfrom(1024)
             reply = data.decode()
-
-            print(reply)
 
             if reply == "0":
                 chat_screen = self.manager.get_screen('chat')
@@ -196,7 +187,6 @@ class ChatScreen(Screen):
         user.set_destinatario(testo)
         self.selected_contact = f"Chat con {testo}"
         testo = testo.replace("'", '')
-        print(testo)
         try:
             self.chat_history = chat[testo]
         except KeyError:
@@ -320,8 +310,5 @@ if __name__ == '__main__':
         while True:
             messaggio = coda_manda_msg.get()
             s.sendto(json.dumps(messaggio).encode(), server)
-
-
-
 
     ChatApp().run()
