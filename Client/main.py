@@ -12,6 +12,12 @@ from kivy.lang import Builder
 from kivy.uix.button import Button
 from utente import utente
 
+from kivy.app import App
+from kivy.uix.button import Button
+from kivy.uix.boxlayout import BoxLayout
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
 Builder.load_file("chat.kv")
 
 ip_server = "127.0.0.1"
@@ -248,6 +254,81 @@ class ChatScreen(Screen):
         chat[mittente] += messaggio
 
 
+    def open_file_dialog(self, instance):
+        root = Tk()
+        root.withdraw()
+
+        # Apre il gestore file
+        file_path = askopenfilename(title="scegli un file")
+
+        if file_path:
+            print("File selezionato:", file_path)
+            user.set_nome_file(file_path)
+
+            print(user.get_nome_file())
+
+            conta = 0
+
+            with open(file_path, "rb") as file:
+                while (data := file.read(1024)):
+                    conta += 1
+
+            user.set_file_lenght(conta)
+            print(conta)
+
+            with open(file_path, "rb") as file:
+                conta = 0
+                while (data := file.read(1024)):
+                    print(data)
+                    data = data.decode("utf-8")
+                    user.set_file(data)
+                    user.set_file_position(conta)
+                    azione = user.crea_azione(comando="file")
+                    coda_manda_msg.put(azione)
+                    conta += 1
+            print(conta)
+        else:
+            print("Nessun file selezionato.")
+
+        # Chiude la finestra Tk
+        root.destroy()
+
+    def receive_file(self, messaggio):
+        nuovo_file = f"\n{messaggio['mittente']} > {messaggio['file']}"
+
+        mittente = messaggio["mittente"]
+        nome_file = messaggio["nome_file"]
+        file_data = messaggio["file"]
+        file_lenght = int(messaggio["file_lenght"])
+        file_position = int(messaggio["file_position"])
+
+        cartella_destinazione = 'file_ricevuti'
+        os.makedirs(cartella_destinazione, exist_ok=True)
+        file_path = os.path.join(cartella_destinazione, os.path.basename(nome_file))
+
+        with open(file_path, 'wb') as f:
+            data = file_data.encode("utf-8")
+            print(data)
+            f.write(data)
+
+
+        '''if file_lenght == file_position:
+            if mittente not in self.contact_buttons:
+                Clock.schedule_once(
+                    lambda dt: self.aggiungi_nuovo_contatto(mittente)
+                )
+    
+            if mittente == user.get_destinatario():
+                Clock.schedule_once(
+                    lambda dt: setattr(self, 'chat_history', self.chat_history + nuovo_messaggio)
+                )
+    
+            # 3. Salvataggio messaggio nella struttura dati
+            Clock.schedule_once(
+                lambda dt: self.salva_messaggio(mittente, nuovo_messaggio)
+            )'''
+
+
 class AggiungiContatto(Screen):
 
     def __init__(self, **kwargs):
@@ -303,7 +384,11 @@ if __name__ == '__main__':
 
     def processa_messaggio(messaggio):
         chat_screen = App.get_running_app().root.get_screen('chat')
-        chat_screen.receive_message(messaggio)
+        #se e` messaggio fai una roba se e` filew un altra
+        if not "file" in messaggio:
+            chat_screen.receive_message(messaggio)
+        else:
+            chat_screen.receive_file(messaggio)
 
 
     def manda_messaggi():

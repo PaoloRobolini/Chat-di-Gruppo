@@ -422,6 +422,39 @@ def handle_client(socket, data, client_address):
         socket.sendto(b"no", client_address)
 
 
+    elif comando == "file":
+        mittente = messaggio["mittente"]
+        destinatario = messaggio["destinatario"]
+        nome_file = messaggio['nome_file']
+        file = messaggio['file']
+        file_lenght = messaggio['file_lenght']
+        file_position = messaggio['file_position']
+
+        print(f"Ricevuto il nome del file: {nome_file}")
+        cartella_destinazione = 'file_ricevuti'
+
+        os.makedirs(cartella_destinazione, exist_ok=True)
+
+        nuovo_pacchetto_file = {
+            "mittente": mittente,
+            "destinatario": destinatario,
+            "nome_file": nome_file,
+            "file": file,
+            "file_lenght": file_lenght,
+            "file_position": file_position
+        }
+
+
+        with open('datiUtente.json', 'r') as file:
+            dati = json.load(file)
+
+        for utente in dati["utenti"]:
+            if utente["username"] == destinatario:
+                try:
+                    socket.sendto(json.dumps(nuovo_pacchetto_file).encode(), tuple(utente["address"]))
+                except Exception:
+                    pass
+
     else:
         print("destinatario non trovato")
 

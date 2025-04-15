@@ -4,6 +4,10 @@ class utente:
         self.__mail = mail
         self.__password = password
         self.__destinatario = None
+        self.__nome_file = None
+        self.__file = None
+        self.__file_lenght = None
+        self.__file_position = None
 
     def set_nome(self, nome):
         self.__username = nome
@@ -16,6 +20,21 @@ class utente:
 
     def get_destinatario(self):
         return self.__destinatario
+
+    def set_nome_file(self, nome_file):
+        self.__nome_file = nome_file
+
+    def get_nome_file(self):
+        return self.__nome_file
+
+    def set_file(self, file):
+        self.__file = file
+
+    def set_file_lenght(self, file_lenght):
+        self.__file_lenght = file_lenght
+
+    def set_file_position(self, file_position):
+        self.__file_position = file_position
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -55,6 +74,16 @@ class utente:
             "nome_gruppo": kwargs["nome_gruppo"],
             "mittente": self.__username
         }
+        elif comando == "file":
+            return {
+                "comando": "file",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+                "nome_file": self.__nome_file,
+                "file": self.__file,
+                "file_lenght": self.__file_lenght,
+                "file_position": self.__file_position
+            }
 
 
 

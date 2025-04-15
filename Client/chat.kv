@@ -229,6 +229,10 @@
                     color: 1, 1, 1, 1
                     on_release: root.send_message()
 
+                Button:
+                    text: "scegli un file"
+                    on_release: root.open_file_dialog(self)
+
 
 <AggiungiContatto>:
     canvas.before:
