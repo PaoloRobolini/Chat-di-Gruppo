@@ -5,7 +5,9 @@ import os
 from tempfile import NamedTemporaryFile
 
 # Parametri server
-HOST = "10.4.54.27"
+
+HOST = "127.0.0.1"
+
 PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
@@ -398,7 +400,11 @@ def handle_client(socket, data, client_address):
 
             for utente in dati["utenti"]:
                 if utente["username"] == destinatario:
-                    socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
+                    try:
+                        socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
+                    except Exception:
+                        pass
+
 
             #cerco di salvare su file parte
             salva_messaggio('datiChat', nuovo_messaggio)

@@ -41,8 +41,8 @@
             "password": "matteo",
             "username": "matteo",
             "address": [
-                "26.21.230.217",
-                56800
+                "127.0.0.1",
+                63669
             ]
         },
         {
@@ -59,8 +59,8 @@
             "password": "marco",
             "username": "marco",
             "address": [
-                "192.168.1.9",
-                54078
+                "127.0.0.1",
+                63018
             ]
         },
         {
