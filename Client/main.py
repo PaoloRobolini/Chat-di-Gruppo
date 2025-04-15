@@ -13,7 +13,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "192.168.1.9"
+ip_server = "10.4.54.27"
 porta_server = 65432
 server = (ip_server, porta_server)
 
@@ -308,8 +308,5 @@ if __name__ == '__main__':
         while True:
             messaggio = coda_manda_msg.get()
             s.sendto(json.dumps(messaggio).encode(), server)
-
-
-
 
     ChatApp().run()

@@ -1,15 +1,11 @@
 import json
 import socket
-import struct
 import threading
 import os
-from sys import orig_argv
-import string
-import random
 from tempfile import NamedTemporaryFile
 
 # Parametri server
-HOST = "192.168.1.9"
+HOST = "10.4.54.27"
 PORT = 65432
 server_address = (HOST, PORT)
 lock_datiUtente = threading.Lock()
@@ -308,11 +304,19 @@ def handle_client(socket, data, client_address):
 
         for gruppo in dati["gruppi"]:
             if messaggio["destinatario"] == gruppo["nome"]:
-                gruppi_attivi.append(gruppo)
+                gruppi_attivi.append(gruppo["nome"])
+
 
         if messaggio["destinatario"] in gruppi_attivi:
             destinatario = messaggio["destinatario"]
             mittente = messaggio["mittente"]
+
+
+            nuovo_messaggio = {
+                "nome_gruppo ": destinatario,
+                "mittente": mittente,
+                "messaggio": messaggio["messaggio"]
+            }
 
             # 1. Lettura sicura della lista membri con lock
             with lock_for_locks:  # Lock globale per datiGruppi.json
@@ -331,7 +335,7 @@ def handle_client(socket, data, client_address):
             for utente in dati_utenti["utenti"]:
                 if utente["username"] in membri_gruppo and utente["username"] != mittente:
                     try:
-                        socket.sendto(json.dumps(messaggio).encode(), tuple(utente["address"]))
+                        socket.sendto(json.dumps(nuovo_messaggio).encode(), tuple(utente["address"]))
 
                     except Exception as e:
                         print(f"Errore invio a {utente['username']}: {str(e)}")
@@ -384,7 +388,6 @@ def handle_client(socket, data, client_address):
             destinatario = messaggio["destinatario"]
 
             nuovo_messaggio = {
-                "gruppo": False,
                 "mittente": messaggio["mittente"],
                 "destinatario": destinatario,
                 "messaggio": messaggio["messaggio"]
@@ -420,6 +423,9 @@ def handle_client(socket, data, client_address):
 # Creazione del socket server
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_socket.bind(server_address)
+
+os.makedirs("datiChat", exist_ok=True)
+os.makedirs("datiGruppi", exist_ok=True)
 
 print(f"[SERVER] In ascolto su {server_address}")
 
