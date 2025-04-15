@@ -1,0 +1,20 @@
+{
+    "gruppi": [
+        {
+            "nome": "prova",
+            "membri": [
+                "marco",
+                "baolo",
+                "matteo",
+                "a"
+            ]
+        },
+        {
+            "nome": "ciccio",
+            "membri": [
+                "marco",
+                "marco2"
+            ]
+        }
+    ]
+}
