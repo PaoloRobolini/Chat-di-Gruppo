@@ -1,120 +1,194 @@
 <LoginScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
     BoxLayout:
         orientation: 'vertical'
-        padding: 40
-        spacing: 20
+        padding: 60
+        spacing: 25
 
         Label:
             text: "Benvenuto in Biscord!"
-            font_size: 32
+            font_size: 36
+            bold: True
+            color: 1, 1, 1, 1
             size_hint_y: None
-            height: 50
+            height: 60
 
         TextInput:
             id: mail
             hint_text: "Inserisci il tuo indirizzo mail"
             font_size: 20
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
 
         TextInput:
             id: password
             hint_text: "Inserisci la password"
             font_size: 20
+            password: True
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
 
         Label:
             id: login_data_error
             text: ""
-            font_size: 20
+            font_size: 18
+            color: 1, 0.3, 0.3, 1
 
         Button:
             text: "Accedi"
             font_size: 20
             size_hint_y: None
             height: 50
+            background_normal: ''
+            background_color: 0.1, 0.6, 1, 1
+            color: 1, 1, 1, 1
             on_release: root.login()
 
         Button:
-            text: "Non hai un account, registrati!"
-            font_size: 20
+            text: "Non hai un account? Registrati!"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.6, 0.8, 1, 1
             on_release: app.root.current = "signin"
 
+
 <SigninScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
     BoxLayout:
         orientation: 'vertical'
-        padding: 40
-        spacing: 20
+        padding: 60
+        spacing: 25
 
         Label:
-            text: "Benvenuto in Biscord!"
-            font_size: 32
+            text: "Registrati su Biscord!"
+            font_size: 36
+            bold: True
+            color: 1, 1, 1, 1
             size_hint_y: None
-            height: 50
+            height: 60
 
         TextInput:
             id: username
             hint_text: "Inserisci il tuo username"
             font_size: 20
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
 
         TextInput:
             id: mail
             hint_text: "Inserisci il tuo indirizzo mail"
             font_size: 20
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
 
         TextInput:
             id: password
             hint_text: "Inserisci la password"
             font_size: 20
+            password: True
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
 
         Label:
             id: signin_data_error
             text: ""
-            font_size: 20
+            font_size: 18
+            color: 1, 0.3, 0.3, 1
 
         Button:
             text: "Crea account"
             font_size: 20
             size_hint_y: None
             height: 50
+            background_normal: ''
+            background_color: 0.1, 0.6, 1, 1
+            color: 1, 1, 1, 1
             on_release: root.signin()
 
-<ChatScreen>:
-    BoxLayout:
-        orientation: 'horizontal'  # Cambiato per ospitare menu laterale
 
-        # MENU LATERALE A SINISTRA
+<ChatScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.08, 0.08, 0.12, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        # MENU LATERALE
         BoxLayout:
             orientation: 'vertical'
             size_hint_x: None
-            width: 60
+            width: 80
             spacing: 10
-            padding: 5
+            padding: 10
+
+            canvas.before:
+                Color:
+                    rgba: 0.15, 0.15, 0.2, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
 
             Button:
                 size_hint: None, None
-                size: 50, 50
+                size: 60, 60
                 text: "+"
+                font_size: 24
+                background_normal: ''
+                background_color: 0.1, 0.6, 1, 1
+                color: 1, 1, 1, 1
                 on_release: root.aggiungicontatto()
 
             ScrollView:
-                BoxLayout:
+                do_scroll_y: True
+                bar_width: 5
+
+                GridLayout:
                     id: contact_list_sidebar
-                    orientation: 'vertical'
-                    spacing: 5
-                    padding: 5
+                    cols: 1
                     size_hint_y: None
                     height: self.minimum_height
+                    spacing: 10
+                    padding: 5
 
-
-
-        # CONTENUTO PRINCIPALE DELLA CHAT
+        # CHAT PRINCIPALE
         BoxLayout:
             orientation: 'vertical'
-            padding: 10
+            padding: 20
             spacing: 10
 
             Label:
                 id: contatto_selezionato
                 text: root.selected_contact
                 font_size: 24
+                bold: True
+                color: 1, 1, 1, 1
                 size_hint_y: None
                 height: 40
 
@@ -132,6 +206,7 @@
                     halign: 'left'
                     valign: 'top'
                     padding: 10, 10
+                    color: 1, 1, 1, 1
 
             BoxLayout:
                 size_hint_y: None
@@ -142,57 +217,102 @@
                     id: message_input
                     hint_text: "Scrivi un messaggio..."
                     multiline: False
+                    background_normal: ''
+                    background_color: 0.2, 0.2, 0.3, 1
+                    foreground_color: 1, 1, 1, 1
+                    padding: 10
 
                 Button:
                     text: "Invia"
+                    background_normal: ''
+                    background_color: 0.1, 0.6, 1, 1
+                    color: 1, 1, 1, 1
                     on_release: root.send_message()
 
+
 <AggiungiContatto>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
     BoxLayout:
         orientation: 'vertical'
-        padding: 40
-        spacing: 20
+        padding: 60
+        spacing: 25
+
+        # Pulsante INDIETRO in alto a destra
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: 40
+
+            Widget:
+
+            Button:
+                text: "← Indietro"
+                size_hint: None, None
+                size: 120, 40
+                font_size: 16
+                background_normal: ''
+                background_color: 0.1, 0.6, 1, 1
+                color: 1, 1, 1, 1
+                on_release: app.root.current = "chat"
 
         Label:
             text: "Aggiungi un contatto o unisciti a un gruppo"
-            font_size: 32
+            font_size: 30
+            color: 1, 1, 1, 1
             size_hint_y: None
-            height: 50
+            height: 60
 
         BoxLayout:
             orientation: 'horizontal'
-            padding: 10
-            spacing: 10
+            spacing: 20
 
             ToggleButton:
                 text: "Nuovo contatto"
                 group: "radio_group"
                 height: 40
-                width: 40
                 font_size: 20
+                background_normal: ''
+                background_color: 0.2, 0.4, 0.8, 1
+                color: 1, 1, 1, 1
                 on_state: root.on_radio_select(self, self.text)
 
             ToggleButton:
                 text: "Nuovo gruppo"
                 group: "radio_group"
                 height: 40
-                width: 40
                 font_size: 20
+                background_normal: ''
+                background_color: 0.2, 0.4, 0.8, 1
+                color: 1, 1, 1, 1
                 on_state: root.on_radio_select(self, self.text)
 
         TextInput:
             id: contatto
             hint_text: "Inserisci il contatto da aggiungere"
             font_size: 20
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
 
         Label:
             id: login_data_error
             text: ""
-            font_size: 20
+            font_size: 18
+            color: 1, 0.3, 0.3, 1
 
         Button:
-            text: "aggiungi"
+            text: "Aggiungi"
             font_size: 20
             size_hint_y: None
             height: 50
+            background_normal: ''
+            background_color: 0.1, 0.6, 1, 1
+            color: 1, 1, 1, 1
             on_release: root.aggiungicontatto()

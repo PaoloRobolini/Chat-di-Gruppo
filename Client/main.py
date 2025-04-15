@@ -13,7 +13,7 @@ from kivy.uix.button import Button
 from utente import utente
 
 Builder.load_file("chat.kv")
-ip_server = "192.168.1.9"
+ip_server = "127.0.0.1"
 porta_server = 65432
 server = (ip_server, porta_server)
 
