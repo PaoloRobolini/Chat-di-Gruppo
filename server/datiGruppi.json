@@ -5,7 +5,6 @@
             "membri": [
                 "marco",
                 "baolo",
-                "matteo",
                 "a"
             ]
         },
@@ -14,6 +13,12 @@
             "membri": [
                 "marco",
                 "marco2"
+            ]
+        },
+        {
+            "nome": "dio,terrone",
+            "membri": [
+                "marco"
             ]
         }
     ]

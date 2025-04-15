@@ -1,3 +1,4 @@
+import base64
 import json
 import multiprocessing
 import os
@@ -254,7 +255,7 @@ class ChatScreen(Screen):
         chat[mittente] += messaggio
 
 
-    def open_file_dialog(self, instance):
+    def send_file(self, instance):
         root = Tk()
         root.withdraw()
 
@@ -270,7 +271,7 @@ class ChatScreen(Screen):
             conta = 0
 
             with open(file_path, "rb") as file:
-                while (data := file.read(1024)):
+                while (data := file.read(512)):
                     conta += 1
 
             user.set_file_lenght(conta)
@@ -278,9 +279,9 @@ class ChatScreen(Screen):
 
             with open(file_path, "rb") as file:
                 conta = 0
-                while (data := file.read(1024)):
+                while (data := file.read(512)):
                     print(data)
-                    data = data.decode("utf-8")
+                    data = base64.b64encode(data).decode('utf-8')
                     user.set_file(data)
                     user.set_file_position(conta)
                     azione = user.crea_azione(comando="file")
@@ -295,21 +296,31 @@ class ChatScreen(Screen):
 
     def receive_file(self, messaggio):
         nuovo_file = f"\n{messaggio['mittente']} > {messaggio['file']}"
+        print(nuovo_file)
 
         mittente = messaggio["mittente"]
-        nome_file = messaggio["nome_file"]
-        file_data = messaggio["file"]
+        nome_file_orig = messaggio["nome_file"]
+        nome_file = os.path.basename(nome_file_orig)
+        file_data_b64 = messaggio["file"]
         file_lenght = int(messaggio["file_lenght"])
         file_position = int(messaggio["file_position"])
 
-        cartella_destinazione = 'file_ricevuti'
+        cartella_destinazione = "file_ricevuti"
         os.makedirs(cartella_destinazione, exist_ok=True)
-        file_path = os.path.join(cartella_destinazione, os.path.basename(nome_file))
+        file_path = os.path.join(cartella_destinazione, nome_file)
 
-        with open(file_path, 'wb') as f:
-            data = file_data.encode("utf-8")
-            print(data)
-            f.write(data)
+        try:
+            # Decodifica base64 → bytes reali
+            file_bytes = base64.b64decode(file_data_b64)
+        except Exception as e:
+            print("❌ Errore nella decodifica base64:", e)
+            return
+
+            # Apri il file in modalità random access per scrivere nel punto giusto
+        with open(file_path, 'r+b' if os.path.exists(file_path) else 'wb') as f:
+            f.seek(file_position * 512)  # vai alla posizione corretta nel file
+            f.write(file_bytes)
+
 
 
         '''if file_lenght == file_position:
@@ -394,6 +405,9 @@ if __name__ == '__main__':
     def manda_messaggi():
         while True:
             messaggio = coda_manda_msg.get()
-            s.sendto(json.dumps(messaggio).encode(), server)
+            if not "file" in messaggio:
+                s.sendto(json.dumps(messaggio).encode(), server)
+            else:
+                s.sendto(json.dumps(messaggio).encode("utf-8") + b'\n', server)
 
     ChatApp().run()
