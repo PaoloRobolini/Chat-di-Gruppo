@@ -26,7 +26,7 @@ chat = {}
 
 global user
 
-def carica_grupi():
+def carica_gruppi():
     files_chat = [
         f for f in os.listdir('datiGruppi')
     ]
@@ -112,7 +112,7 @@ class LoginScreen(Screen):
                 scarica_chat('datiChat')
                 scarica_chat('datiGruppi')
                 carica_chat()
-                carica_grupi()
+                carica_gruppi()
 
                 thread_ricevi = threading.Thread(target=ricevi_messaggi)
                 thread_manda = threading.Thread(target=manda_messaggi)
