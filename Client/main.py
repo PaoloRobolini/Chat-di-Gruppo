@@ -70,13 +70,10 @@ def carica_chat():
         except ValueError:
             ...
 
-    print(chat)
 
 def scarica_chat(cartella):
     data, addr = s.recvfrom(1024)
     reply = data.decode()
-
-    print(reply)
 
     os.makedirs(cartella, exist_ok=True)
 
@@ -102,12 +99,8 @@ class LoginScreen(Screen):
             dati_serializzati = json.dumps(user.crea_azione(comando="login")).encode('utf-8')
             s.sendto(dati_serializzati, server)
 
-            print("messaggio mandato")
-
             data, addr = s.recvfrom(1024)
             reply = data.decode()
-
-            print(reply)
 
             if reply != "1":
                 chat_screen = self.manager.get_screen('chat')
@@ -147,12 +140,8 @@ class SigninScreen(Screen):
             dati_serializzati = json.dumps(user.crea_azione(comando="signin")).encode('utf-8')
             s.sendto(dati_serializzati, server)
 
-            print("messaggio mandato")
-
             data, addr = s.recvfrom(1024)
             reply = data.decode()
-
-            print(reply)
 
             if reply == "0":
                 chat_screen = self.manager.get_screen('chat')
@@ -196,7 +185,6 @@ class ChatScreen(Screen):
         user.set_destinatario(testo)
         self.selected_contact = f"Chat con {testo}"
         testo = testo.replace("'", '')
-        print(testo)
         try:
             self.chat_history = chat[testo]
         except KeyError:
