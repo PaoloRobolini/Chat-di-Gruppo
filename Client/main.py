@@ -87,15 +87,13 @@ def scarica_chat(cartella):
     os.makedirs(cartella, exist_ok=True)
 
     for _ in range(int(reply)):
-        datachat, addr = s.recvfrom(1024)
-        nome_file = datachat.decode()
-        nome_file = nome_file.replace('"', '').replace("'", "")
+        messaggio = s.recv(1024)
+        messaggio = json.loads(messaggio.decode())
+        messaggio["nome"] = messaggio["nome"].replace('"', '').replace("'", "")
 
-        datachat, addr = s.recvfrom(1024)
-        chat = datachat.decode()
-        chat = json.loads(chat)
-        with open(f"{cartella}/{nome_file}", 'w') as file:
-            json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
+        print(f"Nome del file: {messaggio["nome"]}")
+        with open(f"{cartella}/{messaggio["nome"]}", 'w') as f:
+            json.dump(messaggio["contenuto"], f, indent=4)  # `indent=4` rende il file leggibile
 
 
 class LoginScreen(Screen):

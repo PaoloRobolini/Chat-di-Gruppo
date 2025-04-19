@@ -102,10 +102,10 @@ def manda_gruppi_client(client_socket, username):
     client_socket.sendall(str(len(gruppi_utente)).encode())
 
     for nome_gruppo in gruppi_utente:
-        file_path = os.path.join(cartella_chat, nome_gruppo)
         file_name = f"{nome_gruppo}.json"  # Aggiunta estensione
-        client_socket.sendall(file_name.encode())
-        print(f"Inviato: {file_name}")
+        messaggio = {
+            "nome": file_name,
+        }
 
         with lock_for_locks:
             if nome_gruppo not in locks_chat:
@@ -113,16 +113,11 @@ def manda_gruppi_client(client_socket, username):
             gruppo_lock = locks_chat[nome_gruppo]
 
         with gruppo_lock:
-            try:
+            with open(f"datiGruppi/{nome_gruppo}.json", 'r') as f:
+                dati_gruppo = json.load(f)
 
-
-                with open(f"datiGruppi/{nome_gruppo}.json", 'r') as f:
-                    dati_gruppo = json.load(f)
-                    client_socket.sendall(json.dumps(dati_gruppo).encode())
-
-            except (FileNotFoundError, json.JSONDecodeError) as e:
-                print(f"Errore gruppo {file_name}: {str(e)}")
-                client_socket.sendall(json.dumps({"gruppo": []}).encode())
+        messaggio["contenuto"] = dati_gruppo
+        client_socket.sendall(json.dumps(messaggio).encode())
 
 # Modifica la funzione manda_chat_client
 def manda_chat_client(client_socket, username):
@@ -145,6 +140,9 @@ def manda_chat_client(client_socket, username):
 
     for nome_file in file_da_mandare:
         file_path = os.path.join(cartella_chat, nome_file)
+        messaggio = {
+            "nome": nome_file
+        }
 
         # Ottieni il lock per questo file
         with lock_for_locks:
@@ -159,8 +157,8 @@ def manda_chat_client(client_socket, username):
                     dati = json.load(f)
 
                 # Invia i dati
-                client_socket.sendall(nome_file.encode())
-                client_socket.sendall(json.dumps(dati).encode())
+                messaggio['contenuto'] = dati
+                client_socket.sendall(json.dumps(messaggio).encode())
                 print(f"Inviato: {nome_file}")
 
             except (json.JSONDecodeError, IOError) as e:

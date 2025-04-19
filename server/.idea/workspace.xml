@@ -5,12 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="Aggiunta la funzione del server per mandare i gruppi">
-      <change beforePath="$PROJECT_DIR$/../Client/datiChat/marco_matteo.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Client/datiChat/matteo_paolo.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/client.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datiChat/marco_matteo.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiChat/marco_matteo.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datiGruppi.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiGruppi.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/datiUtente.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiUtente.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
     </list>
@@ -119,10 +116,11 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Sistemazione ricezione messaggi da parte di un gruppo" />
     <MESSAGE value="Aggiunta la funzione del server per mandare i gruppi" />
-    <option name="LAST_COMMIT_MESSAGE" value="Aggiunta la funzione del server per mandare i gruppi" />
+    <MESSAGE value="Cambio del server a socket TCP ed inizio per il client" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cambio del server a socket TCP ed inizio per il client" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744653978541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/server_py$server.coverage" NAME="server Coverage Results" MODIFIED="1745074283903" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/server_py$server.coverage" NAME="server Coverage Results" MODIFIED="1745075218906" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
