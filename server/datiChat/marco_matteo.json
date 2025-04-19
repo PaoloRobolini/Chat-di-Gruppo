@@ -19,6 +19,10 @@
         {
             "mittente": "matteo",
             "messaggio": "Ti scrivo di nuovo"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "ciao matteo"
         }
     ]
 }

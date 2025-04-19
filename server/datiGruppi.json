@@ -3,6 +3,13 @@
         {
             "nome": "prova",
             "membri": [
+                "marco",
+                "baolo"
+            ]
+        },
+        {
+            "nome": "prova2",
+            "membri": [
                 "marco"
             ]
         }

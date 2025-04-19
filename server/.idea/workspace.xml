@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="Aggiunta la funzione del server per mandare i gruppi">
-      <change beforePath="$PROJECT_DIR$/../Client/client.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
+    <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="Sistemazione scaricamento e caricamento delle chat e gruppi">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datiUtente.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiUtente.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/datiChat/marco_matteo.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiChat/marco_matteo.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/datiGruppi.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiGruppi.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
     </list>
     <list id="b034be01-4cb6-4094-ad30-ec519b8b6d9c" name="Changes by alemi" comment="" />
@@ -47,21 +46,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.server.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;scambio__file&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Marco/Desktop/Informatica/Progetti/Python/Chat-di-Gruppo/server&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.server.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "scambio__file",
+    "last_opened_file_path": "C:/Users/Marco/Desktop/Informatica/prove_varie/Client",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Marco\Desktop\Informatica\Progetti\Python\Chat-di-Gruppo\server" />
@@ -107,7 +106,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744653956158</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Sistemazione scaricamento e caricamento delle chat e gruppi">
+      <option name="closed" value="true" />
+      <created>1745075449153</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1745075449153</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -117,10 +124,11 @@
     <MESSAGE value="Sistemazione ricezione messaggi da parte di un gruppo" />
     <MESSAGE value="Aggiunta la funzione del server per mandare i gruppi" />
     <MESSAGE value="Cambio del server a socket TCP ed inizio per il client" />
-    <option name="LAST_COMMIT_MESSAGE" value="Cambio del server a socket TCP ed inizio per il client" />
+    <MESSAGE value="Sistemazione scaricamento e caricamento delle chat e gruppi" />
+    <option name="LAST_COMMIT_MESSAGE" value="Sistemazione scaricamento e caricamento delle chat e gruppi" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744653978541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/server_py$server.coverage" NAME="server Coverage Results" MODIFIED="1745075218906" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/server_py$server.coverage" NAME="server Coverage Results" MODIFIED="1745076317034" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
