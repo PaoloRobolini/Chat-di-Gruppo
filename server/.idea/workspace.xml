@@ -5,7 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="Aggiunta la funzione del server per mandare i gruppi">
+      <change beforePath="$PROJECT_DIR$/../Client/datiChat/marco_matteo.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/datiChat/matteo_paolo.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/datiChat/marco_matteo.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiChat/marco_matteo.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/datiGruppi.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiGruppi.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/datiUtente.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiUtente.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
     </list>
     <list id="b034be01-4cb6-4094-ad30-ec519b8b6d9c" name="Changes by alemi" comment="" />
     <list id="a14a1c2e-38cc-4582-8dff-a39e0f1dda26" name="Changes by Paolo" comment="" />
@@ -15,6 +22,11 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -43,7 +55,7 @@
     &quot;Python.server.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;storico-messaggi&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;scambio__file&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/Marco/Desktop/Informatica/Progetti/Python/Chat-di-Gruppo/server&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -80,6 +92,7 @@
       <workItem from="1744568136449" duration="743000" />
       <workItem from="1744635178873" duration="10086000" />
       <workItem from="1744648608422" duration="5371000" />
+      <workItem from="1745072915888" duration="1661000" />
     </task>
     <task id="LOCAL-00001" summary="Sistemazione ricezione messaggi da parte di un gruppo">
       <option name="closed" value="true" />
@@ -110,5 +123,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1744653978541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/server_py$server.coverage" NAME="server Coverage Results" MODIFIED="1745074283903" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

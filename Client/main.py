@@ -5,17 +5,14 @@ import os
 import socket
 import threading
 
-from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
-from kivy.uix.button import Button
 from utente import utente
 
 from kivy.app import App
 from kivy.uix.button import Button
-from kivy.uix.boxlayout import BoxLayout
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
@@ -26,7 +23,8 @@ ip_server = "127.0.0.1"
 porta_server = 65432
 server = (ip_server, porta_server)
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(server)
 
 coda_arrivo_msg = multiprocessing.Queue()
 coda_manda_msg = multiprocessing.Queue()
@@ -41,8 +39,8 @@ def carica_gruppi():
     ]
 
     for file in files_chat:
-        s.sendto(json.dumps(user.crea_azione(comando="is_in_gruppo", nome_gruppo=file[:-5])).encode(), server)
-        data, address = s.recvfrom(1024)
+        s.sendall(json.dumps(user.crea_azione(comando="is_in_gruppo", nome_gruppo=file[:-5])).encode())
+        data = s.recv(1024)
         if data == b"yes":
             with open(f"datiGruppi/{file}", "r") as f:
                 dati = json.load(f)
@@ -81,8 +79,10 @@ def carica_chat():
 
 
 def scarica_chat(cartella):
-    data, addr = s.recvfrom(1024)
+    data = s.recv(1024)
     reply = data.decode()
+
+    print(reply)
 
     os.makedirs(cartella, exist_ok=True)
 
@@ -97,6 +97,7 @@ def scarica_chat(cartella):
         with open(f"{cartella}/{nome_file}", 'w') as file:
             json.dump(chat, file, indent=4)  # `indent=4` rende il file leggibile
 
+
 class LoginScreen(Screen):
     def login(self):
         mail = self.ids.mail.text.strip()
@@ -106,9 +107,10 @@ class LoginScreen(Screen):
             user = utente(mail=mail, password=password)
 
             dati_serializzati = json.dumps(user.crea_azione(comando="login")).encode('utf-8')
-            s.sendto(dati_serializzati, server)
+            s.sendall(dati_serializzati)
 
-            data, addr = s.recvfrom(1024)
+
+            data = s.recv(1024)
             reply = data.decode()
 
             if reply != "1":
@@ -147,9 +149,9 @@ class SigninScreen(Screen):
             global user
             user = utente(mail=mail, password=password, username=username)
             dati_serializzati = json.dumps(user.crea_azione(comando="signin")).encode('utf-8')
-            s.sendto(dati_serializzati, server)
+            s.sendall(dati_serializzati)
 
-            data, addr = s.recvfrom(1024)
+            data = s.recv(1024)
             reply = data.decode()
 
             if reply == "0":
@@ -382,7 +384,7 @@ if __name__ == '__main__':
     def ricevi_messaggi():
         while True:
             try:
-                data, addr = s.recvfrom(1024)
+                data = s.recv(1024)
                 if data:
                     try:
                         messaggio = json.loads(data.decode())
@@ -406,8 +408,8 @@ if __name__ == '__main__':
         while True:
             messaggio = coda_manda_msg.get()
             if not "file" in messaggio:
-                s.sendto(json.dumps(messaggio).encode(), server)
+                s.sendall(json.dumps(messaggio).encode())
             else:
-                s.sendto(json.dumps(messaggio).encode("utf-8") + b'\n', server)
+                s.sendall(json.dumps(messaggio).encode("utf-8") + b'\n')
 
     ChatApp().run()
