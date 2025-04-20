@@ -202,7 +202,7 @@ class ChatScreen(Screen):
 
     def send_message(self):
         message = self.ids.message_input.text.strip()
-        if message:
+        if message and user.get_destinatario() is not None:
             if not chat[user.get_destinatario()]:
                 chat[user.get_destinatario()] = ''
             chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message}"
