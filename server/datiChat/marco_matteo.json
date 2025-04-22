@@ -13,16 +13,40 @@
             "messaggio": "bfdbfdbfd"
         },
         {
-            "mittente": "matteo",
-            "messaggio": "ciao"
-        },
-        {
-            "mittente": "matteo",
-            "messaggio": "Ti scrivo di nuovo"
+            "mittente": "marco",
+            "messaggio": "Ha iniziato il trasferimento del file: tempo.txt"
         },
         {
             "mittente": "marco",
-            "messaggio": "ciao matteo"
+            "messaggio": "Ha completato il trasferimento del file: tempo.txt (salvato sul server)"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "ciao"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha iniziato il trasferimento del file: tempo.txt"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha completato il trasferimento del file: tempo.txt (salvato sul server)"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha iniziato il trasferimento del file: tempo.txt"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha completato il trasferimento del file: tempo.txt (salvato sul server)"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha iniziato il trasferimento del file: tempo.txt"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha completato il trasferimento del file: tempo.txt (salvato sul server)"
         }
     ]
 }
