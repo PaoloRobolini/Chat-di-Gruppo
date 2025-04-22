@@ -407,7 +407,6 @@ class ChatScreen(Screen):
                     "destinatario": destinatario,
                     "file_size": file_size
                 }
-                print(f"file trasnfers inizio: {file_transfers}")
 
         elif comando == "trasferimento_file_chunk":
             # Ricezione di un chunk del file
@@ -415,10 +414,6 @@ class ChatScreen(Screen):
             total_chunks = messaggio.get("total_chunks")
             chunk = messaggio.get("chunk")
             file_size = messaggio.get("file_size")
-
-            print(f"📥 Ricevuto chunk {chunk_id + 1}/{total_chunks} del file {nome_file}")
-
-            file_path = os.path.join(cartella_destinazione, nome_file)
 
             try:
                 # Chiave univoca per questo trasferimento
@@ -429,7 +424,6 @@ class ChatScreen(Screen):
                     if transfer_key in file_transfers:
                         file_transfers[transfer_key]["chunks"][chunk_id] = chunk
                         file_transfers[transfer_key]["total_chunks"] = total_chunks
-                    print(f"file trasnfers trasferimento: {file_transfers}")
 
                 # Aggiorna l'interfaccia utente con lo stato di avanzamento
                 if chunk_id % 10 == 0 or chunk_id == total_chunks - 1:
@@ -472,12 +466,10 @@ class ChatScreen(Screen):
             transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
 
             file_path = os.path.join("file_ricevuti", nome_file)
-            print(f"file trasnfers fine: {file_transfers}")
 
             with file_transfers_lock:
                 if transfer_key in file_transfers:
                     # Ordina i chunk e scrivili su file
-                    print("Entrato nel punto di salvataggio del file")
                     try:
                         with open(file_path, 'wb') as file_out:
                             for i in range(file_transfers[transfer_key]["total_chunks"]):

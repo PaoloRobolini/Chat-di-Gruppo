@@ -26,6 +26,24 @@ def genera_nome_file(nome1, nome2):
     return f"{sorted_names[0]}_{sorted_names[1]}.json"
 
 
+def manda_messaggio(messaggio, mittente, destinatario):
+    gruppo, membri = is_group(destinatario)
+    with clients_lock:
+        for membro in membri:
+            if membro != mittente and membro in clients_sockets:
+                clients_sockets[membro].sendall(json.dumps(messaggio).encode('utf-8'))
+
+def is_group(destinatario):
+    with lock_for_locks:
+        with open("datiGruppi.json", 'r', encoding='utf-8') as file:
+            dati_gruppi = json.load(file)
+            for gruppo in dati_gruppi.get("gruppi", []):
+                if gruppo.get("nome") == destinatario:
+                    return True, gruppo["membri"]
+
+    return False, [destinatario]
+
+
 def salva_messaggio(cartella_chat, nuovo_messaggio):
     if not {'mittente', 'messaggio'}.issubset(nuovo_messaggio):
         raise ValueError("Messaggio non valido per il salvataggio")
@@ -275,43 +293,20 @@ def handle_client(client_socket, client_address):
                 testo_messaggio = messaggio.get("messaggio")
                 if not destinatario or not testo_messaggio:
                     continue
-                is_gruppo = False
-                membri_gruppo = []
-                with lock_for_locks:
-                    try:
-                        with open("datiGruppi.json", 'r', encoding='utf-8') as file:
-                            dati_gruppi = json.load(file)
-                            for gruppo in dati_gruppi.get("gruppi", []):
-                                if gruppo.get("nome") == destinatario:
-                                    is_gruppo = True
-                                    membri_gruppo = gruppo.get("membri", []).copy()
-                                    break
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        pass
 
-                if is_gruppo:
-                    messaggio_da_inoltrare = {"comando": "nuovo_messaggio_gruppo", "nome_gruppo": destinatario,
-                                              "mittente": mittente, "messaggio": testo_messaggio}
-                    messaggio_json = json.dumps(messaggio_da_inoltrare).encode('utf-8')
-                    with clients_lock:
-                        for membro in membri_gruppo:
-                            if membro != mittente and membro in clients_sockets:
-                                clients_sockets[membro].sendall(messaggio_json)
-                    nuovo_messaggio_salvataggio = {"nome_gruppo": destinatario, "mittente": mittente,
-                                                   "messaggio": testo_messaggio}
+                gruppo, membri = is_group(destinatario)
+
+                if gruppo:
+                    messaggio_da_inoltrare = {"comando": "nuovo_messaggio_gruppo", "nome_gruppo": destinatario,"mittente": mittente, "messaggio": testo_messaggio}
+                    nuovo_messaggio_salvataggio = {"nome_gruppo": destinatario, "mittente": mittente,"messaggio": testo_messaggio}
                     salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
                 else:
                     messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": mittente,"messaggio": testo_messaggio}
-                    messaggio_json = json.dumps(messaggio_da_inoltrare).encode('utf-8')
-                    destinatario_socket = None
-                    with clients_lock:
-                        if destinatario in clients_sockets:
-                            destinatario_socket = clients_sockets[destinatario]
-                    if destinatario_socket:
-                        destinatario_socket.sendall(messaggio_json)
-                    nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario,
-                                                   "messaggio": testo_messaggio}
+                    nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario,"messaggio": testo_messaggio}
                     salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
+
+                manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+
             elif comando == "is_in_gruppo":
                 if not logged_in_username:
                     client_socket.sendall(b"error_not_logged_in")
@@ -396,6 +391,7 @@ def handle_client(client_socket, client_address):
 
                 if not logged_in_username:
                     continue
+
                 mittente = logged_in_username
                 destinatario = messaggio.get("destinatario")
                 nome_file = messaggio.get("nome_file")
@@ -410,8 +406,13 @@ def handle_client(client_socket, client_address):
                 # Salva il file completo su disco nella cartella file_storage
                 os.makedirs("file_storage", exist_ok=True)
 
-                # Crea sottocartelle per mittente e destinatario
-                chat_dir = os.path.join("file_storage", genera_nome_file(mittente, destinatario).replace(".json", ""))
+
+                gruppo, membri = is_group(destinatario)
+                if gruppo:
+                    chat_dir = os.path.join("file_storage",destinatario)
+                else:
+                    chat_dir = os.path.join("file_storage", genera_nome_file(mittente, destinatario).replace(".json", ""))
+
                 os.makedirs(chat_dir, exist_ok=True)
 
                 file_path = os.path.join(chat_dir, nome_file)
@@ -469,7 +470,7 @@ def handle_client(client_socket, client_address):
                     }
 
                     print(inizia_trasferimento)
-                    destinatario_socket.sendall(json.dumps(inizia_trasferimento).encode())
+                    manda_messaggio(inizia_trasferimento, mittente, destinatario)
 
                     time.sleep(0.5)
 
@@ -500,7 +501,7 @@ def handle_client(client_socket, client_address):
 
                             # Invia il chunk
                             print(chunk_msg)
-                            destinatario_socket.sendall(json.dumps(chunk_msg).encode())
+                            manda_messaggio(chunk_msg,mittente, destinatario)
 
 
                             # Piccola pausa per evitare sovraccarichi
@@ -515,9 +516,7 @@ def handle_client(client_socket, client_address):
                         "file_size": file_size
                     }
                     print(fine_trasferimento)
-                    destinatario_socket.sendall(json.dumps(fine_trasferimento).encode())
-            else:
-                destinatario_socket.sendall(b"Comando sconosciuto")
+                    manda_messaggio(fine_trasferimento, mittente, destinatario)
     except Exception as e:
         print(f"Errore nel thread per {client_address}: {e}")
     finally:
@@ -545,7 +544,6 @@ if not os.path.exists('datiGruppi.json'):
         json.dump({"gruppi": []}, f, indent=4)
 
 print(f"[SERVER] In ascolto su {server_address}")
-print(f"[SERVER] File condivisi saranno salvati nella cartella 'file_storage'")
 
 while True:
     try:
