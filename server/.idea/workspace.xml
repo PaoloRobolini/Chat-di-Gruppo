@@ -6,11 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="c10dcae4-d0e5-4c2a-8b19-88ff07026f86" name="Changes" comment="Sistemazione scaricamento e caricamento delle chat e gruppi">
       <change beforePath="$PROJECT_DIR$/../Client/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Client/utente.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/utente.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/datiChat/marco_matteo.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiChat/marco_matteo.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datiChat/matteo_paolo.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/datiGruppi.json" beforeDir="false" afterPath="$PROJECT_DIR$/datiGruppi.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/server.py" afterDir="false" />
     </list>
     <list id="b034be01-4cb6-4094-ad30-ec519b8b6d9c" name="Changes by alemi" comment="" />
@@ -97,7 +94,7 @@
       <workItem from="1745305151703" duration="2772000" />
       <workItem from="1745308311400" duration="439000" />
       <workItem from="1745308807185" duration="402000" />
-      <workItem from="1745309414580" duration="2695000" />
+      <workItem from="1745309414580" duration="9518000" />
     </task>
     <task id="LOCAL-00001" summary="Sistemazione ricezione messaggi da parte di un gruppo">
       <option name="closed" value="true" />
@@ -137,7 +134,7 @@
     <option name="LAST_COMMIT_MESSAGE" value="Sistemazione scaricamento e caricamento delle chat e gruppi" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1745311922526" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/server$server.coverage" NAME="server Coverage Results" MODIFIED="1745318958553" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/server_py$server.coverage" NAME="server Coverage Results" MODIFIED="1745076317034" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
