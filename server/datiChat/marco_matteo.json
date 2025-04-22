@@ -22,10 +22,6 @@
         },
         {
             "mittente": "marco",
-            "messaggio": "ciao"
-        },
-        {
-            "mittente": "marco",
             "messaggio": "Ha iniziato il trasferimento del file: tempo.txt"
         },
         {
@@ -42,11 +38,31 @@
         },
         {
             "mittente": "marco",
-            "messaggio": "Ha iniziato il trasferimento del file: tempo.txt"
+            "messaggio": "Ha iniziato il trasferimento del file: Programmazione Concorrente e Sincronizzazione in Python.pdf"
         },
         {
             "mittente": "marco",
-            "messaggio": "Ha completato il trasferimento del file: tempo.txt (salvato sul server)"
+            "messaggio": "Ha completato il trasferimento del file: Programmazione Concorrente e Sincronizzazione in Python.pdf (salvato sul server)"
+        },
+        {
+            "mittente": "matteo",
+            "messaggio": "Ha iniziato il trasferimento del file: esercizi-derivate Per Il 24 Marzo 2025.pdf"
+        },
+        {
+            "mittente": "matteo",
+            "messaggio": "Ha completato il trasferimento del file: esercizi-derivate Per Il 24 Marzo 2025.pdf (salvato sul server)"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha iniziato il trasferimento del file: esercizi-derivate Per Il 24 Marzo 2025.pdf"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha completato il trasferimento del file: esercizi-derivate Per Il 24 Marzo 2025.pdf (salvato sul server)"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha iniziato il trasferimento del file: Programmazione Concorrente e Sincronizzazione in Python.pdf"
         }
     ]
 }

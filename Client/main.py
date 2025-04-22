@@ -24,6 +24,9 @@ ip_server = "127.0.0.1"
 porta_server = 65432
 server = (ip_server, porta_server)
 
+file_transfers_lock = threading.Lock()
+file_transfers = {}
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(server)
 
@@ -41,7 +44,7 @@ def carica_gruppi():
 
     for file in files_chat:
         s.sendall(json.dumps(user.crea_azione(comando="is_in_gruppo", nome_gruppo=file[:-5])).encode())
-        data = s.recv(1024)
+        data = s.recv(4096)
         if data == b"yes":
             with open(f"datiGruppi/{file}", "r") as f:
                 dati = json.load(f)
@@ -80,7 +83,7 @@ def carica_chat():
 
 
 def scarica_chat(cartella):
-    data = s.recv(1024)
+    data = s.recv(4096)
     reply = data.decode()
 
     print(reply)
@@ -88,7 +91,7 @@ def scarica_chat(cartella):
     os.makedirs(cartella, exist_ok=True)
 
     for _ in range(int(reply)):
-        messaggio = s.recv(1024)
+        messaggio = s.recv(4096)
         print(messaggio)
         messaggio = json.loads(messaggio.decode())
         messaggio["nome"] = messaggio["nome"].replace('"', '').replace("'", "")
@@ -151,7 +154,7 @@ class SigninScreen(Screen):
             dati_serializzati = json.dumps(user.crea_azione(comando="signin")).encode('utf-8')
             s.sendall(dati_serializzati)
 
-            data = s.recv(1024)
+            data = s.recv(4096)
             reply = data.decode()
 
             if reply == "0":
@@ -368,14 +371,14 @@ class ChatScreen(Screen):
 
     def receive_file(self, messaggio):
         """Gestisce la ricezione di un file (o parte di esso)"""
-        print(f"Messaggio di file ricevuto: {messaggio.get('comando')}")
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
         nome_file = messaggio.get("nome_file")
+        destinatario = messaggio.get("destinatario")
 
         cartella_destinazione = "file_ricevuti"
 
-        if comando == "inizia_trasferimento_file":
+        if comando == "trasferimento_file_inizio":
             # Inizializzazione di un nuovo trasferimento file
             file_size = messaggio.get("file_size", "Sconosciuta")
             print(f"📥 Inizio ricezione file {nome_file} da {mittente} (dimensione: {file_size} bytes)")
@@ -390,33 +393,43 @@ class ChatScreen(Screen):
                 if mittente == user.get_destinatario():
                     self.chat_history += msg
 
-            # Prepara il file
-            file_path = os.path.join(cartella_destinazione, nome_file)
             # Apre e chiude il file per crearlo vuoto
-            with open(file_path, 'wb') as f:
-                pass
+            transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
+
+            # Prepara la struttura per salvare il file sul server
+            with file_transfers_lock:
+                file_transfers[transfer_key] = {
+                    "chunks": {},
+                    "total_chunks": 0,
+                    "completed": False,
+                    "nome_file": nome_file,
+                    "mittente": mittente,
+                    "destinatario": destinatario,
+                    "file_size": file_size
+                }
+                print(f"file trasnfers inizio: {file_transfers}")
 
         elif comando == "trasferimento_file_chunk":
             # Ricezione di un chunk del file
             chunk_id = messaggio.get("chunk_id")
             total_chunks = messaggio.get("total_chunks")
-            chunk_data_b64 = messaggio.get("chunk")
-            chunk_size = messaggio.get("chunk_size", 2048)  # Dimensione di default
+            chunk = messaggio.get("chunk")
+            file_size = messaggio.get("file_size")
 
             print(f"📥 Ricevuto chunk {chunk_id + 1}/{total_chunks} del file {nome_file}")
 
             file_path = os.path.join(cartella_destinazione, nome_file)
 
             try:
-                # Decodifica base64 → bytes reali
-                file_bytes = base64.b64decode(chunk_data_b64)
+                # Chiave univoca per questo trasferimento
+                transfer_key = f"{messaggio["mittente"]}_{messaggio["destinatario"]}_{nome_file}_{file_size}"
 
-                # Apri il file in modalità append binaria e scrivi nella posizione corretta
-                with open(file_path, 'r+b') as f:
-                    # Posiziona il puntatore del file nella posizione corretta
-                    f.seek(chunk_id * chunk_size)
-                    # Scrivi i dati nella posizione
-                    f.write(file_bytes)
+                # Salva il chunk nella struttura temporanea
+                with file_transfers_lock:
+                    if transfer_key in file_transfers:
+                        file_transfers[transfer_key]["chunks"][chunk_id] = chunk
+                        file_transfers[transfer_key]["total_chunks"] = total_chunks
+                    print(f"file trasnfers trasferimento: {file_transfers}")
 
                 # Aggiorna l'interfaccia utente con lo stato di avanzamento
                 if chunk_id % 10 == 0 or chunk_id == total_chunks - 1:
@@ -448,9 +461,40 @@ class ChatScreen(Screen):
                     self.chat_history += error_msg
                     chat[mittente] = self.chat_history
 
-        elif comando == "fine_trasferimento_file":
-            # Completamento del trasferimento file
-            file_path = os.path.join(cartella_destinazione, nome_file)
+        elif comando == "trasferimento_file_fine":
+            mittente = messaggio.get("mittente")
+            destinatario = messaggio.get("destinatario")
+            nome_file = messaggio.get("nome_file")
+            file_size = messaggio.get("file_size")
+
+
+            # Chiave univoca per questo trasferimento
+            transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
+
+            file_path = os.path.join("file_ricevuti", nome_file)
+            print(f"file trasnfers fine: {file_transfers}")
+
+            with file_transfers_lock:
+                if transfer_key in file_transfers:
+                    # Ordina i chunk e scrivili su file
+                    print("Entrato nel punto di salvataggio del file")
+                    try:
+                        with open(file_path, 'wb') as file_out:
+                            for i in range(file_transfers[transfer_key]["total_chunks"]):
+                                chunk_data = file_transfers[transfer_key]["chunks"].get(i)
+                                if chunk_data:
+                                    decoded_chunk = base64.b64decode(chunk_data)
+                                    file_out.write(decoded_chunk)
+
+                        file_transfers[transfer_key]["completed"] = True
+                        print(f"File {nome_file} salvato con successo in {file_path}")
+
+
+                    except Exception as e:
+                        print(f"Errore nel salvataggio del file: {e}")
+
+                    # Pulizia dopo il salvataggio
+                    del file_transfers[transfer_key]
 
             if os.path.exists(file_path):
                 print(f"✅ File completato: {nome_file}")
@@ -519,7 +563,7 @@ if __name__ == '__main__':
     def ricevi_messaggi():
         while True:
             try:
-                data = s.recv(1024)
+                data = s.recv(4096)
                 print(f"Dato ricevuto: {data}")
                 if data:
                     try:
@@ -533,28 +577,17 @@ if __name__ == '__main__':
 
     def processa_messaggio(messaggio):
         chat_screen = App.get_running_app().root.get_screen('chat')
-
-        # Stampa di debug per capire il tipo di messaggio
-        if "comando" in messaggio:
-            print(f"📩 Ricevuto messaggio con comando: {messaggio['comando']}")
-
-        # Gestisci i diversi tipi di comandi
         if "comando" in messaggio:
             comando = messaggio["comando"]
-
-            # Messaggi di chat normali
-            if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
-                chat_screen.receive_message(messaggio)
-
-            # Nuovo sistema di trasferimento file
-            elif comando in ["inizia_trasferimento_file", "trasferimento_file_chunk", "fine_trasferimento_file"]:
+            if comando.startswith("trasferimento_file"):
                 chat_screen.receive_file(messaggio)
-
-            # Altri comandi non riconosciuti
+            elif comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
+                chat_screen.receive_message(messaggio)
             else:
-                print(f"⚠️ Comando non gestito: {comando}")
+                print(f"Comando non gestito: {comando}")
         else:
-            print(f"⚠️ Messaggio senza comando: {messaggio}")
+            print("Messaggio senza comando.")
+
 
     def manda_messaggi():
         while True:
@@ -577,6 +610,5 @@ if __name__ == '__main__':
 
 
     cartella_destinazione = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_ricevuti")
-    print(f"📂 Percorso cartella file ricevuti: {cartella_destinazione}")
     os.makedirs(cartella_destinazione, exist_ok=True)
     ChatApp().run()

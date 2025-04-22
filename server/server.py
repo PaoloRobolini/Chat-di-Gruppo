@@ -461,7 +461,7 @@ def handle_client(client_socket, client_address):
 
                     # Invio le informazioni di inizio trasferimento
                     inizia_trasferimento = {
-                        "comando": "inizia_trasferimento_file",
+                        "comando": "trasferimento_file_inizio",
                         "mittente": logged_in_username,
                         "destinatario": destinatario,
                         "nome_file": nome_file_basename,
@@ -470,6 +470,8 @@ def handle_client(client_socket, client_address):
 
                     print(inizia_trasferimento)
                     destinatario_socket.sendall(json.dumps(inizia_trasferimento).encode())
+
+                    time.sleep(0.5)
 
                     # Leggi e invia i chunk del file
                     with open(file_path, "rb") as file:
@@ -506,14 +508,14 @@ def handle_client(client_socket, client_address):
 
                     # Notifica il server che il trasferimento è completo
                     fine_trasferimento = {
-                        "comando": "fine_trasferimento_file",
+                        "comando": "trasferimento_file_fine",
                         "mittente": logged_in_username,
                         "destinatario": destinatario,
                         "nome_file": nome_file_basename,
                         "file_size": file_size
                     }
                     print(fine_trasferimento)
-                    client_socket.sendall(json.dumps(fine_trasferimento).encode())
+                    destinatario_socket.sendall(json.dumps(fine_trasferimento).encode())
             else:
                 destinatario_socket.sendall(b"Comando sconosciuto")
     except Exception as e:
