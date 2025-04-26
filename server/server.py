@@ -5,10 +5,13 @@ import os
 import base64
 import time
 from tempfile import NamedTemporaryFile
+import google.generativeai as genai
 
 HOST = "127.0.0.1"
 PORT = 65432
 server_address = (HOST, PORT)
+
+nome_AI = "AI"
 
 lock_datiUtente = threading.Lock()
 clients_sockets = {}
@@ -20,10 +23,24 @@ locks_chat = {}
 file_transfers = {}
 file_transfers_lock = threading.Lock()
 
+user_ai_chats = {} # Dizionario per memorizzare le sessioni di chat AI per ogni utente
+user_ai_chats_lock = threading.Lock() # Lock per accedere a user_ai_chats
+
+
+with open("chiave.txt", "r") as file:
+    chiave = file.read()
+
+try:
+    genai.configure(api_key=chiave)
+except KeyError:
+    print("Errore: Variabile d'ambiente GOOGLE_API_KEY non impostata.")
+    print("Per favore, imposta la variabile d'ambiente con la tua chiave API.")
+    exit()
+
 
 def genera_nome_file(nome1, nome2):
-    sorted_names = sorted([nome1, nome2])
-    return f"{sorted_names[0]}_{sorted_names[1]}.json"
+        sorted_names = sorted([nome1, nome2])
+        return f"{sorted_names[0]}_{sorted_names[1]}.json"
 
 
 def manda_messaggio(messaggio, mittente, destinatario):
@@ -174,11 +191,192 @@ def manda_chat_client(client_socket, username):
         print(messaggio_chat)
         client_socket.sendall(json.dumps(messaggio_chat).encode())
 
+def login(messaggio):
+    mail = messaggio.get("mail")
+    password = messaggio.get("password")
+    username_trovato = None
+    with lock_datiUtente:
+        try:
+            with open('datiUtente.json', 'r', encoding='utf-8') as file:
+                dati = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            dati = {"utenti": []}
+    for utente in dati.get("utenti", []):
+        if utente.get("email") == mail and utente.get("password") == password:
+            username_trovato = utente.get("username")
+            break
+    if username_trovato:
+        with clients_lock:
+            clients_sockets[username_trovato] = client_socket
+        client_socket.sendall(json.dumps(username_trovato).encode('utf-8'))
+        manda_chat_client(client_socket, username_trovato)
+        manda_gruppi_client(client_socket, username_trovato)
+        with user_ai_chats_lock:
+            if username_trovato not in user_ai_chats:
+                # Inizializza una nuova sessione di chat AI per questo utente
+                model = genai.GenerativeModel('gemini-2.0-flash')
+                user_ai_chats[username_trovato] = model.start_chat()
+        return username_trovato
+
+    else:
+        client_socket.sendall(b"1")
+
+    return None
+
+
+def signin(messaggio):
+    username = messaggio.get("username")
+    mail = messaggio.get("mail")
+    password = messaggio.get("password")
+    with lock_datiUtente:
+        try:
+            with open('datiUtente.json', 'r', encoding='utf-8') as file:
+                dati = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            dati = {"utenti": []}
+        if any(u.get("email") == mail for u in dati.get("utenti", [])):
+            reply = "1"
+        elif "@" not in mail:
+            reply = "2"
+        elif any(u.get("username") == username for u in dati.get("utenti", [])):
+            reply = "3"
+        else:
+            reply = "0"
+            nuovo_utente = {"email": mail, "password": password, "username": username}
+            dati.setdefault("utenti", []).append(nuovo_utente)
+            with open('datiUtente.json', 'w', encoding='utf-8') as file:
+                json.dump(dati, file, indent=4)
+            with user_ai_chats_lock:
+                if username not in user_ai_chats:
+                    # Inizializza una nuova sessione di chat AI per questo utente
+                    model = genai.GenerativeModel('gemini-2.0-flash')
+                    user_ai_chats[username] = model.start_chat()
+    client_socket.sendall(reply.encode('utf-8'))
+    return username
+
+def crea_gruppo(messaggio):
+
+    nome_gruppo = messaggio.get("nome_gruppo")
+    mittente = messaggio.get("mittente")
+
+    gruppo_aggiunto_esistente = False
+    with lock_for_locks:
+        try:
+            with open("datiGruppi.json", 'r', encoding='utf-8') as file:
+                dati = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            dati = {"gruppi": []}
+        gruppo_esistente = next((g for g in dati.get("gruppi", []) if g.get("nome") == nome_gruppo), None)
+        if gruppo_esistente:
+            gruppo_aggiunto_esistente = True
+            if mittente not in gruppo_esistente.get("membri", []):
+                gruppo_esistente.setdefault("membri", []).append(mittente)
+        else:
+            nuovo_gruppo = {"nome": nome_gruppo, "membri": [mittente]}
+            dati.setdefault("gruppi", []).append(nuovo_gruppo)
+        with open("datiGruppi.json", 'w', encoding='utf-8') as file:
+            json.dump(dati, file, indent=4)
+    file_gruppo_path = os.path.join("datiGruppi", f"{nome_gruppo}.json")
+    with lock_for_locks:
+        if nome_gruppo not in locks_chat:
+            locks_chat[nome_gruppo] = threading.Lock()
+        gruppo_lock = locks_chat[nome_gruppo]
+    if not gruppo_aggiunto_esistente:
+        with gruppo_lock:
+            if not os.path.exists(file_gruppo_path):
+                with open(file_gruppo_path, 'w', encoding='utf-8') as file:
+                    json.dump({"gruppo": [{"mittente": "Il gruppo",
+                                           "messaggio": f"Il gruppo '{nome_gruppo}' è stato creato.", }]},
+                              file, indent=4)
+    client_socket.sendall(b"Gruppo creato o aggiunto con successo")
+
+
+def ai(messaggio, username):
+    #Salvataggio del messaggio dell'utente
+    messaggio_salvataggio = {"mittente": username, "destinatario": nome_AI, "messaggio": messaggio.get("messaggio")}
+    salva_messaggio('datiChat', messaggio_salvataggio)
+
+    with user_ai_chats_lock:
+        if username in user_ai_chats:
+            chat = user_ai_chats[username]
+
+    # Creazione e salvataggio della risposta
+    risposta = str(chat.send_message(messaggio.get("messaggio")).text)
+
+    # Invio della risposta
+    messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": nome_AI,
+                              "messaggio": risposta}
+
+    manda_messaggio(messaggio_da_inoltrare, nome_AI, username)
+    messaggio_salvataggio = {"mittente": nome_AI, "destinatario": username, "messaggio": risposta}
+    salva_messaggio('datiChat', messaggio_salvataggio)
+
+
+def inoltra_messaggio(messaggio, logged_in_username):
+
+    mittente = logged_in_username
+    destinatario = messaggio.get("destinatario")
+    testo_messaggio = messaggio.get("messaggio")
+
+
+    if destinatario == nome_AI:
+        ai(messaggio, mittente)
+    else:
+        gruppo, membri = is_group(destinatario)
+
+        if gruppo:
+            messaggio_da_inoltrare = {"comando": "nuovo_messaggio_gruppo", "nome_gruppo": destinatario,
+                                      "mittente": mittente, "messaggio": testo_messaggio}
+            nuovo_messaggio_salvataggio = {"nome_gruppo": destinatario, "mittente": mittente, "messaggio": testo_messaggio}
+            salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
+        else:
+            messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": mittente,
+                                      "messaggio": testo_messaggio}
+            nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario, "messaggio": testo_messaggio}
+            salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
+
+        manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+
+
+def is_in_gruppo(messaggio, logged_in_username):
+    if not logged_in_username:
+        client_socket.sendall(b"error_not_logged_in")
+    nome_gruppo = messaggio.get("nome_gruppo")
+    mittente = logged_in_username
+    if not nome_gruppo:
+        client_socket.sendall(b"error_missing_group_name")
+    is_member = False
+    with lock_for_locks:
+        try:
+            with open("datiGruppi.json", 'r', encoding='utf-8') as file:
+                dati = json.load(file)
+                for gruppo in dati.get("gruppi", []):
+                    if gruppo.get("nome") == nome_gruppo and mittente in gruppo.get("membri", []):
+                        is_member = True
+                        break
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+    if is_member:
+        client_socket.sendall(b"yes")
+    else:
+        client_socket.sendall(b"no")
+
+def setting_AI(username):
+    if username is not None:
+
+        with user_ai_chats_lock:
+            if username in user_ai_chats:
+                chat = user_ai_chats[username]
+
+        chat.send_message(
+            f"Succesivamente ti farò delle domande, rispondimi come se fossi{username}, "
+            f"in caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo,"
+            f"utilizza caratteri compatibili con il UTF-8")
+
 
 def handle_client(client_socket, client_address):
     logged_in_username = None
     print(f"Nuova connessione da {client_address}")
-
     try:
         while True:
             try:
@@ -200,137 +398,20 @@ def handle_client(client_socket, client_address):
             comando = messaggio.get('comando')
 
             if comando == "login":
-                mail = messaggio.get("mail")
-                password = messaggio.get("password")
-                username_trovato = None
-                with lock_datiUtente:
-                    try:
-                        with open('datiUtente.json', 'r', encoding='utf-8') as file:
-                            dati = json.load(file)
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        dati = {"utenti": []}
-                for utente in dati.get("utenti", []):
-                    if utente.get("email") == mail and utente.get("password") == password:
-                        username_trovato = utente.get("username")
-                        break
-                if username_trovato:
-                    with clients_lock:
-                        clients_sockets[username_trovato] = client_socket
-                    logged_in_username = username_trovato
-                    client_socket.sendall(json.dumps(username_trovato).encode('utf-8'))
-                    manda_chat_client(client_socket, username_trovato)
-                    manda_gruppi_client(client_socket, username_trovato)
-                else:
-                    client_socket.sendall(b"1")
+                logged_in_username = login(messaggio)
+                setting_AI(logged_in_username)
             elif comando == "signin":
-                username = messaggio.get("username")
-                mail = messaggio.get("mail")
-                password = messaggio.get("password")
-                reply = ""
-                with lock_datiUtente:
-                    try:
-                        with open('datiUtente.json', 'r', encoding='utf-8') as file:
-                            dati = json.load(file)
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        dati = {"utenti": []}
-                    if any(u.get("email") == mail for u in dati.get("utenti", [])):
-                        reply = "1"
-                    elif "@" not in mail:
-                        reply = "2"
-                    elif any(u.get("username") == username for u in dati.get("utenti", [])):
-                        reply = "3"
-                    else:
-                        reply = "0"
-                        nuovo_utente = {"email": mail, "password": password, "username": username}
-                        dati.setdefault("utenti", []).append(nuovo_utente)
-                        with open('datiUtente.json', 'w', encoding='utf-8') as file:
-                            json.dump(dati, file, indent=4)
-                client_socket.sendall(reply.encode('utf-8'))
+                logged_in_username = signin(messaggio)
+                setting_AI(logged_in_username)
             elif comando == "crea_gruppo":
+                crea_gruppo(messaggio)
 
-                if not logged_in_username:
-                    continue
-                nome_gruppo = messaggio.get("nome_gruppo")
-                mittente = logged_in_username
-                if not nome_gruppo:
-                    continue
-                gruppo_aggiunto_esistente = False
-                with lock_for_locks:
-                    try:
-                        with open("datiGruppi.json", 'r', encoding='utf-8') as file:
-                            dati = json.load(file)
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        dati = {"gruppi": []}
-                    gruppo_esistente = next((g for g in dati.get("gruppi", []) if g.get("nome") == nome_gruppo), None)
-                    if gruppo_esistente:
-                        gruppo_aggiunto_esistente = True
-                        if mittente not in gruppo_esistente.get("membri", []):
-                            gruppo_esistente.setdefault("membri", []).append(mittente)
-                    else:
-                        nuovo_gruppo = {"nome": nome_gruppo, "membri": [mittente]}
-                        dati.setdefault("gruppi", []).append(nuovo_gruppo)
-                    with open("datiGruppi.json", 'w', encoding='utf-8') as file:
-                        json.dump(dati, file, indent=4)
-                file_gruppo_path = os.path.join("datiGruppi", f"{nome_gruppo}.json")
-                with lock_for_locks:
-                    if nome_gruppo not in locks_chat:
-                        locks_chat[nome_gruppo] = threading.Lock()
-                    gruppo_lock = locks_chat[nome_gruppo]
-                if not gruppo_aggiunto_esistente:
-                    with gruppo_lock:
-                        if not os.path.exists(file_gruppo_path):
-                            with open(file_gruppo_path, 'w', encoding='utf-8') as file:
-                                json.dump({"gruppo": [{"mittente": "Il gruppo",
-                                                       "messaggio": f"Il gruppo '{nome_gruppo}' è stato creato.", }]},
-                                          file, indent=4)
-                client_socket.sendall(b"Gruppo creato o aggiunto con successo")
             elif comando == "messaggio":
-
-                if not logged_in_username:
-                    continue
-                mittente = logged_in_username
-                destinatario = messaggio.get("destinatario")
-                testo_messaggio = messaggio.get("messaggio")
-                if not destinatario or not testo_messaggio:
-                    continue
-
-                gruppo, membri = is_group(destinatario)
-
-                if gruppo:
-                    messaggio_da_inoltrare = {"comando": "nuovo_messaggio_gruppo", "nome_gruppo": destinatario,"mittente": mittente, "messaggio": testo_messaggio}
-                    nuovo_messaggio_salvataggio = {"nome_gruppo": destinatario, "mittente": mittente,"messaggio": testo_messaggio}
-                    salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
-                else:
-                    messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": mittente,"messaggio": testo_messaggio}
-                    nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario,"messaggio": testo_messaggio}
-                    salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
-
-                manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+                inoltra_messaggio(messaggio, logged_in_username)
 
             elif comando == "is_in_gruppo":
-                if not logged_in_username:
-                    client_socket.sendall(b"error_not_logged_in")
-                    continue
-                nome_gruppo = messaggio.get("nome_gruppo")
-                mittente = logged_in_username
-                if not nome_gruppo:
-                    client_socket.sendall(b"error_missing_group_name")
-                    continue
-                is_member = False
-                with lock_for_locks:
-                    try:
-                        with open("datiGruppi.json", 'r', encoding='utf-8') as file:
-                            dati = json.load(file)
-                            for gruppo in dati.get("gruppi", []):
-                                if gruppo.get("nome") == nome_gruppo and mittente in gruppo.get("membri", []):
-                                    is_member = True
-                                    break
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        pass
-                if is_member:
-                    client_socket.sendall(b"yes")
-                else:
-                    client_socket.sendall(b"no")
+                is_in_gruppo(messaggio, logged_in_username)
+
             elif comando == "inizia_trasferimento_file":
 
                 if not logged_in_username:
@@ -524,12 +605,13 @@ def handle_client(client_socket, client_address):
             with clients_lock:
                 if logged_in_username in clients_sockets and clients_sockets[logged_in_username] == client_socket:
                     del clients_sockets[logged_in_username]
+                    del user_ai_chats[logged_in_username]
         client_socket.close()
 
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(server_address)
-server_socket.listen(5)
+server_socket.listen()
 
 # Crea le cartelle necessarie per il server
 os.makedirs("datiChat", exist_ok=True)
