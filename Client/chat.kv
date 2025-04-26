@@ -229,6 +229,10 @@
                     color: 1, 1, 1, 1
                     on_release: root.send_message()
 
+                Button:
+                    text: "scegli un file"
+                    on_release: root.send_file(self)
+
 
 <AggiungiContatto>:
     canvas.before:
