@@ -54,6 +54,8 @@ chat = {}
 
 global user
 
+
+
 def carica_gruppi():
     files_chat = [
         f for f in os.listdir('datiGruppi')
@@ -529,7 +531,7 @@ class ChatScreen(Screen):
                     self.chat_history += messaggio_notifica
                     chat[mittente] = self.chat_history
 
-    def start_call(self):
+    '''def start_call(self):
         if user.get_destinatario() is not None:
             self.chiamata_accettata = None
             if self.chiamata_accettata is None:
@@ -621,9 +623,61 @@ class ChatScreen(Screen):
                     print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
                 else:
                     print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+'''
+
+    def send_call(self):
+        stream_input = p.open(format=FORMAT,
+                              channels=CHANNELS,
+                              rate=RATE,
+                              input=True,
+                              frames_per_buffer=CHUNK)
+        while True:
+            data = stream_input.read(CHUNK, exception_on_overflow=False)
+            data = base64.b64encode(data).decode('utf-8')
+            user.set_pacchetto_audio(data)
+            azione = user.crea_azione(comando="chiamata")
+
+            coda_manda_msg.put(azione)
+
+            time.sleep(0.01)
+
+            # Calcola energia del pacchetto audio
+            data_decoded = base64.b64decode(data)  # 🔥 Da base64 torna a bytes veri
+            samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+            energy = sum(abs(sample) for sample in samples) / len(samples)
+
+            if energy > SILENCE_THRESHOLD:
+                print("🎙️ Sto inviando audio... (energia:", int(energy), ")")
+            else:
+                print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
 
 
+    def start_call(self):
+        if user.get_destinatario() is not None:
+            thread = threading.Thread(target=self.send_call)
+            thread.start()
 
+
+    def get_call(self, messaggio):
+        pacchetto_audio = messaggio['pacchetto_audio']
+        pacchetto_audio = base64.b64decode(pacchetto_audio)
+        stream_output.write(pacchetto_audio)
+
+        # Calcola energia del pacchetto ricevuto
+        data_decoded = base64.b64decode(pacchetto_audio)  # 🔥 Da base64 torna a bytes veri
+        samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+        energy = sum(abs(sample) for sample in samples) / len(samples)
+
+        if energy > SILENCE_THRESHOLD:
+            print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
+        else:
+            print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+
+    def receive_call(self, messaggio):
+        thread2 = threading.Thread(target=self.get_call, args=messaggio)
+        thread3 = threading.Thread(target=self.send_call)
+        thread2.start()
+        thread3.start()
 
 
 
@@ -703,7 +757,7 @@ if __name__ == '__main__':
                 chat_screen.receive_file(messaggio)
             elif comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
                 chat_screen.receive_message(messaggio)
-            elif comando in ["chiamata", "richiesta_chiamata", "accetta_chiamata", "rifiuta_chiamata"]:
+            elif comando in ["chiamata", "richiesta_chiamata", "accetta_chiamata", "rifiuta_chiamata", "pacchetto_audio"]:
                 chat_screen.receive_call(messaggio)
             else:
                 print(f"Comando non gestito: {comando}")

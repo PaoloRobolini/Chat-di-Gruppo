@@ -378,22 +378,23 @@ def handle_client(client_socket, client_address):
     logged_in_username = None
     print(f"Nuova connessione da {client_address}")
     try:
+        complete_data = b""  # Stringa binaria vuota per accumulare i dati ricevuti
         while True:
-            try:
-                data = client_socket.recv(4096)
-                print(f"{client_address}: {data}")
-                if not data:
-                    print(f"Client {client_address} disconnesso.")
-                    break
-            except (ConnectionResetError, Exception):
-                print(f"Errore ricezione da {client_address}. Disconnessione.")
+            data = client_socket.recv(4096)  # Leggi i dati
+            if not data:
+                print(f"Connessione chiusa da {client_address}")
                 break
 
+            complete_data += data  # Aggiungi i dati alla variabile complete_data
+
+            # Se i dati ricevuti sono sufficienti, prova a decodificarli
             try:
-                messaggio = json.loads(data.decode('utf-8'))
-            except (json.JSONDecodeError, Exception):
-                print(f"Errore decodifica JSON da {client_address}.")
-                continue
+                data_str = complete_data.decode('utf-8')
+                messaggio = json.loads(data_str)
+                print(f"Ricevuto messaggio: {messaggio}")
+                complete_data = b""  # Resetta complete_data dopo aver ricevuto il pacchetto completo
+            except json.JSONDecodeError:
+                continue  # Se non è JSON valido, continua ad accumulare dati
 
             comando = messaggio.get('comando')
 
@@ -599,13 +600,18 @@ def handle_client(client_socket, client_address):
                     print(fine_trasferimento)
                     manda_messaggio(fine_trasferimento, mittente, destinatario)
 
-            elif comando in ["chiamata", "richiesta_chiamata", "accetta_chiamata", "rifiuta_chiamata"]:
-                if comando != "chiamata":
-                    destinatario = messaggio.get("destinatario")
-                    clients_sockets[destinatario].sendall(json.dumps(messaggio).encode('utf-8'))
-                elif comando == "chiamata":
-                    destinatario = messaggio.get("destinatario")
-                    clients_sockets[destinatario].sendall(json.dumps(messaggio).encode('utf-8'))
+            elif comando == "chiamata":
+                mittente = logged_in_username
+                destinatario = messaggio.get("destinatario")
+                pacchetto_audio = messaggio.get("pacchetto_audio")
+
+                pacchetto_audio2 = {
+                    "comando": "pacchetto_audio",
+                    "pacchetto_audio": pacchetto_audio,
+                }
+
+                clients_sockets[destinatario].sendall(json.dumps(pacchetto_audio2).encode('utf-8'))
+
 
 
 
