@@ -598,6 +598,21 @@ def handle_client(client_socket, client_address):
                     }
                     print(fine_trasferimento)
                     manda_messaggio(fine_trasferimento, mittente, destinatario)
+
+            elif comando in ["chiamata", "richiesta_chiamata", "accetta_chiamata", "rifiuta_chiamata"]:
+                if comando != "chiamata":
+                    destinatario = messaggio.get("destinatario")
+                    clients_sockets[destinatario].sendall(json.dumps(messaggio).encode('utf-8'))
+                elif comando == "chiamata":
+                    destinatario = messaggio.get("destinatario")
+                    clients_sockets[destinatario].sendall(json.dumps(messaggio).encode('utf-8'))
+
+
+
+
+
+
+
     except Exception as e:
         print(f"Errore nel thread per {client_address}: {e}")
     finally:

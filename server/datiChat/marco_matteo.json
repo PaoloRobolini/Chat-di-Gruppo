@@ -31,6 +31,18 @@
         {
             "mittente": "marco",
             "messaggio": "Ha completato il trasferimento del file: Programmazione Concorrente e Sincronizzazione in Python.pdf (salvato sul server)"
+        },
+        {
+            "mittente": "matteo",
+            "messaggio": "terrone"
+        },
+        {
+            "mittente": "matteo",
+            "messaggio": "Ha iniziato il trasferimento del file: strutture_dati_lineari.pdf"
+        },
+        {
+            "mittente": "matteo",
+            "messaggio": "Ha completato il trasferimento del file: strutture_dati_lineari.pdf (salvato sul server)"
         }
     ]
 }

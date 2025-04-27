@@ -137,17 +137,20 @@
             pos: self.pos
             size: self.size
 
-    BoxLayout:
-        orientation: 'horizontal'
+    FloatLayout:
+        size_hint: 1, 1
 
-        # MENU LATERALE
+        # Sezione chiamata in arrivo
         BoxLayout:
-            orientation: 'vertical'
-            size_hint_x: None
-            width: 80
-            spacing: 10
-            padding: 10
-
+            opacity: 0
+            disabled: True
+            id: incoming_call_box
+            orientation: 'horizontal'
+            size_hint: None, None
+            size: 250, 50
+            pos_hint: {'right': 0.85, 'top': 0.98}
+            spacing: 5
+            padding: 5
             canvas.before:
                 Color:
                     rgba: 0.15, 0.15, 0.2, 1
@@ -155,83 +158,155 @@
                     pos: self.pos
                     size: self.size
 
-            Button:
-                size_hint: None, None
-                size: 60, 60
-                text: "+"
-                font_size: 24
-                background_normal: ''
-                background_color: 0.1, 0.6, 1, 1
-                color: 1, 1, 1, 1
-                on_release: root.aggiungicontatto()
-
-            ScrollView:
-                do_scroll_y: True
-                bar_width: 5
-
-                GridLayout:
-                    id: contact_list_sidebar
-                    cols: 1
-                    size_hint_y: None
-                    height: self.minimum_height
-                    spacing: 10
-                    padding: 5
-
-        # CHAT PRINCIPALE
-        BoxLayout:
-            orientation: 'vertical'
-            padding: 20
-            spacing: 10
-
             Label:
-                id: contatto_selezionato
-                text: root.selected_contact
-                font_size: 24
-                bold: True
+                id: caller_name
+                text: ""
+                font_size: 16
                 color: 1, 1, 1, 1
-                size_hint_y: None
+                size_hint_x: 0.5
+
+            Button:
+                id: accept_call
+                text: "✓"
+                font_size: 20
+                size_hint_x: None
+                width: 40
                 height: 40
+                background_normal: ''
+                background_color: 0, 0.8, 0, 1
+                color: 1, 1, 1, 1
+                on_press: root.accetta_chiamata
 
-            ScrollView:
-                size_hint_y: 0.8
-                do_scroll_x: False
-                do_scroll_y: True
+            Button:
+                id: reject_call
+                text: "✗"
+                font_size: 20
+                size_hint_x: None
+                width: 40
+                height: 40
+                background_normal: ''
+                background_color: 0.8, 0, 0, 1
+                color: 1, 1, 1, 1
+                on_press: root.rifiuta_chiamata
+        # Pulsante telefono
+        Button:
+            id: call_button
+            size_hint: None, None
+            size: 50, 50
+            pos_hint: {'right': 0.98, 'top': 0.98}
+            background_normal: ''
+            background_color: 0.1, 0.6, 1, 1
+            color: 1, 1, 1, 1
+            on_release: root.start_call()
 
-                Label:
-                    id: chat_label
-                    text: root.chat_history
-                    text_size: self.width, None
-                    size_hint_y: None
-                    height: self.texture_size[1]
-                    halign: 'left'
-                    valign: 'top'
-                    padding: 10, 10
-                    color: 1, 1, 1, 1
+            Image:
+                source: 'phone_icon.png'
+                center_x: self.parent.center_x
+                center_y: self.parent.center_y
+                size_hint: None, None
+                size: 30, 30
 
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: 1, 1
+
+            # MENU LATERALE
             BoxLayout:
-                size_hint_y: None
-                height: 50
+                orientation: 'vertical'
+                size_hint_x: None
+                width: 80
                 spacing: 10
+                padding: 10
 
-                TextInput:
-                    id: message_input
-                    hint_text: "Scrivi un messaggio..."
-                    multiline: False
-                    background_normal: ''
-                    background_color: 0.2, 0.2, 0.3, 1
-                    foreground_color: 1, 1, 1, 1
-                    padding: 10
+                canvas.before:
+                    Color:
+                        rgba: 0.15, 0.15, 0.2, 1
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
 
                 Button:
-                    text: "Invia"
+                    size_hint: None, None
+                    size: 60, 60
+                    text: "+"
+                    font_size: 24
                     background_normal: ''
                     background_color: 0.1, 0.6, 1, 1
                     color: 1, 1, 1, 1
-                    on_release: root.send_message()
+                    on_release: root.aggiungicontatto()
 
-                Button:
-                    text: "scegli un file"
-                    on_release: root.send_file(self)
+                ScrollView:
+                    do_scroll_y: True
+                    bar_width: 5
+
+                    GridLayout:
+                        id: contact_list_sidebar
+                        cols: 1
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 10
+                        padding: 5
+
+            # CHAT PRINCIPALE
+            BoxLayout:
+                orientation: 'vertical'
+                padding: 20
+                spacing: 10
+
+                Label:
+                    id: contatto_selezionato
+                    text: root.selected_contact
+                    font_size: 24
+                    bold: True
+                    color: 1, 1, 1, 1
+                    size_hint_y: None
+                    height: 40
+
+                ScrollView:
+                    size_hint_y: 0.8
+                    do_scroll_x: False
+                    do_scroll_y: True
+
+                    Label:
+                        id: chat_label
+                        text: root.chat_history
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        halign: 'left'
+                        valign: 'top'
+                        padding: 10, 10
+                        color: 1, 1, 1, 1
+
+                BoxLayout:
+                    size_hint_y: None
+                    height: 50
+                    spacing: 10
+
+                    TextInput:
+                        id: message_input
+                        hint_text: "Scrivi un messaggio..."
+                        multiline: False
+                        background_normal: ''
+                        background_color: 0.2, 0.2, 0.3, 1
+                        foreground_color: 1, 1, 1, 1
+                        padding: 10
+
+                    Button:
+                        text: "Invia"
+                        background_normal: ''
+                        background_color: 0.1, 0.6, 1, 1
+                        color: 1, 1, 1, 1
+                        on_release: root.send_message()
+
+                    Button:
+                        text: "scegli un file"
+                        background_normal: ''
+                        background_color: 0.1, 0.6, 1, 1
+                        color: 1, 1, 1, 1
+                        on_release: root.send_file(self)
+
+
 
 
 <AggiungiContatto>:

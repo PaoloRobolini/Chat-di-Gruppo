@@ -17,6 +17,23 @@ from kivy.uix.button import Button
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
+import pyaudio
+import struct
+
+CHUNK = 1024
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100
+SILENCE_THRESHOLD = 500  # più basso = più sensibile
+
+p = pyaudio.PyAudio()
+
+stream_output = p.open(format=FORMAT,
+                                   channels=CHANNELS,
+                                   rate=RATE,
+                                   output=True,
+                                   frames_per_buffer=CHUNK)
+
 Builder.load_file("chat.kv")
 
 ip_server = "127.0.0.1"
@@ -512,6 +529,108 @@ class ChatScreen(Screen):
                     self.chat_history += messaggio_notifica
                     chat[mittente] = self.chat_history
 
+    def start_call(self):
+        if user.get_destinatario() is not None:
+            self.chiamata_accettata = None
+            if self.chiamata_accettata is None:
+                azione = user.crea_azione(comando="richiesta_chiamata")
+                coda_manda_msg.put(azione)
+            elif self.chiamata_accettata == True:
+                stream_input = p.open(format=FORMAT,
+                                      channels=CHANNELS,
+                                      rate=RATE,
+                                      input=True,
+                                      frames_per_buffer=CHUNK)
+                while True:
+                    data = stream_input.read(CHUNK, exception_on_overflow=False)
+                    user.set_pacchetto_audio(data)
+                    azione = user.crea_azione(comando="chiamata")
+                    coda_manda_msg.put(azione)
+
+                    # Calcola energia del pacchetto audio
+                    samples = struct.unpack('<' + ('h' * (len(data) // 2)), data)
+                    energy = sum(abs(sample) for sample in samples) / len(samples)
+
+                    if energy > SILENCE_THRESHOLD:
+                        print("🎙️ Sto inviando audio... (energia:", int(energy), ")")
+                    else:
+                        print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
+
+
+    def receive_call(self, messaggio):
+        self.button_pressed = None
+        comando = messaggio.get("comando")
+        mittente = messaggio.get("mittente")
+        if comando == "richiesta_chiamata":
+            self.ids.incoming_call_box.opacity = 1
+            self.ids.incoming_call_box.disabled = False
+            self.ids.caller_name = mittente
+            start_time = time.time()
+            while True:
+                now = time.time()
+                elapsed = now - start_time  # Quanto tempo è passato
+
+                if elapsed > 5:  # Se sono passati più di 5 secondi
+                    self.ids.incoming_call_box.opacity = 0
+                    self.ids.incoming_call_box.disabled = True
+                    break
+
+                if self.button_pressed is True:
+                    self.ids.incoming_call_box.opacity = 0
+                    self.ids.incoming_call_box.disabled = True
+                    break
+                else:
+                    self.ids.incoming_call_box.opacity = 0
+                    self.ids.incoming_call_box.disabled = True
+                    break
+
+            if self.button_pressed is True:
+                azione = user.crea_azione(comando="accetta_chiamata")
+                coda_manda_msg.put(azione)
+                self.start_call()
+            else:
+                azione = user.crea_azione(comando="rifiuta_chiamata")
+                coda_manda_msg.put(azione)
+
+
+        elif comando == "accetta_chiamata" or comando == "rifiuta_chiamata":
+            if comando == "accetta_chiamata":
+                self.chiamata_accettata = True
+                self.start_call()
+            elif comando == "rifiuta_chiamata":
+                self.chiamata_accettata = False
+
+
+        elif comando == "chiamata":
+            while True:
+                pacchetto_audio = "pacchetto_audio"
+                stream_output.write(pacchetto_audio)
+
+                # Calcola energia del pacchetto ricevuto
+                samples = struct.unpack('<' + ('h' * (len(pacchetto_audio) // 2)), pacchetto_audio)
+                energy = sum(abs(sample) for sample in samples) / len(samples)
+
+                if energy > SILENCE_THRESHOLD:
+                    print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
+                else:
+                    print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+
+
+
+
+
+
+
+
+    def accetta_chiamata(self, instance):
+        self.button_pressed = True
+
+    def rifiuta_chiamata(self, instance):
+        self.button_pressed = False
+
+
+
+
 
 class AggiungiContatto(Screen):
 
@@ -575,6 +694,8 @@ if __name__ == '__main__':
                 chat_screen.receive_file(messaggio)
             elif comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
                 chat_screen.receive_message(messaggio)
+            elif comando in ["chiamata", "richiesta_chiamata", "accetta_chiamata", "rifiuta_chiamata"]:
+                chat_screen.receive_call(messaggio)
             else:
                 print(f"Comando non gestito: {comando}")
         else:
