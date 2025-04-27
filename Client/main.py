@@ -558,39 +558,46 @@ class ChatScreen(Screen):
 
 
     def receive_call(self, messaggio):
-        self.button_pressed = None
+        self.button_pressed = True
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
         if comando == "richiesta_chiamata":
-            self.ids.incoming_call_box.opacity = 1
-            self.ids.incoming_call_box.disabled = False
-            self.ids.caller_name = mittente
+            print("sono nell'if")
+            #self.ids.incoming_call_box.opacity = 1
+            #self.ids.incoming_call_box.disabled = False
+            #self.ids.caller_name = mittente
+            print("dovrebbe vedersi il tasto")
             start_time = time.time()
+            print("sono entrato nel wile true")
             while True:
                 now = time.time()
                 elapsed = now - start_time  # Quanto tempo è passato
 
                 if elapsed > 5:  # Se sono passati più di 5 secondi
-                    self.ids.incoming_call_box.opacity = 0
-                    self.ids.incoming_call_box.disabled = True
+                    #self.ids.incoming_call_box.opacity = 0
+                    #self.ids.incoming_call_box.disabled = True
                     break
 
                 if self.button_pressed is True:
-                    self.ids.incoming_call_box.opacity = 0
-                    self.ids.incoming_call_box.disabled = True
+                    #self.ids.incoming_call_box.opacity = 0
+                    #self.ids.incoming_call_box.disabled = True
+                    print("dovrei aver accettato")
                     break
-                else:
-                    self.ids.incoming_call_box.opacity = 0
-                    self.ids.incoming_call_box.disabled = True
+                elif self.button_pressed is False:
+                    #self.ids.incoming_call_box.opacity = 0
+                    #self.ids.incoming_call_box.disabled = True
                     break
+            print("sono uscito dal while true")
 
             if self.button_pressed is True:
                 azione = user.crea_azione(comando="accetta_chiamata")
                 coda_manda_msg.put(azione)
                 self.start_call()
-            else:
+                self.chiamata_accettata = True
+            elif self.button_pressed is False:
                 azione = user.crea_azione(comando="rifiuta_chiamata")
                 coda_manda_msg.put(azione)
+                self.chiamata_accettata = True
 
 
         elif comando == "accetta_chiamata" or comando == "rifiuta_chiamata":
@@ -622,10 +629,12 @@ class ChatScreen(Screen):
 
 
 
-    def accetta_chiamata(self, instance):
+    def accetta_chiamata(self):
+        print("accetto")
         self.button_pressed = True
 
-    def rifiuta_chiamata(self, instance):
+    def rifiuta_chiamata(self):
+        print("rifiuta")
         self.button_pressed = False
 
 
