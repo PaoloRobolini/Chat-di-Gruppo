@@ -436,21 +436,41 @@ def handle_client(client_socket, client_address):
                     destinatario = messaggio.get("destinatario")
                     nome_file = messaggio.get("nome_file")
                     
-                    # Registra il completamento del trasferimento file nelle chat
+                    # Registra il completamento del trasferimento file
                     messaggio_notifica = f"Ha completato il trasferimento del file: {nome_file} (via FTP)"
-                    nuovo_messaggio_salvataggio = {
-                        "mittente": mittente, 
-                        "destinatario": destinatario,
-                        "messaggio": messaggio_notifica
-                    }
-                    salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
-                    
-                    # Notifica il destinatario
-                    messaggio_da_inoltrare = {
-                        "comando": "nuovo_messaggio_privato",
-                        "mittente": mittente,
-                        "messaggio": messaggio_notifica
-                    }
+
+                    # Verifica se il destinatario è un gruppo
+                    gruppo, membri = is_group(destinatario)
+                    if gruppo:
+                        nuovo_messaggio_salvataggio = {
+                            "nome_gruppo": destinatario,
+                            "mittente": mittente,
+                            "messaggio": messaggio_notifica
+                        }
+                        salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
+                        
+                        # Notifica il gruppo
+                        messaggio_da_inoltrare = {
+                            "comando": "nuovo_messaggio_gruppo",
+                            "nome_gruppo": destinatario,
+                            "mittente": mittente,
+                            "messaggio": messaggio_notifica
+                        }
+                    else:
+                        nuovo_messaggio_salvataggio = {
+                            "mittente": mittente,
+                            "destinatario": destinatario,
+                            "messaggio": messaggio_notifica
+                        }
+                        salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
+                        
+                        # Notifica il destinatario privato
+                        messaggio_da_inoltrare = {
+                            "comando": "nuovo_messaggio_privato",
+                            "mittente": mittente,
+                            "messaggio": messaggio_notifica
+                        }
+
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
     except Exception as e:

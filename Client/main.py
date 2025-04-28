@@ -314,12 +314,17 @@ class ChatScreen(Screen):
     def receive_file(self, messaggio):
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
-        nome_file = messaggio.get("nome_file", "")
+        
+        # Determina il mittente effettivo e il destinatario per il messaggio
+        if comando == "nuovo_messaggio_gruppo":
+            chat_id = messaggio.get("nome_gruppo")
+        else:
+            chat_id = mittente
 
-        if comando == "nuovo_messaggio_privato" and "via FTP" in messaggio.get("messaggio", ""):
-            if mittente in chat:
-                chat[mittente] += f"\n{messaggio['messaggio']}"
-                if mittente == user.get_destinatario():
+        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio", ""):
+            if chat_id in chat:
+                chat[chat_id] += f"\n{messaggio['messaggio']}"
+                if chat_id == user.get_destinatario():
                     self.chat_history += f"\n{messaggio['messaggio']}"
 
             try:
@@ -357,42 +362,42 @@ class ChatScreen(Screen):
                     return
 
                 local_file_path = os.path.join(cartella_destinazione, nome_file)
-                
+
                 # Aggiunge un messaggio di progresso nella chat
-                if mittente in chat:
-                    chat[mittente] += f"\n[Sistema] Avvio download di {nome_file}..."
-                    if mittente == user.get_destinatario():
-                        self.chat_history = chat[mittente]
+                if chat_id in chat:
+                    chat[chat_id] += f"\n[Sistema] Avvio download di {nome_file}..."
+                    if chat_id == user.get_destinatario():
+                        self.chat_history = chat[chat_id]
 
                 with open(local_file_path, 'wb') as file:
                     def callback(chunk):
                         # Scrivi il chunk nel file
                         file.write(chunk)
                         # Aggiorna il progresso nella chat
-                        if mittente in chat and mittente == user.get_destinatario():
-                            lines = chat[mittente].split("\n")
+                        if chat_id in chat and chat_id == user.get_destinatario():
+                            lines = chat[chat_id].split("\n")
                             if "[Download in corso]" in lines[-1]:
                                 lines[-1] = f"[Download in corso] Ricezione di {nome_file} in corso..."
                             else:
                                 lines.append(f"[Download in corso] Ricezione di {nome_file} in corso...")
-                            chat[mittente] = "\n".join(lines)
-                            self.chat_history = chat[mittente]
+                            chat[chat_id] = "\n".join(lines)
+                            self.chat_history = chat[chat_id]
 
                     ftp.retrbinary(f'RETR {nome_file}', callback)
 
                 ftp.quit()
 
                 msg = f"\n[Sistema] File {nome_file} scaricato con successo in {cartella_destinazione}"
-                if mittente in chat:
-                    chat[mittente] += msg
-                    if mittente == user.get_destinatario():
+                if chat_id in chat:
+                    chat[chat_id] += msg
+                    if chat_id == user.get_destinatario():
                         self.chat_history += msg
 
             except Exception as e:
                 error_msg = f"\n[Sistema] Errore nel download del file via FTP: {str(e)}"
-                if mittente in chat:
-                    chat[mittente] += error_msg
-                    if mittente == user.get_destinatario():
+                if chat_id in chat:
+                    chat[chat_id] += error_msg
+                    if chat_id == user.get_destinatario():
                         self.chat_history += error_msg
                 print(f"Errore FTP dettagliato: {e}")
 
@@ -451,18 +456,13 @@ if __name__ == '__main__':
 
     def processa_messaggio(messaggio):
         chat_screen = App.get_running_app().root.get_screen('chat')
-        if "comando" in messaggio:
-            comando = messaggio["comando"]
-            if comando.startswith("trasferimento_file"):
+        if "comando" in messaggio and messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
+            if "via FTP" in messaggio.get("messaggio", ""):
                 chat_screen.receive_file(messaggio)
-            elif comando == "nuovo_messaggio_privato" and "via FTP" in messaggio.get("messaggio", ""):
-                chat_screen.receive_file(messaggio)
-            elif comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
-                chat_screen.receive_message(messaggio)
             else:
-                print(f"Comando non gestito: {comando}")
+                chat_screen.receive_message(messaggio)
         else:
-            print("Messaggio senza comando.")
+            print(f"Comando non gestito: {messaggio['comando']}")
 
 
     def manda_messaggi():
