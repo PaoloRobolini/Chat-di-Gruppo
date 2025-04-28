@@ -82,20 +82,6 @@ class utente:
                 "nome_gruppo": kwargs["nome_gruppo"],
                 "mittente": self.__username
             }
-        elif comando == "file":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per invio file")
-                return None
-            return {
-                "comando": "file",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": self.__nome_file,
-                "file": self.__file,
-                "file_lenght": self.__file_lenght,
-                "file_position": self.__file_position
-            }
-        # Comandi per il nuovo sistema di trasferimento file
         elif comando == "inizia_trasferimento_file":
             if not self.__destinatario:
                 print("Errore: destinatario non impostato per iniziare trasferimento file")
