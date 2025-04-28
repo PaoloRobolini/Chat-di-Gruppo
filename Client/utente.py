@@ -5,9 +5,6 @@ class utente:
         self.__password = password
         self.__destinatario = None
         self.__nome_file = None
-        self.__file = None
-        self.__file_lenght = None
-        self.__file_position = None
 
     def set_nome(self, nome):
         self.__username = nome
@@ -26,24 +23,6 @@ class utente:
 
     def get_nome_file(self):
         return self.__nome_file
-
-    def set_file(self, file):
-        self.__file = file
-
-    def get_file(self):
-        return self.__file
-
-    def set_file_lenght(self, file_lenght):
-        self.__file_lenght = file_lenght
-
-    def get_file_lenght(self):
-        return self.__file_lenght
-
-    def set_file_position(self, file_position):
-        self.__file_position = file_position
-
-    def get_file_position(self):
-        return self.__file_position
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -82,42 +61,15 @@ class utente:
                 "nome_gruppo": kwargs["nome_gruppo"],
                 "mittente": self.__username
             }
-        elif comando == "inizia_trasferimento_file":
+        elif comando == "ftp_file_notification":  # notifica di trasferimento file completato via FTP
             if not self.__destinatario:
-                print("Errore: destinatario non impostato per iniziare trasferimento file")
+                print("Errore: destinatario non impostato per la notifica FTP")
                 return None
             return {
-                "comando": "inizia_trasferimento_file",
+                "comando": "ftp_file_notification",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file),
-                "file_size": kwargs.get("file_size", 0)
-            }
-        elif comando == "trasferimento_file_chunk":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per inviare chunk")
-                return None
-            return {
-                "comando": "trasferimento_file_chunk",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file),
-                "chunk": kwargs.get("chunk"),
-                "chunk_id": kwargs.get("chunk_id", 0),
-                "total_chunks": kwargs.get("total_chunks", 1),
-                "chunk_size": kwargs.get("chunk_size", 512),
-                "file_size": kwargs.get("file_size", 0)
-            }
-        elif comando == "fine_trasferimento_file":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per completare trasferimento")
-                return None
-            return {
-                "comando": "fine_trasferimento_file",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file),
-                "file_size": kwargs.get("file_size", 0)
+                "nome_file": kwargs.get("nome_file", self.__nome_file)
             }
         else:
             print(f"Comando sconosciuto: {comando}")

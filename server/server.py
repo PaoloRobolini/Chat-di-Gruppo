@@ -2,13 +2,16 @@ import json
 import socket
 import threading
 import os
-import base64
 import time
 from tempfile import NamedTemporaryFile
 import google.generativeai as genai
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
 
 HOST = "127.0.0.1"
 PORT = 65432
+FTP_PORT = 21
 server_address = (HOST, PORT)
 
 nome_AI = "AI"
@@ -19,13 +22,8 @@ clients_lock = threading.Lock()
 lock_for_locks = threading.Lock()
 locks_chat = {}
 
-# Dizionario per tenere traccia dei file in fase di trasferimento
-file_transfers = {}
-file_transfers_lock = threading.Lock()
-
-user_ai_chats = {} # Dizionario per memorizzare le sessioni di chat AI per ogni utente
-user_ai_chats_lock = threading.Lock() # Lock per accedere a user_ai_chats
-
+user_ai_chats = {}
+user_ai_chats_lock = threading.Lock()
 
 with open("chiave.txt", "r") as file:
     chiave = file.read()
@@ -374,6 +372,28 @@ def setting_AI(username):
             f"utilizza caratteri compatibili con il UTF-8")
 
 
+def setup_ftp_server():
+    # Crea l'autorizzatore per gli utenti FTP
+    authorizer = DummyAuthorizer()
+    
+    # Aggiungi un utente anonimo con accesso in lettura/scrittura alla cartella file_storage
+    authorizer.add_anonymous(os.path.join(os.getcwd(), "file_storage"), perm="elradfmw")
+    
+    # Crea l'handler FTP
+    handler = FTPHandler
+    handler.authorizer = authorizer
+    
+    # Crea il server FTP
+    ftp_server = FTPServer((HOST, FTP_PORT), handler)
+    
+    # Avvia il server FTP in un thread separato
+    ftp_thread = threading.Thread(target=ftp_server.serve_forever)
+    ftp_thread.daemon = True
+    ftp_thread.start()
+    
+    print(f"[FTP SERVER] In ascolto su {HOST}:{FTP_PORT}")
+
+
 def handle_client(client_socket, client_address):
     logged_in_username = None
     print(f"Nuova connessione da {client_address}")
@@ -405,199 +425,34 @@ def handle_client(client_socket, client_address):
                 setting_AI(logged_in_username)
             elif comando == "crea_gruppo":
                 crea_gruppo(messaggio)
-
             elif comando == "messaggio":
                 inoltra_messaggio(messaggio, logged_in_username)
-
             elif comando == "is_in_gruppo":
                 is_in_gruppo(messaggio, logged_in_username)
-
-            elif comando == "inizia_trasferimento_file":
-
-                if not logged_in_username:
-                    continue
-                mittente = logged_in_username
-                destinatario = messaggio.get("destinatario")
-                nome_file = messaggio.get("nome_file")
-                file_size = messaggio.get("file_size")
-
-                if not destinatario or not nome_file:
-                    continue
-
-                # Crea una chiave univoca per questo trasferimento
-                transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
-
-                # Prepara la struttura per salvare il file sul server
-                with file_transfers_lock:
-                    file_transfers[transfer_key] = {
-                        "chunks": {},
-                        "total_chunks": 0,
-                        "completed": False,
-                        "nome_file": nome_file,
+            elif comando == "ftp_file_notification":
+                # Gestisce la notifica di trasferimento file completato via FTP
+                if logged_in_username:
+                    mittente = logged_in_username
+                    destinatario = messaggio.get("destinatario")
+                    nome_file = messaggio.get("nome_file")
+                    
+                    # Registra il completamento del trasferimento file nelle chat
+                    messaggio_notifica = f"Ha completato il trasferimento del file: {nome_file} (via FTP)"
+                    nuovo_messaggio_salvataggio = {
+                        "mittente": mittente, 
+                        "destinatario": destinatario,
+                        "messaggio": messaggio_notifica
+                    }
+                    salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
+                    
+                    # Notifica il destinatario
+                    messaggio_da_inoltrare = {
+                        "comando": "nuovo_messaggio_privato",
                         "mittente": mittente,
-                        "destinatario": destinatario,
-                        "file_size": file_size
+                        "messaggio": messaggio_notifica
                     }
+                    manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
-                # Registra il file in arrivo nelle chat
-                messaggio_notifica = f"Ha iniziato il trasferimento del file: {nome_file}"
-                nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario,
-                                               "messaggio": messaggio_notifica}
-                salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
-
-            elif comando == "trasferimento_file_chunk":
-
-                if not logged_in_username:
-                    continue
-                mittente = logged_in_username
-                destinatario = messaggio.get("destinatario")
-                nome_file = messaggio.get("nome_file")
-                chunk = messaggio.get("chunk")
-                chunk_id = messaggio.get("chunk_id")
-                total_chunks = messaggio.get("total_chunks")
-
-                if not destinatario or not nome_file:
-                    continue
-
-                # Chiave univoca per questo trasferimento
-                transfer_key = f"{mittente}_{destinatario}_{nome_file}_{messaggio.get('file_size', '0')}"
-
-                # Salva il chunk nella struttura temporanea
-                with file_transfers_lock:
-                    if transfer_key in file_transfers:
-                        file_transfers[transfer_key]["chunks"][chunk_id] = chunk
-                        file_transfers[transfer_key]["total_chunks"] = total_chunks
-
-            elif comando == "fine_trasferimento_file":
-
-                if not logged_in_username:
-                    continue
-
-                mittente = logged_in_username
-                destinatario = messaggio.get("destinatario")
-                nome_file = messaggio.get("nome_file")
-                file_size = messaggio.get("file_size", "0")
-
-                if not destinatario or not nome_file:
-                    continue
-
-                # Chiave univoca per questo trasferimento
-                transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
-
-                # Salva il file completo su disco nella cartella file_storage
-                os.makedirs("file_storage", exist_ok=True)
-
-
-                gruppo, membri = is_group(destinatario)
-                if gruppo:
-                    chat_dir = os.path.join("file_storage",destinatario)
-                else:
-                    chat_dir = os.path.join("file_storage", genera_nome_file(mittente, destinatario).replace(".json", ""))
-
-                os.makedirs(chat_dir, exist_ok=True)
-
-                file_path = os.path.join(chat_dir, nome_file)
-                file_saved = False
-
-                with clients_lock:
-                    if destinatario in clients_sockets:
-                        destinatario_socket = clients_sockets[destinatario]
-
-                with file_transfers_lock:
-                    if transfer_key in file_transfers and len(file_transfers[transfer_key]["chunks"]) == \
-                            file_transfers[transfer_key]["total_chunks"]:
-                        # Ordina i chunk e scrivili su file
-                        try:
-                            with open(file_path, 'wb') as file_out:
-                                for i in range(file_transfers[transfer_key]["total_chunks"]):
-                                    chunk_data = file_transfers[transfer_key]["chunks"].get(i)
-                                    if chunk_data:
-                                        decoded_chunk = base64.b64decode(chunk_data)
-                                        file_out.write(decoded_chunk)
-
-                            file_transfers[transfer_key]["completed"] = True
-                            file_saved = True
-                            print(f"File {nome_file} salvato con successo in {file_path}")
-
-                            # Registra il completamento del trasferimento file nelle chat
-                            messaggio_notifica = f"Ha completato il trasferimento del file: {nome_file} (salvato sul server)"
-                            nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario,
-                                                           "messaggio": messaggio_notifica}
-                            salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
-
-                        except Exception as e:
-                            print(f"Errore nel salvataggio del file: {e}")
-
-                        # Pulizia dopo il salvataggio
-                        del file_transfers[transfer_key]
-
-                # Adesso il server inizia a inviare il file al destinatario
-                if file_saved:
-                    print(f"📤 File selezionato: {file_path}")
-                    nome_file_basename = os.path.basename(file_path)
-
-                    # Ottieni dimensione del file e calcola numero di chunk
-                    file_size = os.path.getsize(file_path)
-                    chunk_size = 2048  # Dimensione di ogni chunk in bytes
-                    total_chunks = (file_size + chunk_size - 1) // chunk_size  # Arrotonda per eccesso
-
-                    # Invio le informazioni di inizio trasferimento
-                    inizia_trasferimento = {
-                        "comando": "trasferimento_file_inizio",
-                        "mittente": logged_in_username,
-                        "destinatario": destinatario,
-                        "nome_file": nome_file_basename,
-                        "file_size": file_size
-                    }
-
-                    print(inizia_trasferimento)
-                    manda_messaggio(inizia_trasferimento, mittente, destinatario)
-
-                    time.sleep(0.5)
-
-                    # Leggi e invia i chunk del file
-                    with open(file_path, "rb") as file:
-                        for chunk_id in range(total_chunks):
-                            # Posizionati all'inizio del chunk corrente
-                            file.seek(chunk_id * chunk_size)
-                            chunk_data = file.read(chunk_size)
-                            if not chunk_data:  # Fine del file
-                                break
-
-                            # Converti il chunk in base64 per sicurezza nella trasmissione JSON
-                            chunk_base64 = base64.b64encode(chunk_data).decode('utf-8')
-
-                            # Crea un messaggio per ogni chunk
-                            chunk_msg = {
-                                "comando": "trasferimento_file_chunk",
-                                "mittente": logged_in_username,
-                                "destinatario": destinatario,
-                                "nome_file": nome_file_basename,
-                                "chunk": chunk_base64,
-                                "chunk_id": chunk_id,
-                                "total_chunks": total_chunks,
-                                "chunk_size": len(chunk_data),
-                                "file_size": file_size
-                            }
-
-                            # Invia il chunk
-                            print(chunk_msg)
-                            manda_messaggio(chunk_msg,mittente, destinatario)
-
-
-                            # Piccola pausa per evitare sovraccarichi
-                            time.sleep(0.05)
-
-                    # Notifica il server che il trasferimento è completo
-                    fine_trasferimento = {
-                        "comando": "trasferimento_file_fine",
-                        "mittente": logged_in_username,
-                        "destinatario": destinatario,
-                        "nome_file": nome_file_basename,
-                        "file_size": file_size
-                    }
-                    print(fine_trasferimento)
-                    manda_messaggio(fine_trasferimento, mittente, destinatario)
     except Exception as e:
         print(f"Errore nel thread per {client_address}: {e}")
     finally:
@@ -624,6 +479,9 @@ if not os.path.exists('datiUtente.json'):
 if not os.path.exists('datiGruppi.json'):
     with open('datiGruppi.json', 'w', encoding='utf-8') as f:
         json.dump({"gruppi": []}, f, indent=4)
+
+# Avvia il server FTP
+setup_ftp_server()
 
 print(f"[SERVER] In ascolto su {server_address}")
 

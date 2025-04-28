@@ -5,6 +5,7 @@ import os
 import socket
 import threading
 import time
+from ftplib import FTP
 
 from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -20,12 +21,9 @@ from tkinter.filedialog import askopenfilename
 Builder.load_file("chat.kv")
 
 ip_server = "127.0.0.1"
-
 porta_server = 65432
+ftp_port = 21
 server = (ip_server, porta_server)
-
-file_transfers_lock = threading.Lock()
-file_transfers = {}
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(server)
@@ -36,6 +34,7 @@ coda_manda_msg = multiprocessing.Queue()
 chat = {}
 
 global user
+
 
 def carica_gruppi():
     files_chat = [
@@ -54,8 +53,6 @@ def carica_gruppi():
                     chat[file] += f"\n{message['mittente']}> {message['messaggio']}"
                     chat_screen = App.get_running_app().root.get_screen('chat')
                     chat_screen.aggiungi_nuovo_contatto(file)
-
-
 
 
 def carica_chat():
@@ -96,8 +93,8 @@ def scarica_chat(cartella):
         messaggio = json.loads(messaggio.decode())
         messaggio["nome"] = messaggio["nome"].replace('"', '').replace("'", "")
 
-        print(f"Nome del file: {messaggio["nome"]}")
-        with open(f"{cartella}/{messaggio["nome"]}", 'w') as f:
+        print(f"Nome del file: {messaggio['nome']}")
+        with open(f"{cartella}/{messaggio['nome']}", 'w') as f:
             json.dump(messaggio["contenuto"], f, indent=4)  # `indent=4` rende il file leggibile
 
 
@@ -112,8 +109,7 @@ class LoginScreen(Screen):
             dati_serializzati = json.dumps(user.crea_azione(comando="login")).encode('utf-8')
             s.sendall(dati_serializzati)
 
-
-            data = s.recv(1024)
+            data = s.recv(4096)
             reply = data.decode()
 
             if reply != "1":
@@ -137,10 +133,6 @@ class LoginScreen(Screen):
                 self.ids.login_data_error.text = "mail o password non corrispondono"
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
-
-
-
-
 
 
 class SigninScreen(Screen):
@@ -177,9 +169,6 @@ class SigninScreen(Screen):
                 self.ids.username.text = ""
 
 
-
-
-
 class ChatScreen(Screen):
     username = StringProperty("")
     chat_history = StringProperty("")
@@ -204,7 +193,6 @@ class ChatScreen(Screen):
         except KeyError:
             chat[testo] = ""
 
-
     def send_message(self):
         message = self.ids.message_input.text.strip()
         if message and user.get_destinatario() is not None:
@@ -217,8 +205,6 @@ class ChatScreen(Screen):
             azione = user.crea_azione(comando="messaggio", messaggio=message)
             coda_manda_msg.put(azione)
 
-
-
     def receive_message(self, messaggio):
         nuovo_messaggio = f"\n{messaggio['mittente']} > {messaggio['messaggio']}"
 
@@ -227,19 +213,16 @@ class ChatScreen(Screen):
         else:
             mittente = messaggio["mittente"]
 
-        # 1. Aggiornamento lista contatti in modo thread-safe
         if mittente not in self.contact_buttons:
             Clock.schedule_once(
                 lambda dt: self.aggiungi_nuovo_contatto(mittente)
             )
 
-        # 2. Aggiornamento cronologia chat solo se nella conversazione corretta
         if mittente == user.get_destinatario():
             Clock.schedule_once(
                 lambda dt: setattr(self, 'chat_history', self.chat_history + nuovo_messaggio)
             )
 
-        # 3. Salvataggio messaggio nella struttura dati
         Clock.schedule_once(
             lambda dt: self.salva_messaggio(mittente, nuovo_messaggio)
         )
@@ -248,13 +231,11 @@ class ChatScreen(Screen):
         self.manager.current = 'aggiungicontatto'
 
     def aggiungi_nuovo_contatto(self, contatto):
-        # Metodo wrapper per l'aggiunta thread-safe
         if contatto not in self.contact_buttons:
             self.contact_buttons.append(contatto)
-            self.property('contact_buttons').dispatch(self)  # Forza notifica cambio
+            self.property('contact_buttons').dispatch(self)
 
     def salva_messaggio(self, mittente, messaggio):
-        # Salvataggio nella struttura dati principale
         if mittente not in chat:
             chat[mittente] = ""
         chat[mittente] += messaggio
@@ -263,7 +244,6 @@ class ChatScreen(Screen):
         root = Tk()
         root.withdraw()
 
-        # Apre il gestore file
         file_path = askopenfilename(title="scegli un file")
 
         if file_path:
@@ -272,245 +252,149 @@ class ChatScreen(Screen):
 
             if user.get_destinatario() is None:
                 print("Errore: destinatario non impostato per invio file")
-                # Aggiorna la chat con un messaggio di errore
                 self.chat_history += "\n[Sistema] Errore: Seleziona un destinatario prima di inviare un file."
                 root.destroy()
                 return
 
-            # Aggiorna l'interfaccia per mostrare l'inizio del trasferimento
-            chat[user.get_destinatario()] += f"\n[Sistema] Iniziando invio file {nome_file_basename}..."
+            chat[user.get_destinatario()] += f"\n[Sistema] Iniziando invio file {nome_file_basename} via FTP..."
             self.chat_history = chat[user.get_destinatario()]
 
-            # Ottieni dimensione del file e calcola numero di chunk
-            file_size = os.path.getsize(file_path)
-            chunk_size = 2048  # Dimensione di ogni chunk in bytes
-            total_chunks = (file_size + chunk_size - 1) // chunk_size  # Arrotonda per eccesso
+            try:
+                ftp = FTP()
+                ftp.connect(ip_server, ftp_port)
+                ftp.login()
 
-            # Invio le informazioni di inizio trasferimento
-            inizia_trasferimento = {
-                "comando": "inizia_trasferimento_file",
-                "mittente": user.get_nome(),
-                "destinatario": user.get_destinatario(),
-                "nome_file": nome_file_basename,
-                "file_size": file_size
-            }
-            coda_manda_msg.put(inizia_trasferimento)
+                # Usa la directory del mittente per salvare il file
+                mittente_dir = user.get_nome()
+                try:
+                    ftp.cwd(mittente_dir)
+                except:
+                    try:
+                        ftp.mkd(mittente_dir)
+                        ftp.cwd(mittente_dir)
+                    except Exception as e:
+                        print(f"Errore nella creazione/accesso della directory {mittente_dir}: {e}")
+                        return
 
-            # Leggi e invia i chunk del file
-            with open(file_path, "rb") as file:
-                for chunk_id in range(total_chunks):
-                    # Posizionati all'inizio del chunk corrente
-                    file.seek(chunk_id * chunk_size)
-                    chunk_data = file.read(chunk_size)
-                    if not chunk_data:  # Fine del file
-                        break
+                with open(file_path, 'rb') as file:
+                    ftp.storbinary(f'STOR {nome_file_basename}', file,
+                                   callback=lambda s: self.update_ftp_progress(s, nome_file_basename))
 
-                    # Converti il chunk in base64 per sicurezza nella trasmissione JSON
-                    chunk_base64 = base64.b64encode(chunk_data).decode('utf-8')
+                ftp.quit()
 
-                    # Crea un messaggio per ogni chunk
-                    chunk_msg = {
-                        "comando": "trasferimento_file_chunk",
-                        "mittente": user.get_nome(),
-                        "destinatario": user.get_destinatario(),
-                        "nome_file": nome_file_basename,
-                        "chunk": chunk_base64,
-                        "chunk_id": chunk_id,
-                        "total_chunks": total_chunks,
-                        "chunk_size": len(chunk_data),
-                        "file_size": file_size
-                    }
+                notifica = {
+                    "comando": "ftp_file_notification",
+                    "mittente": user.get_nome(),
+                    "destinatario": user.get_destinatario(),
+                    "nome_file": nome_file_basename
+                }
+                coda_manda_msg.put(notifica)
 
-                    # Invia il chunk
-                    coda_manda_msg.put(chunk_msg)
+                chat[user.get_destinatario()] += f"\n[Sistema] File {nome_file_basename} inviato con successo via FTP!"
+                self.chat_history = chat[user.get_destinatario()]
 
-                    # Aggiorna periodicamente la UI (ogni 10 chunk)
-                    if chunk_id % 10 == 0 or chunk_id == total_chunks - 1:
-                        progress = round(((chunk_id + 1) / total_chunks) * 100)
-                        Clock.schedule_once(
-                            lambda dt, prog=progress, tot=total_chunks, curr=chunk_id:
-                            self.update_progress(prog, tot, curr), 0
-                        )
+            except Exception as e:
+                error_msg = f"\n[Sistema] Errore nell'invio del file via FTP: {str(e)}"
+                chat[user.get_destinatario()] += error_msg
+                self.chat_history = chat[user.get_destinatario()]
+                print(f"Errore FTP dettagliato: {e}")
 
-                    # Piccola pausa per evitare sovraccarichi
-                    time.sleep(0.05)
-
-            # Notifica il server che il trasferimento è completo
-            fine_trasferimento = {
-                "comando": "fine_trasferimento_file",
-                "mittente": user.get_nome(),
-                "destinatario": user.get_destinatario(),
-                "nome_file": nome_file_basename,
-                "file_size": file_size
-            }
-            coda_manda_msg.put(fine_trasferimento)
-
-            # Aggiorna la chat con notifica di completamento
-            chat[user.get_destinatario()] += f"\n[Sistema] File {nome_file_basename} inviato con successo!"
-            self.chat_history = chat[user.get_destinatario()]
-
-            print(f"📤 Trasferimento file completato: {nome_file_basename}")
-
-        # Chiude la finestra Tk
         root.destroy()
 
-    def update_progress(self, progress, total_chunks, current_chunk):
-        """Aggiorna la chat con l'avanzamento dell'invio file"""
+    def update_ftp_progress(self, block, nome_file):
         if user.get_destinatario() is not None:
-            # Non vogliamo aggiornare la cronologia completamente, solo l'ultimo messaggio di progresso
-            if "[Progresso" in chat[user.get_destinatario()].split("\n")[-1]:
-                # Sostituisci l'ultimo messaggio con il nuovo stato di avanzamento
-                lines = chat[user.get_destinatario()].split("\n")
-                lines[-1] = f"[Progresso invio] Chunk {current_chunk + 1}/{total_chunks} ({progress}%)"
-                chat[user.get_destinatario()] = "\n".join(lines)
+            lines = chat[user.get_destinatario()].split("\n")
+            if "[Progresso invio FTP]" in lines[-1]:
+                lines[-1] = f"[Progresso invio FTP] Trasferimento di {nome_file} in corso..."
             else:
-                chat[
-                    user.get_destinatario()] += f"\n[Progresso invio] Chunk {current_chunk + 1}/{total_chunks} ({progress}%)"
-
+                lines.append(f"[Progresso invio FTP] Trasferimento di {nome_file} in corso...")
+            chat[user.get_destinatario()] = "\n".join(lines)
             self.chat_history = chat[user.get_destinatario()]
 
     def receive_file(self, messaggio):
-        """Gestisce la ricezione di un file (o parte di esso)"""
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
-        nome_file = messaggio.get("nome_file")
-        destinatario = messaggio.get("destinatario")
+        nome_file = messaggio.get("nome_file", "")
 
-        cartella_destinazione = "file_ricevuti"
-
-        if comando == "trasferimento_file_inizio":
-            # Inizializzazione di un nuovo trasferimento file
-            file_size = messaggio.get("file_size", "Sconosciuta")
-            print(f"📥 Inizio ricezione file {nome_file} da {mittente} (dimensione: {file_size} bytes)")
-
-            # Crea la cartella per i file ricevuti se non esiste
-            os.makedirs(cartella_destinazione, exist_ok=True)
-
-            # Aggiorna la chat con la notifica di inizio ricezione
-            msg = f"\n[Sistema] Inizio ricezione file {nome_file} da {mittente} ({file_size} bytes)"
+        if comando == "nuovo_messaggio_privato" and "via FTP" in messaggio.get("messaggio", ""):
             if mittente in chat:
-                chat[mittente] += msg
+                chat[mittente] += f"\n{messaggio['messaggio']}"
                 if mittente == user.get_destinatario():
-                    self.chat_history += msg
-
-            # Apre e chiude il file per crearlo vuoto
-            transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
-
-            # Prepara la struttura per salvare il file sul server
-            with file_transfers_lock:
-                file_transfers[transfer_key] = {
-                    "chunks": {},
-                    "total_chunks": 0,
-                    "completed": False,
-                    "nome_file": nome_file,
-                    "mittente": mittente,
-                    "destinatario": destinatario,
-                    "file_size": file_size
-                }
-
-        elif comando == "trasferimento_file_chunk":
-            # Ricezione di un chunk del file
-            chunk_id = messaggio.get("chunk_id")
-            total_chunks = messaggio.get("total_chunks")
-            chunk = messaggio.get("chunk")
-            file_size = messaggio.get("file_size")
+                    self.chat_history += f"\n{messaggio['messaggio']}"
 
             try:
-                # Chiave univoca per questo trasferimento
-                transfer_key = f"{messaggio["mittente"]}_{messaggio["destinatario"]}_{nome_file}_{file_size}"
+                cartella_destinazione = "file_ricevuti"
+                os.makedirs(cartella_destinazione, exist_ok=True)
 
-                # Salva il chunk nella struttura temporanea
-                with file_transfers_lock:
-                    if transfer_key in file_transfers:
-                        file_transfers[transfer_key]["chunks"][chunk_id] = chunk
-                        file_transfers[transfer_key]["total_chunks"] = total_chunks
+                ftp = FTP()
+                ftp.connect(ip_server, ftp_port)
+                ftp.login()
 
-                # Aggiorna l'interfaccia utente con lo stato di avanzamento
-                if chunk_id % 10 == 0 or chunk_id == total_chunks - 1:
-                    progress = round(((chunk_id + 1) / total_chunks) * 100)
+                # Lista le directory disponibili
+                print("Directory disponibili sul server:", ftp.nlst())
+                
+                # Entra nella directory del mittente
+                try:
+                    ftp.cwd(mittente)
+                    print(f"Contenuto della directory {mittente}:", ftp.nlst())
+                except Exception as e:
+                    print(f"Errore nell'accesso alla directory {mittente}: {e}")
+                    return
 
-                    # Aggiorna l'interfaccia solo se è il mittente attualmente selezionato
-                    if mittente in chat and mittente == user.get_destinatario():
-                        # Aggiorna in modo atomico per evitare messaggi duplicati
-                        def update_ui():
-                            # Trova l'ultimo messaggio di progresso o aggiungi uno nuovo
-                            lines = self.chat_history.split("\n")
-                            for i in range(len(lines) - 1, -1, -1):
-                                if "[Ricezione]" in lines[i]:
-                                    lines[i] = f"[Ricezione] Chunk {chunk_id + 1}/{total_chunks} ({progress}%)"
-                                    self.chat_history = "\n".join(lines)
-                                    return
-                            # Se non trova un messaggio di progresso, aggiunge uno nuovo
-                            self.chat_history += f"\n[Ricezione] Chunk {chunk_id + 1}/{total_chunks} ({progress}%)"
+                # Estrai il nome del file dal messaggio
+                if "via FTP" in messaggio.get("messaggio", ""):
+                    file_message = messaggio.get("messaggio", "")
+                    start_index = file_message.find(": ") + 2
+                    end_index = file_message.find(" (via FTP)")
+                    if start_index > 1 and end_index > start_index:
+                        nome_file = file_message[start_index:end_index]
 
-                        Clock.schedule_once(lambda dt: update_ui(), 0)
-                        # Aggiorna anche lo stato nella struttura chat
-                        chat[mittente] = self.chat_history
+                # Verifica se il file esiste
+                files_disponibili = ftp.nlst()
+                print(f"File disponibili: {files_disponibili}")
+                if nome_file not in files_disponibili:
+                    print(f"File {nome_file} non trovato nella directory")
+                    return
+
+                local_file_path = os.path.join(cartella_destinazione, nome_file)
+                
+                # Aggiunge un messaggio di progresso nella chat
+                if mittente in chat:
+                    chat[mittente] += f"\n[Sistema] Avvio download di {nome_file}..."
+                    if mittente == user.get_destinatario():
+                        self.chat_history = chat[mittente]
+
+                with open(local_file_path, 'wb') as file:
+                    def callback(chunk):
+                        # Scrivi il chunk nel file
+                        file.write(chunk)
+                        # Aggiorna il progresso nella chat
+                        if mittente in chat and mittente == user.get_destinatario():
+                            lines = chat[mittente].split("\n")
+                            if "[Download in corso]" in lines[-1]:
+                                lines[-1] = f"[Download in corso] Ricezione di {nome_file} in corso..."
+                            else:
+                                lines.append(f"[Download in corso] Ricezione di {nome_file} in corso...")
+                            chat[mittente] = "\n".join(lines)
+                            self.chat_history = chat[mittente]
+
+                    ftp.retrbinary(f'RETR {nome_file}', callback)
+
+                ftp.quit()
+
+                msg = f"\n[Sistema] File {nome_file} scaricato con successo in {cartella_destinazione}"
+                if mittente in chat:
+                    chat[mittente] += msg
+                    if mittente == user.get_destinatario():
+                        self.chat_history += msg
 
             except Exception as e:
-                print(f"❌ Errore nella scrittura del chunk {chunk_id}: {e}")
-                # Aggiungi una notifica di errore nella chat
-                error_msg = f"\n[Errore] Problemi nella ricezione del chunk {chunk_id}: {str(e)}"
-                if mittente in chat and mittente == user.get_destinatario():
-                    self.chat_history += error_msg
-                    chat[mittente] = self.chat_history
-
-        elif comando == "trasferimento_file_fine":
-            mittente = messaggio.get("mittente")
-            destinatario = messaggio.get("destinatario")
-            nome_file = messaggio.get("nome_file")
-            file_size = messaggio.get("file_size")
-
-
-            # Chiave univoca per questo trasferimento
-            transfer_key = f"{mittente}_{destinatario}_{nome_file}_{file_size}"
-
-            file_path = os.path.join("file_ricevuti", nome_file)
-
-            with file_transfers_lock:
-                if transfer_key in file_transfers:
-                    # Ordina i chunk e scrivili su file
-                    try:
-                        with open(file_path, 'wb') as file_out:
-                            for i in range(file_transfers[transfer_key]["total_chunks"]):
-                                chunk_data = file_transfers[transfer_key]["chunks"].get(i)
-                                if chunk_data:
-                                    decoded_chunk = base64.b64decode(chunk_data)
-                                    file_out.write(decoded_chunk)
-
-                        file_transfers[transfer_key]["completed"] = True
-                        print(f"File {nome_file} salvato con successo in {file_path}")
-
-
-                    except Exception as e:
-                        print(f"Errore nel salvataggio del file: {e}")
-
-                    # Pulizia dopo il salvataggio
-                    del file_transfers[transfer_key]
-
-            if os.path.exists(file_path):
-                print(f"✅ File completato: {nome_file}")
-                # Verifica la dimensione finale
-                file_size_ricevuto = os.path.getsize(file_path)
-                file_size_atteso = messaggio.get("file_size", 0)
-
-                # Messaggio di completamento con verifica della dimensione
-                if file_size_atteso > 0 and file_size_ricevuto != file_size_atteso:
-                    messaggio_notifica = f"\n[Attenzione] File ricevuto da {mittente}: {nome_file} (dimensione: {file_size_ricevuto}/{file_size_atteso} bytes - potrebbe essere corrotto)"
-                else:
-                    messaggio_notifica = f"\n[Sistema] File ricevuto da {mittente}: {nome_file} (salvato in {cartella_destinazione})"
-
-                # Aggiorna la chat con la notifica di completamento
+                error_msg = f"\n[Sistema] Errore nel download del file via FTP: {str(e)}"
                 if mittente in chat:
-                    chat[mittente] += messaggio_notifica
+                    chat[mittente] += error_msg
                     if mittente == user.get_destinatario():
-                        self.chat_history += messaggio_notifica
-            else:
-                print(f"❌ File non trovato dopo il trasferimento: {nome_file}")
-                messaggio_notifica = f"\n[Errore] Impossibile trovare il file {nome_file} dopo il trasferimento"
-                if mittente in chat and mittente == user.get_destinatario():
-                    self.chat_history += messaggio_notifica
-                    chat[mittente] = self.chat_history
+                        self.chat_history += error_msg
+                print(f"Errore FTP dettagliato: {e}")
 
 
 class AggiungiContatto(Screen):
@@ -548,8 +432,6 @@ class ChatApp(App):
         return sm
 
 
-
-
 if __name__ == '__main__':
 
     def ricevi_messaggi():
@@ -573,6 +455,8 @@ if __name__ == '__main__':
             comando = messaggio["comando"]
             if comando.startswith("trasferimento_file"):
                 chat_screen.receive_file(messaggio)
+            elif comando == "nuovo_messaggio_privato" and "via FTP" in messaggio.get("messaggio", ""):
+                chat_screen.receive_file(messaggio)
             elif comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
                 chat_screen.receive_message(messaggio)
             else:
@@ -586,7 +470,7 @@ if __name__ == '__main__':
             messaggio = coda_manda_msg.get()
             if messaggio is None:
                 print("Attenzione: messaggio None ricevuto nella coda")
-                continue  # Ignora questo messaggio e passa al prossimo
+                continue
 
             try:
                 if not isinstance(messaggio, dict):
