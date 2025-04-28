@@ -5,6 +5,7 @@ class utente:
         self.__password = password
         self.__destinatario = None
         self.__nome_file = None
+        self.__pacchetto_audio = None
 
     def set_nome(self, nome):
         self.__username = nome
@@ -23,6 +24,10 @@ class utente:
 
     def get_nome_file(self):
         return self.__nome_file
+    def set_pacchetto_audio(self, pacchetto_audio):
+        self.__pacchetto_audio = pacchetto_audio
+    def get_pacchetto_audio(self):
+        return self.__pacchetto_audio
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -71,6 +76,32 @@ class utente:
                 "destinatario": self.__destinatario,
                 "nome_file": kwargs.get("nome_file", self.__nome_file)
             }
+        elif comando == "richiesta_chiamata":
+            return {
+                "comando": "richiesta_chiamata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario
+            }
+        elif comando == "chiamata":
+            return {
+                "comando": "chiamata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+                "pacchetto_audio": self.__pacchetto_audio
+            }
+        elif comando == "chiamata_accettata":
+            return {
+                "comando": "chiamata_accettata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+            }
+        elif comando == "chiamata_rifiutata":
+            return {
+                "comando": "chiamata_rifiutata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+            }
+
         else:
             print(f"Comando sconosciuto: {comando}")
             return {"comando": "sconosciuto"}

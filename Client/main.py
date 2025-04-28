@@ -18,6 +18,24 @@ from kivy.uix.button import Button
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
+import pyaudio
+import struct
+
+CHUNK = 1024
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100
+SILENCE_THRESHOLD = 500  # più basso = più sensibile
+
+p = pyaudio.PyAudio()
+
+stream_output = p.open(format=FORMAT,
+                                   channels=CHANNELS,
+                                   rate=RATE,
+                                   output=True,
+                                   frames_per_buffer=CHUNK)
+
+
 Builder.load_file("chat.kv")
 
 ip_server = "127.0.0.1"
@@ -433,6 +451,119 @@ class ChatScreen(Screen):
                         self.chat_history += error_msg
                 print(f"Errore FTP dettagliato: {e}")
 
+    def send_call(self):
+        stream_input = p.open(format=FORMAT,
+                              channels=CHANNELS,
+                              rate=RATE,
+                              input=True,
+                              frames_per_buffer=CHUNK)
+        while True:
+            data = stream_input.read(CHUNK, exception_on_overflow=False)
+            data = base64.b64encode(data).decode('utf-8')
+            user.set_pacchetto_audio(data)
+            azione = user.crea_azione(comando="chiamata")
+
+            coda_manda_msg.put(azione)
+
+            # Calcola energia del pacchetto audio
+            data_decoded = base64.b64decode(data)  # 🔥 Da base64 torna a bytes veri
+            samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+            energy = sum(abs(sample) for sample in samples) / len(samples)
+
+            if energy > SILENCE_THRESHOLD:
+                print("🎙️ Sto inviando audio... (energia:", int(energy), ")")
+            else:
+                print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
+
+    chiamata_accettata = None
+
+    def start_call(self):
+        if user.get_destinatario() is not None:
+            if self.chiamata_accettata == None:
+                azione = user.crea_azione(comando="richiesta_chiamata")
+                coda_manda_msg.put(azione)
+            elif self.chiamata_accettata == True:
+                thread = threading.Thread(target=self.send_call)
+                thread.start()
+                print("thread avviato")
+            else:
+                pass
+
+
+    def get_call(self, pacchetto_audio2):
+        #thread che riceve e gestisce il pacchetto audio
+        print(type(pacchetto_audio2))
+        pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
+        stream_output.write(pacchetto_audio2)
+
+        data_decoded = pacchetto_audio2
+        samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+        energy = sum(abs(sample) for sample in samples) / len(samples)
+
+        if energy > SILENCE_THRESHOLD:
+            print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
+        else:
+            print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+
+    def receive_call(self, messaggio):
+        #avvio dei thread per ricevere e rimanadre indietro audio se la chiamata viene accettata
+        comando = messaggio.get("comando")
+        mittente = messaggio.get("mittente")
+        if comando == "richiesta_chiamata":
+            self.ids.incoming_call_box.opacity = 1
+            self.ids.incoming_call_box.disabled = False
+            self.ids.caller_name = mittente
+            start_time = time.time()
+            while True:
+                now = time.time()
+                elapsed = now - start_time  # Quanto tempo è passato
+
+                if elapsed > 5:  # Se sono passati più di 5 secondi
+                    self.ids.incoming_call_box.opacity = 0
+                    self.ids.incoming_call_box.disabled = True
+                    self.chiamata_accettata = False
+                    break
+
+                if self.chiamata_accettata is True:
+                    self.ids.incoming_call_box.opacity = 0
+                    self.ids.incoming_call_box.disabled = True
+                    break
+                elif self.chiamata_accettata is False:
+                    self.ids.incoming_call_box.opacity = 0
+                    self.ids.incoming_call_box.disabled = True
+                    break
+
+            if self.chiamata_accettata == True:
+                azione = user.crea_azione(comando="chiamata_accettata")
+                coda_manda_msg.put(azione)
+            else:
+                azione = user.crea_azione(comando="chiamata_accettata")
+                coda_manda_msg.put(azione)
+
+
+        elif comando == "chiamata_accettata":
+            self.chiamata_accettata = True
+            self.start_call()
+
+        elif comando == "chiamata_rifiutata":
+            self.chiamata_accettata = False
+
+        elif comando == "chiamata":
+            pacchetto_audio = messaggio.get("pacchetto_audio")
+            print(type(pacchetto_audio))
+            user.set_destinatario(mittente)
+            self.start_call()
+            thread = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
+            thread.start()
+
+
+
+    def accetta_chiamata(self):
+        self.chiamata_accettata = True
+    def rifiuta_chiamata(self):
+        self.chiamata_accettata = False
+
+
 
 class AggiungiContatto(Screen):
 
@@ -493,6 +624,9 @@ if __name__ == '__main__':
                 chat_screen.receive_file(messaggio)
             else:
                 chat_screen.receive_message(messaggio)
+
+        elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+            chat_screen.receive_call(messaggio)
         else:
             print(f"Comando non gestito: {messaggio['comando']}")
 

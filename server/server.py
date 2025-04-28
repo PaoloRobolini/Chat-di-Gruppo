@@ -337,6 +337,24 @@ def inoltra_messaggio(messaggio, logged_in_username):
 
         manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
+def inoltra_chiamata(messaggio, logged_in_username):
+
+    comando = messaggio.get("comando")
+    mittente = logged_in_username
+    destinatario = messaggio.get("destinatario")
+    pacchetto_audio = messaggio.get("pacchetto_audio")
+
+    gruppo, membri = is_group(destinatario)
+
+    if gruppo:
+        messaggio_da_inoltrare = {"comando": comando, "nome_gruppo": destinatario,
+                                  "mittente": mittente, "pacchetto_audio": pacchetto_audio}
+    else:
+        messaggio_da_inoltrare = {"comando": comando, "mittente": mittente, "destinatario": destinatario,
+                                  "pacchetto_audio": pacchetto_audio}
+
+    manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+
 
 def is_in_gruppo(messaggio, logged_in_username):
     if not logged_in_username:
@@ -474,6 +492,10 @@ def handle_client(client_socket, client_address):
                         }
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+            elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+                inoltra_chiamata(messaggio, logged_in_username)
+
+
 
     except Exception as e:
         print(f"Errore nel thread per {client_address}: {e}")
