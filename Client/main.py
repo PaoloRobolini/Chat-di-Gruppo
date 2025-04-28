@@ -80,22 +80,53 @@ def carica_chat():
 
 
 def scarica_chat(cartella):
+    # Ricevi le informazioni dei file da scaricare
     data = s.recv(4096)
-    reply = data.decode()
+    try:
+        info_files = json.loads(data.decode())
+        print(f"Info files: {info_files}")
 
-    print(reply)
+        cartella_temp = info_files["cartella"]
+        files = info_files["files"]
 
-    os.makedirs(cartella, exist_ok=True)
+        if not files:
+            print("Nessun file da scaricare")
+            return
 
-    for _ in range(int(reply)):
-        messaggio = s.recv(4096)
-        print(messaggio)
-        messaggio = json.loads(messaggio.decode())
-        messaggio["nome"] = messaggio["nome"].replace('"', '').replace("'", "")
+        os.makedirs(cartella, exist_ok=True)
 
-        print(f"Nome del file: {messaggio['nome']}")
-        with open(f"{cartella}/{messaggio['nome']}", 'w') as f:
-            json.dump(messaggio["contenuto"], f, indent=4)  # `indent=4` rende il file leggibile
+        try:
+            # Connessione FTP
+            ftp = FTP()
+            ftp.connect(ip_server, ftp_port)
+            ftp.login()
+
+            # Vai alla cartella temporanea
+            try:
+                ftp.cwd(cartella_temp)
+            except Exception as e:
+                print(f"Errore nell'accesso alla cartella {cartella_temp}: {e}")
+                return
+
+            # Scarica tutti i file
+            for nome_file in files:
+                file_path = os.path.join(cartella, nome_file)
+                print(f"Scaricamento di {nome_file}...")
+
+                try:
+                    with open(file_path, 'wb') as f:
+                        ftp.retrbinary(f'RETR {nome_file}', f.write)
+                except Exception as e:
+                    print(f"Errore nel download del file {nome_file}: {e}")
+                    continue
+
+            ftp.quit()
+
+        except Exception as e:
+            print(f"Errore durante il download dei file via FTP: {e}")
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Errore nella lettura delle informazioni dei file: {e}")
+        print(f"Dato ricevuto: {data.decode()}")
 
 
 class LoginScreen(Screen):
@@ -314,14 +345,15 @@ class ChatScreen(Screen):
     def receive_file(self, messaggio):
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
-        
+
         # Determina il mittente effettivo e il destinatario per il messaggio
         if comando == "nuovo_messaggio_gruppo":
             chat_id = messaggio.get("nome_gruppo")
         else:
             chat_id = mittente
 
-        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio", ""):
+        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio",
+                                                                                                           ""):
             if chat_id in chat:
                 chat[chat_id] += f"\n{messaggio['messaggio']}"
                 if chat_id == user.get_destinatario():
@@ -337,7 +369,7 @@ class ChatScreen(Screen):
 
                 # Lista le directory disponibili
                 print("Directory disponibili sul server:", ftp.nlst())
-                
+
                 # Entra nella directory del mittente
                 try:
                     ftp.cwd(mittente)

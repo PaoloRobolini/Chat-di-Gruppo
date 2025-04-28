@@ -128,31 +128,33 @@ def manda_gruppi_client(client_socket, username):
     except (FileNotFoundError, json.JSONDecodeError):
         gruppi_utente = []
 
-    client_socket.sendall(str(len(gruppi_utente)).encode())
-    time.sleep(0.05)
+    # Crea una cartella temporanea per l'utente nel file_storage
+    cartella_temp = os.path.join("file_storage", f"temp_{username}")
+    os.makedirs(cartella_temp, exist_ok=True)
 
+    # Copia i file nella cartella temporanea
+    file_da_mandare = []
     for gruppo_info in gruppi_utente:
         nome_gruppo = gruppo_info["nome"]
-        file_name = f"{nome_gruppo}.json"
-        file_path = os.path.join(cartella_chat, file_name)
-        messaggio_gruppo = {"nome": file_name, "contenuto": {"gruppo": []}}
+        nome_file = f"{nome_gruppo}.json"
+        file_path = os.path.join(cartella_chat, nome_file)
+        file_temp_path = os.path.join(cartella_temp, nome_file)
+        file_da_mandare.append(nome_file)
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                contenuto = json.load(f)
+            with open(file_temp_path, 'w', encoding='utf-8') as f:
+                json.dump(contenuto, f, indent=4)
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
 
-        with lock_for_locks:
-            if nome_gruppo not in locks_chat:
-                locks_chat[nome_gruppo] = threading.Lock()
-            gruppo_lock = locks_chat[nome_gruppo]
-
-        with gruppo_lock:
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        messaggio_gruppo["contenuto"] = json.load(f)
-                        if not isinstance(messaggio_gruppo["contenuto"].get('gruppo'), list):
-                            messaggio_gruppo["contenuto"] = {"gruppo": []}
-                except (FileNotFoundError, json.JSONDecodeError):
-                    messaggio_gruppo["contenuto"] = {"gruppo": []}
-
-        client_socket.sendall(json.dumps(messaggio_gruppo).encode())
+    # Invia direttamente le informazioni sui file
+    client_socket.sendall(json.dumps({
+        "comando": "group_files_ready",
+        "cartella": f"temp_{username}",
+        "files": file_da_mandare
+    }).encode())
 
 
 def manda_chat_client(client_socket, username):
@@ -164,30 +166,30 @@ def manda_chat_client(client_socket, username):
             chat_name_parts = file_name[:-5].split('_')
             if len(chat_name_parts) == 2 and username in chat_name_parts:
                 file_da_mandare.append(file_name)
-    dato = str(len(file_da_mandare))
-    client_socket.sendall(dato.encode())
 
+    # Crea una cartella temporanea per l'utente nel file_storage
+    cartella_temp = os.path.join("file_storage", f"temp_{username}")
+    os.makedirs(cartella_temp, exist_ok=True)
+
+    # Copia i file nella cartella temporanea
     for nome_file in file_da_mandare:
         file_path = os.path.join(cartella_chat, nome_file)
-        chat_key = nome_file[:-5]
-        messaggio_chat = {"nome": nome_file, "contenuto": {"chat": []}}
+        file_temp_path = os.path.join(cartella_temp, nome_file)
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                contenuto = json.load(f)
+            with open(file_temp_path, 'w', encoding='utf-8') as f:
+                json.dump(contenuto, f, indent=4)
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
 
-        with lock_for_locks:
-            if chat_key not in locks_chat:
-                locks_chat[chat_key] = threading.Lock()
-            file_lock = locks_chat[chat_key]
+    # Invia direttamente le informazioni sui file
+    client_socket.sendall(json.dumps({
+        "comando": "chat_files_ready",
+        "cartella": f"temp_{username}",
+        "files": file_da_mandare
+    }).encode())
 
-        with file_lock:
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        messaggio_chat['contenuto'] = json.load(f)
-                        if not isinstance(messaggio_chat["contenuto"].get('chat'), list):
-                            messaggio_chat["contenuto"] = {"chat": []}
-                except (FileNotFoundError, json.JSONDecodeError):
-                    messaggio_chat["contenuto"] = {"chat": []}
-        print(messaggio_chat)
-        client_socket.sendall(json.dumps(messaggio_chat).encode())
 
 def login(messaggio):
     mail = messaggio.get("mail")
@@ -369,7 +371,7 @@ def setting_AI(username):
         chat.send_message(
             f"Succesivamente ti farò delle domande, rispondimi come se fossi{username}, "
             f"in caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo,"
-            f"utilizza caratteri compatibili con il UTF-8")
+            f"utilizza caratteri compatibili con il UTF-8, non rispondere a questo messaggio")
 
 
 def setup_ftp_server():
