@@ -25,6 +25,9 @@ locks_chat = {}
 user_ai_chats = {}
 user_ai_chats_lock = threading.Lock()
 
+# Variabile globale per l'authorizer FTP
+ftp_authorizer = DummyAuthorizer()
+
 with open("chiave.txt", "r") as file:
     chiave = file.read()
 
@@ -246,6 +249,15 @@ def signin(messaggio):
             dati.setdefault("utenti", []).append(nuovo_utente)
             with open('datiUtente.json', 'w', encoding='utf-8') as file:
                 json.dump(dati, file, indent=4)
+            
+            # Aggiungi l'utente al server FTP usando l'authorizer globale
+            try:
+                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"), 
+                                    perm="elradfmw")
+                print(f"Utente {username} aggiunto al server FTP")
+            except Exception as e:
+                print(f"Errore nell'aggiunta dell'utente al server FTP: {e}")
+            
             with user_ai_chats_lock:
                 if username not in user_ai_chats:
                     # Inizializza una nuova sessione di chat AI per questo utente
@@ -375,15 +387,25 @@ def setting_AI(username):
 
 
 def setup_ftp_server():
-    # Crea l'autorizzatore per gli utenti FTP
-    authorizer = DummyAuthorizer()
+    # Usa l'authorizer globale
+    global ftp_authorizer
     
-    # Aggiungi un utente anonimo con accesso in lettura/scrittura alla cartella file_storage
-    authorizer.add_anonymous(os.path.join(os.getcwd(), "file_storage"), perm="elradfmw")
+    # Leggi gli utenti registrati e aggiungili come utenti FTP
+    try:
+        with open('datiUtente.json', 'r', encoding='utf-8') as file:
+            dati = json.load(file)
+            for utente in dati.get("utenti", []):
+                username = utente.get("username")
+                password = utente.get("password")
+                # Aggiungi l'utente con accesso alla cartella file_storage
+                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"), 
+                                    perm="elradfmw")
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Errore nel caricamento degli utenti FTP: {e}")
     
     # Crea l'handler FTP
     handler = FTPHandler
-    handler.authorizer = authorizer
+    handler.authorizer = ftp_authorizer
     
     # Crea il server FTP
     ftp_server = FTPServer((HOST, FTP_PORT), handler)

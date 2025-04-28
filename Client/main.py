@@ -33,7 +33,10 @@ coda_manda_msg = multiprocessing.Queue()
 
 chat = {}
 
+# Variabili globali
 global user
+global temp_folder_info
+temp_folder_info = None
 
 
 def carica_gruppi():
@@ -83,9 +86,11 @@ def scarica_chat(cartella):
     # Ricevi le informazioni dei file da scaricare
     data = s.recv(4096)
     try:
+        global temp_folder_info
         info_files = json.loads(data.decode())
         print(f"Info files: {info_files}")
-
+        
+        temp_folder_info = info_files  # Salva le informazioni della cartella temporanea
         cartella_temp = info_files["cartella"]
         files = info_files["files"]
 
@@ -96,10 +101,10 @@ def scarica_chat(cartella):
         os.makedirs(cartella, exist_ok=True)
 
         try:
-            # Connessione FTP
+            # Connessione FTP con autenticazione
             ftp = FTP()
             ftp.connect(ip_server, ftp_port)
-            ftp.login()
+            ftp.login(user=user.get_nome(), passwd=user.get_password())
 
             # Vai alla cartella temporanea
             try:
@@ -108,14 +113,20 @@ def scarica_chat(cartella):
                 print(f"Errore nell'accesso alla cartella {cartella_temp}: {e}")
                 return
 
-            # Scarica tutti i file
+            # Scarica tutti i file e rimuovili dopo il download
             for nome_file in files:
                 file_path = os.path.join(cartella, nome_file)
                 print(f"Scaricamento di {nome_file}...")
-
+                
                 try:
                     with open(file_path, 'wb') as f:
                         ftp.retrbinary(f'RETR {nome_file}', f.write)
+                    # Rimuovi il file temporaneo dal server dopo averlo scaricato
+                    try:
+                        ftp.delete(nome_file)
+                        print(f"File temporaneo {nome_file} rimosso dal server")
+                    except Exception as e:
+                        print(f"Errore nella rimozione del file temporaneo {nome_file}: {e}")
                 except Exception as e:
                     print(f"Errore nel download del file {nome_file}: {e}")
                     continue
@@ -127,6 +138,55 @@ def scarica_chat(cartella):
     except (json.JSONDecodeError, KeyError) as e:
         print(f"Errore nella lettura delle informazioni dei file: {e}")
         print(f"Dato ricevuto: {data.decode()}")
+
+
+def rimuovi_cartella_temp():
+    global temp_folder_info
+    if temp_folder_info is None:
+        print("Nessuna informazione sulla cartella temporanea disponibile")
+        return
+        
+    try:
+        ftp = FTP()
+        ftp.connect(ip_server, ftp_port)
+        ftp.login(user=user.get_nome(), passwd=user.get_password())
+        cartella_temp = temp_folder_info["cartella"]
+
+        # Torna alla directory principale
+        ftp.cwd("/")
+
+        # Rimuovi la cartella temporanea
+        try:
+            # Prima rimuovi eventuali file rimanenti
+            try:
+                ftp.cwd(cartella_temp)
+                for nome_file in ftp.nlst():
+                    if nome_file not in ('.', '..'):
+                        try:
+                            ftp.delete(nome_file)
+                        except:
+                            try:
+                                ftp.rmd(nome_file)
+                            except Exception as e:
+                                print(f"Impossibile rimuovere {nome_file}: {e}")
+            except Exception as e:
+                print(f"Errore nell'accesso alla cartella temporanea: {e}")
+
+            # Torna alla directory principale e rimuovi la cartella
+            ftp.cwd("/")
+            ftp.rmd(cartella_temp)
+            print(f"Cartella temporanea {cartella_temp} rimossa dal server")
+            
+            # Resetta le informazioni della cartella temporanea
+            temp_folder_info = None
+            
+        except Exception as e:
+            print(f"Errore nella rimozione della cartella temporanea {cartella_temp}: {e}")
+
+        ftp.quit()
+
+    except Exception as e:
+        print(f"Errore nella connessione FTP: {e}")
 
 
 class LoginScreen(Screen):
@@ -152,6 +212,7 @@ class LoginScreen(Screen):
 
                 scarica_chat('datiChat')
                 scarica_chat('datiGruppi')
+                rimuovi_cartella_temp()  # Rimuovi la cartella temporanea dopo aver scaricato tutto
                 carica_chat()
                 carica_gruppi()
 
@@ -291,9 +352,10 @@ class ChatScreen(Screen):
             self.chat_history = chat[user.get_destinatario()]
 
             try:
+                # Connessione FTP con autenticazione
                 ftp = FTP()
                 ftp.connect(ip_server, ftp_port)
-                ftp.login()
+                ftp.login(user=user.get_nome(), passwd=user.get_password())
 
                 # Usa la directory del mittente per salvare il file
                 mittente_dir = user.get_nome()
@@ -352,8 +414,7 @@ class ChatScreen(Screen):
         else:
             chat_id = mittente
 
-        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio",
-                                                                                                           ""):
+        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio", ""):
             if chat_id in chat:
                 chat[chat_id] += f"\n{messaggio['messaggio']}"
                 if chat_id == user.get_destinatario():
@@ -363,9 +424,10 @@ class ChatScreen(Screen):
                 cartella_destinazione = "file_ricevuti"
                 os.makedirs(cartella_destinazione, exist_ok=True)
 
+                # Connessione FTP con autenticazione
                 ftp = FTP()
                 ftp.connect(ip_server, ftp_port)
-                ftp.login()
+                ftp.login(user=user.get_nome(), passwd=user.get_password())
 
                 # Lista le directory disponibili
                 print("Directory disponibili sul server:", ftp.nlst())
@@ -413,7 +475,7 @@ class ChatScreen(Screen):
                             else:
                                 lines.append(f"[Download in corso] Ricezione di {nome_file} in corso...")
                             chat[chat_id] = "\n".join(lines)
-                            self.chat_history = chat[chat_id]
+                            self.chat_history = chat[user.get_destinatario()]
 
                     ftp.retrbinary(f'RETR {nome_file}', callback)
 
@@ -496,7 +558,6 @@ if __name__ == '__main__':
         else:
             print(f"Comando non gestito: {messaggio['comando']}")
 
-
     def manda_messaggi():
         while True:
             messaggio = coda_manda_msg.get()
@@ -515,7 +576,6 @@ if __name__ == '__main__':
                     s.sendall(json.dumps(messaggio).encode("utf-8") + b'\n')
             except Exception as e:
                 print(f"Errore nell'invio del messaggio: {e}")
-
 
     cartella_destinazione = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_ricevuti")
     os.makedirs(cartella_destinazione, exist_ok=True)

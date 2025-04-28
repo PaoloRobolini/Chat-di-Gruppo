@@ -12,6 +12,9 @@ class utente:
     def get_nome(self):
         return self.__username
 
+    def get_password(self):
+        return self.__password
+
     def set_destinatario(self, destinatario):
         self.__destinatario = destinatario
 
