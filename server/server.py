@@ -25,7 +25,7 @@ locks_chat = {}
 user_ai_chats = {}
 user_ai_chats_lock = threading.Lock()
 
-# Variabile globale per l'authorizer FTP
+# Variabili globali per l'authorizer FTP
 ftp_authorizer = DummyAuthorizer()
 
 with open("chiave.txt", "r") as file:
@@ -373,18 +373,89 @@ def is_in_gruppo(messaggio, logged_in_username):
     else:
         client_socket.sendall(b"no")
 
+def initialize_ai_async(username):
+    with user_ai_chats_lock:
+        if username in user_ai_chats:
+            chat = user_ai_chats[username]
+            
+            # 1. Inizializzazione base con le regole
+            chat.send_message(
+                f"Succesivamente ti farò delle domande, rispondimi come se fossi {username}. "
+                "In caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo. "
+                "Utilizza caratteri compatibili con il UTF-8."
+            )
+
+            # 2. Carica tutte le chat private in un unico messaggio
+            all_chats = []
+            cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
+            for file_name in os.listdir(cartella_chat):
+                if file_name.endswith(".json"):
+                    chat_name_parts = file_name[:-5].split('_')
+                    if len(chat_name_parts) == 2 and username in chat_name_parts:
+                        other_user = chat_name_parts[0] if chat_name_parts[1] == username else chat_name_parts[1]
+                        try:
+                            with open(os.path.join(cartella_chat, file_name), 'r', encoding='utf-8') as f:
+                                chat_data = json.load(f)
+                                messages = []
+                                for msg in chat_data.get("chat", []):
+                                    messages.append(f"{msg['mittente']}: {msg['messaggio']}")
+                                if messages:
+                                    chat_context = f"\nChat con {other_user}:\n" + "\n".join(messages)
+                                    all_chats.append(chat_context)
+                        except (FileNotFoundError, json.JSONDecodeError):
+                            continue
+            
+            if all_chats:
+                chat.send_message("Ecco tutte le tue chat private:" + "\n".join(all_chats))
+
+            # 3. Carica tutti i gruppi in un unico messaggio
+            all_groups = []
+            try:
+                with lock_for_locks:
+                    with open("datiGruppi.json", 'r', encoding='utf-8') as file:
+                        dati = json.load(file)
+                        for gruppo in dati.get("gruppi", []):
+                            if username in gruppo.get("membri", []):
+                                nome_gruppo = gruppo["nome"]
+                                file_gruppo_path = os.path.join("datiGruppi", f"{nome_gruppo}.json")
+                                try:
+                                    with open(file_gruppo_path, 'r', encoding='utf-8') as f:
+                                        gruppo_data = json.load(f)
+                                        messages = []
+                                        for msg in gruppo_data.get("gruppo", []):
+                                            messages.append(f"{msg['mittente']}: {msg['messaggio']}")
+                                        if messages:
+                                            group_context = f"\nGruppo {nome_gruppo}:\n" + "\n".join(messages)
+                                            all_groups.append(group_context)
+                                except (FileNotFoundError, json.JSONDecodeError):
+                                    continue
+            except (FileNotFoundError, json.JSONDecodeError):
+                pass
+
+            if all_groups:
+                chat.send_message("Ecco tutti i tuoi gruppi:" + "\n".join(all_groups))
+
+            # Messaggio finale di conferma
+            chat.send_message("Ho caricato tutte le tue chat e gruppi. Non rispondere a questo messaggio.")
+
+def reload_ai_data_periodically(username, interval=300):  # interval in secondi (default 5 minuti)
+    while True:
+        time.sleep(interval)
+        with user_ai_chats_lock:
+            if username in user_ai_chats:  # Verifica che l'utente sia ancora connesso
+                initialize_ai_async(username)
+            else:
+                break  # Se l'utente non è più connesso, termina il thread
+
 def setting_AI(username):
     if username is not None:
+        # Avvia l'inizializzazione iniziale dell'AI in un thread separato
+        ai_thread = threading.Thread(target=initialize_ai_async, args=(username,))
+        ai_thread.start()
 
-        with user_ai_chats_lock:
-            if username in user_ai_chats:
-                chat = user_ai_chats[username]
-
-        chat.send_message(
-            f"Succesivamente ti farò delle domande, rispondimi come se fossi{username}, "
-            f"in caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo,"
-            f"utilizza caratteri compatibili con il UTF-8, non rispondere a questo messaggio")
-
+        # Avvia il thread per il ricaricamento periodico
+        reload_thread = threading.Thread(target=reload_ai_data_periodically, args=(username,))
+        reload_thread.start()
 
 def setup_ftp_server():
     # Usa l'authorizer globale
