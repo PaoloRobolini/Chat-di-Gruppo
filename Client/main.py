@@ -548,6 +548,8 @@ class ChatScreen(Screen):
                 thread = threading.Thread(target=self.send_call)
                 thread.start()
                 print("thread avviato")
+            elif accettata is False:
+                self.thread.kill()
 
 
     def get_call(self, pacchetto_audio2):
