@@ -20,7 +20,7 @@ from tkinter.filedialog import askopenfilename
 
 Builder.load_file("chat.kv")
 
-ip_server = "127.0.0.1"
+ip_server = "10.4.54.27"
 porta_server = 65432
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -556,6 +556,7 @@ if __name__ == '__main__':
     def manda_messaggi():
         while True:
             messaggio = coda_manda_msg.get()
+            print(f"Dato manda a {server}: {messaggio}")
             if messaggio is None:
                 print("Attenzione: messaggio None ricevuto nella coda")
                 continue
@@ -564,10 +565,8 @@ if __name__ == '__main__':
                 if not isinstance(messaggio, dict):
                     print(f"Attenzione: messaggio non valido nella coda: {type(messaggio)}")
                     continue
-
-                if "file" not in messaggio:
-                    s.sendall(json.dumps(messaggio).encode())
                 else:
+                    print("conferma dell'invio")
                     s.sendall(json.dumps(messaggio).encode("utf-8") + b'\n')
             except Exception as e:
                 print(f"Errore nell'invio del messaggio: {e}")

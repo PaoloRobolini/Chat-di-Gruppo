@@ -9,7 +9,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 
-HOST = "127.0.0.1"
+HOST = "10.4.54.27"
 PORT = 65432
 FTP_PORT = 21
 server_address = (HOST, PORT)
@@ -38,6 +38,16 @@ except KeyError:
     print("Per favore, imposta la variabile d'ambiente con la tua chiave API.")
     exit()
 
+
+def print_active_users():
+    while True:
+        with clients_lock:
+            active_users = list(clients_sockets.keys())
+        if active_users:
+            print(f"Utenti attivi: {', '.join(active_users)}")
+        else:
+            print("Nessun utente attivo")
+        time.sleep(5)
 
 def genera_nome_file(nome1, nome2):
         sorted_names = sorted([nome1, nome2])
@@ -119,7 +129,7 @@ def salva_messaggio(cartella_chat, nuovo_messaggio):
             raise
 
 
-def manda_gruppi_client(client_socket, username):
+def manda_gruppi_client( username):
     cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiGruppi'))
     os.makedirs(cartella_chat, exist_ok=True)
     gruppi_utente = []
@@ -143,7 +153,7 @@ def manda_gruppi_client(client_socket, username):
         file_path = os.path.join(cartella_chat, nome_file)
         file_temp_path = os.path.join(cartella_temp, nome_file)
         file_da_mandare.append(nome_file)
-        
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 contenuto = json.load(f)
@@ -155,7 +165,7 @@ def manda_gruppi_client(client_socket, username):
     return file_da_mandare
 
 
-def manda_chat_client(client_socket, username):
+def manda_chat_client( username):
     cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
     os.makedirs(cartella_chat, exist_ok=True)
     file_da_mandare = []
@@ -203,8 +213,8 @@ def login(messaggio):
             clients_sockets[username_trovato] = client_socket
         client_socket.sendall(json.dumps(username_trovato).encode('utf-8'))
 
-        chat = manda_chat_client(client_socket, username_trovato)
-        gruppi = manda_gruppi_client(client_socket, username_trovato)
+        chat = manda_chat_client( username_trovato)
+        gruppi = manda_gruppi_client( username_trovato)
         # Invia direttamente le informazioni sui file
         dato_da_inviare = {
             "comando": "files_ready",
@@ -212,7 +222,7 @@ def login(messaggio):
             "chat": chat,
             "gruppi": gruppi
         }
-        print(f"File da mandare all'utente: {dato_da_inviare}")
+        print(f"File da mandare a {client_address}: {dato_da_inviare}")
         client_socket.sendall(json.dumps(dato_da_inviare).encode())
         with user_ai_chats_lock:
             if username_trovato not in user_ai_chats:
@@ -249,15 +259,15 @@ def signin(messaggio):
             dati.setdefault("utenti", []).append(nuovo_utente)
             with open('datiUtente.json', 'w', encoding='utf-8') as file:
                 json.dump(dati, file, indent=4)
-            
+
             # Aggiungi l'utente al server FTP usando l'authorizer globale
             try:
-                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"), 
+                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"),
                                     perm="elradfmw")
                 print(f"Utente {username} aggiunto al server FTP")
             except Exception as e:
                 print(f"Errore nell'aggiunta dell'utente al server FTP: {e}")
-            
+
             with user_ai_chats_lock:
                 if username not in user_ai_chats:
                     # Inizializza una nuova sessione di chat AI per questo utente
@@ -377,7 +387,7 @@ def initialize_ai_async(username):
     with user_ai_chats_lock:
         if username in user_ai_chats:
             chat = user_ai_chats[username]
-            
+
             # 1. Inizializzazione base con le regole
             chat.send_message(
                 f"Succesivamente ti farò delle domande, rispondimi come se fossi {username}. "
@@ -404,7 +414,7 @@ def initialize_ai_async(username):
                                     all_chats.append(chat_context)
                         except (FileNotFoundError, json.JSONDecodeError):
                             continue
-            
+
             if all_chats:
                 chat.send_message("Ecco tutte le tue chat private:" + "\n".join(all_chats))
 
@@ -460,7 +470,7 @@ def setting_AI(username):
 def setup_ftp_server():
     # Usa l'authorizer globale
     global ftp_authorizer
-    
+
     # Leggi gli utenti registrati e aggiungili come utenti FTP
     try:
         with open('datiUtente.json', 'r', encoding='utf-8') as file:
@@ -469,23 +479,23 @@ def setup_ftp_server():
                 username = utente.get("username")
                 password = utente.get("password")
                 # Aggiungi l'utente con accesso alla cartella file_storage
-                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"), 
+                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"),
                                     perm="elradfmw")
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Errore nel caricamento degli utenti FTP: {e}")
-    
+
     # Crea l'handler FTP
     handler = FTPHandler
     handler.authorizer = ftp_authorizer
-    
+
     # Crea il server FTP
     ftp_server = FTPServer((HOST, FTP_PORT), handler)
-    
+
     # Avvia il server FTP in un thread separato
     ftp_thread = threading.Thread(target=ftp_server.serve_forever)
     ftp_thread.daemon = True
     ftp_thread.start()
-    
+
     print(f"[FTP SERVER] In ascolto su {HOST}:{FTP_PORT}")
 
 
@@ -530,7 +540,7 @@ def handle_client(client_socket, client_address):
                     mittente = logged_in_username
                     destinatario = messaggio.get("destinatario")
                     nome_file = messaggio.get("nome_file")
-                    
+
                     # Registra il completamento del trasferimento file
                     messaggio_notifica = f"Ha completato il trasferimento del file: {nome_file} (via FTP)"
 
@@ -543,7 +553,7 @@ def handle_client(client_socket, client_address):
                             "messaggio": messaggio_notifica
                         }
                         salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
-                        
+
                         # Notifica il gruppo
                         messaggio_da_inoltrare = {
                             "comando": "nuovo_messaggio_gruppo",
@@ -558,7 +568,7 @@ def handle_client(client_socket, client_address):
                             "messaggio": messaggio_notifica
                         }
                         salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
-                        
+
                         # Notifica il destinatario privato
                         messaggio_da_inoltrare = {
                             "comando": "nuovo_messaggio_privato",
@@ -597,6 +607,9 @@ if not os.path.exists('datiGruppi.json'):
 
 # Avvia il server FTP
 setup_ftp_server()
+active_users_thread = threading.Thread(target=print_active_users)
+active_users_thread.daemon = True
+active_users_thread.start()
 
 print(f"[SERVER] In ascolto su {server_address}")
 
