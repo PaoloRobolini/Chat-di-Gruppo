@@ -637,6 +637,7 @@ class ChatScreen(Screen):
             self.chiamata_accettata = False
             azione = user.crea_azione(comando="chiamata_rifiutata")
             coda_manda_msg.put(azione)
+            self.thread.kill()
 
 
 class AggiungiContatto(Screen):
