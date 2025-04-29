@@ -339,8 +339,10 @@ def inoltra_messaggio(messaggio, logged_in_username):
 
 def inoltra_chiamata(messaggio, logged_in_username):
 
+    print("entro in ilk=noltyra chiamata")
+
     comando = messaggio.get("comando")
-    mittente = logged_in_username
+    mittente = messaggio.get("mittente")
     destinatario = messaggio.get("destinatario")
     pacchetto_audio = messaggio.get("pacchetto_audio")
 
@@ -354,6 +356,8 @@ def inoltra_chiamata(messaggio, logged_in_username):
                                   "pacchetto_audio": pacchetto_audio}
 
     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+
+    print("esco da ilk=noltyra chiamata")
 
 
 def is_in_gruppo(messaggio, logged_in_username):
@@ -420,7 +424,7 @@ def handle_client(client_socket, client_address):
     try:
         while True:
             try:
-                data = client_socket.recv(4096)
+                data = client_socket.recv(8192)
                 print(f"{client_address}: {data}")
                 if not data:
                     print(f"Client {client_address} disconnesso.")

@@ -511,18 +511,18 @@ class ChatScreen(Screen):
             elapsed = now - start_time  # Quanto tempo è passato
 
             if elapsed > 5:  # Se sono passati più di 5 secondi
-                self.ids.incoming_call_box.opacity = 0
-                self.ids.incoming_call_box.disabled = True
+                #self.ids.incoming_call_box.opacity = 0
+                #self.ids.incoming_call_box.disabled = True
                 self.chiamata_accettata = False
                 break
 
             if self.chiamata_accettata is True:
-                self.ids.incoming_call_box.opacity = 0
-                self.ids.incoming_call_box.disabled = True
+                #self.ids.incoming_call_box.opacity = 0
+                #self.ids.incoming_call_box.disabled = True
                 break
             elif self.chiamata_accettata is False:
-                self.ids.incoming_call_box.opacity = 0
-                self.ids.incoming_call_box.disabled = True
+                #self.ids.incoming_call_box.opacity = 0
+                #self.ids.incoming_call_box.disabled = True
                 break
 
         if self.chiamata_accettata == True:
