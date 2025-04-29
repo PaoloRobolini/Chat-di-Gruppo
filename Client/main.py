@@ -627,6 +627,8 @@ class ChatScreen(Screen):
     def rifiuta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = False
+            azione = user.crea_azione(comando="chiamata_rifiutata")
+            coda_manda_msg.put(azione)
 
 
 class AggiungiContatto(Screen):
