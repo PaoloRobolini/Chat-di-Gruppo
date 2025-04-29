@@ -541,7 +541,7 @@ class ChatScreen(Screen):
                     print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
             else:
                 break
-        self.thread.kill()
+        self.thread.join()
 
 
     def start_call(self):
@@ -557,7 +557,7 @@ class ChatScreen(Screen):
                 thread.start()
                 print("thread avviato")
             elif accettata is False:
-                self.thread.kill()
+                self.thread.join()
 
 
     def get_call(self, pacchetto_audio2):
@@ -637,7 +637,7 @@ class ChatScreen(Screen):
             self.chiamata_accettata = False
             azione = user.crea_azione(comando="chiamata_rifiutata")
             coda_manda_msg.put(azione)
-            self.thread.kill()
+            self.thread.join()
 
 
 class AggiungiContatto(Screen):
