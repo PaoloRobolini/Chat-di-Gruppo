@@ -505,6 +505,34 @@ class ChatScreen(Screen):
         else:
             print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
 
+    def accettazione_chiamata(self, start_time):
+        while True:
+            now = time.time()
+            elapsed = now - start_time  # Quanto tempo è passato
+
+            if elapsed > 5:  # Se sono passati più di 5 secondi
+                self.ids.incoming_call_box.opacity = 0
+                self.ids.incoming_call_box.disabled = True
+                self.chiamata_accettata = False
+                break
+
+            if self.chiamata_accettata is True:
+                self.ids.incoming_call_box.opacity = 0
+                self.ids.incoming_call_box.disabled = True
+                break
+            elif self.chiamata_accettata is False:
+                self.ids.incoming_call_box.opacity = 0
+                self.ids.incoming_call_box.disabled = True
+                break
+
+        if self.chiamata_accettata == True:
+            azione = user.crea_azione(comando="chiamata_accettata")
+            coda_manda_msg.put(azione)
+        elif self.chiamata_accettata == False:
+            azione = user.crea_azione(comando="chiamata_rifiutata")
+            coda_manda_msg.put(azione)
+
+
     def receive_call(self, messaggio):
         #avvio dei thread per ricevere e rimanadre indietro audio se la chiamata viene accettata
         comando = messaggio.get("comando")
@@ -514,32 +542,8 @@ class ChatScreen(Screen):
             self.ids.incoming_call_box.disabled = False
             self.ids.caller_name = mittente
             start_time = time.time()
-            while True:
-                now = time.time()
-                elapsed = now - start_time  # Quanto tempo è passato
-
-                if elapsed > 5:  # Se sono passati più di 5 secondi
-                    self.ids.incoming_call_box.opacity = 0
-                    self.ids.incoming_call_box.disabled = True
-                    self.chiamata_accettata = False
-                    break
-
-                if self.chiamata_accettata is True:
-                    self.ids.incoming_call_box.opacity = 0
-                    self.ids.incoming_call_box.disabled = True
-                    break
-                elif self.chiamata_accettata is False:
-                    self.ids.incoming_call_box.opacity = 0
-                    self.ids.incoming_call_box.disabled = True
-                    break
-
-            if self.chiamata_accettata == True:
-                azione = user.crea_azione(comando="chiamata_accettata")
-                coda_manda_msg.put(azione)
-            else:
-                azione = user.crea_azione(comando="chiamata_accettata")
-                coda_manda_msg.put(azione)
-
+            thread = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
+            thread.start()
 
         elif comando == "chiamata_accettata":
             self.chiamata_accettata = True
