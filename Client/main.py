@@ -509,6 +509,12 @@ class ChatScreen(Screen):
                         self.chat_history += error_msg
                 print(f"Errore FTP dettagliato: {e}")
 
+
+
+    chiamata_accettata = None
+    lock = threading.Lock()
+
+
     def send_call(self):
         stream_input = p.open(format=FORMAT,
                               channels=CHANNELS,
@@ -516,25 +522,27 @@ class ChatScreen(Screen):
                               input=True,
                               frames_per_buffer=CHUNK)
         while True:
-            data = stream_input.read(CHUNK, exception_on_overflow=False)
-            data = base64.b64encode(data).decode('utf-8')
-            user.set_pacchetto_audio(data)
-            azione = user.crea_azione(comando="chiamata")
+            if self.chiamata_accettata is True:
+                data = stream_input.read(CHUNK, exception_on_overflow=False)
+                data = base64.b64encode(data).decode('utf-8')
+                user.set_pacchetto_audio(data)
+                azione = user.crea_azione(comando="chiamata")
 
-            coda_manda_msg.put(azione)
+                coda_manda_msg.put(azione)
 
-            # Calcola energia del pacchetto audio
-            data_decoded = base64.b64decode(data)  # 🔥 Da base64 torna a bytes veri
-            samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
-            energy = sum(abs(sample) for sample in samples) / len(samples)
+                # Calcola energia del pacchetto audio
+                data_decoded = base64.b64decode(data)  # 🔥 Da base64 torna a bytes veri
+                samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+                energy = sum(abs(sample) for sample in samples) / len(samples)
 
-            if energy > SILENCE_THRESHOLD:
-                print("🎙️ Sto inviando audio... (energia:", int(energy), ")")
+                if energy > SILENCE_THRESHOLD:
+                    print("🎙️ Sto inviando audio... (energia:", int(energy), ")")
+                else:
+                    print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
             else:
-                print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
+                break
+        self.thread.kill()
 
-    chiamata_accettata = None
-    lock = threading.Lock()
 
     def start_call(self):
         if user.get_destinatario() is not None:
