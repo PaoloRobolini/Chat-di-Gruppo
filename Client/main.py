@@ -82,23 +82,16 @@ def carica_chat():
             ...
 
 
-def scarica_chat(cartella):
-    # Ricevi le informazioni dei file da scaricare
-    data = s.recv(4096)
+def scarica_chat(cartella, cartella_temp, files):
+
     try:
         global temp_folder_info
-        info_files = json.loads(data.decode())
-        print(f"Info files: {info_files}")
-        
-        temp_folder_info = info_files  # Salva le informazioni della cartella temporanea
-        cartella_temp = info_files["cartella"]
-        files = info_files["files"]
+
+        temp_folder_info = cartella_temp  # Salva le informazioni della cartella temporanea
 
         if not files:
             print("Nessun file da scaricare")
             return
-
-        os.makedirs(cartella, exist_ok=True)
 
         try:
             # Connessione FTP con autenticazione
@@ -137,7 +130,6 @@ def scarica_chat(cartella):
             print(f"Errore durante il download dei file via FTP: {e}")
     except (json.JSONDecodeError, KeyError) as e:
         print(f"Errore nella lettura delle informazioni dei file: {e}")
-        print(f"Dato ricevuto: {data.decode()}")
 
 
 def rimuovi_cartella_temp():
@@ -150,7 +142,7 @@ def rimuovi_cartella_temp():
         ftp = FTP()
         ftp.connect(ip_server, ftp_port)
         ftp.login(user=user.get_nome(), passwd=user.get_password())
-        cartella_temp = temp_folder_info["cartella"]
+        cartella_temp = temp_folder_info
 
         # Torna alla directory principale
         ftp.cwd("/")
@@ -210,8 +202,11 @@ class LoginScreen(Screen):
                 reply = reply.replace('"', '')
                 user.set_nome(reply)
 
-                scarica_chat('datiChat')
-                scarica_chat('datiGruppi')
+                data = s.recv(4096)
+                dati = json.loads(data.decode())
+                print(f"Chat e gruppi da scaricare: {dati}")
+                scarica_chat('datiChat', dati['cartella'], dati['chat'])
+                scarica_chat('datiGruppi', dati['cartella'], dati['gruppi'])
                 rimuovi_cartella_temp()  # Rimuovi la cartella temporanea dopo aver scaricato tutto
                 carica_chat()
                 carica_gruppi()
@@ -579,4 +574,7 @@ if __name__ == '__main__':
 
     cartella_destinazione = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_ricevuti")
     os.makedirs(cartella_destinazione, exist_ok=True)
+    os.makedirs("datiChat", exist_ok=True)
+    os.makedirs("datiGruppi", exist_ok=True)
+
     ChatApp().run()

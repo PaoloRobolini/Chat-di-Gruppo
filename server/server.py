@@ -152,12 +152,7 @@ def manda_gruppi_client(client_socket, username):
         except (FileNotFoundError, json.JSONDecodeError):
             continue
 
-    # Invia direttamente le informazioni sui file
-    client_socket.sendall(json.dumps({
-        "comando": "group_files_ready",
-        "cartella": f"temp_{username}",
-        "files": file_da_mandare
-    }).encode())
+    return file_da_mandare
 
 
 def manda_chat_client(client_socket, username):
@@ -186,12 +181,7 @@ def manda_chat_client(client_socket, username):
         except (FileNotFoundError, json.JSONDecodeError):
             continue
 
-    # Invia direttamente le informazioni sui file
-    client_socket.sendall(json.dumps({
-        "comando": "chat_files_ready",
-        "cartella": f"temp_{username}",
-        "files": file_da_mandare
-    }).encode())
+    return file_da_mandare
 
 
 def login(messaggio):
@@ -212,8 +202,18 @@ def login(messaggio):
         with clients_lock:
             clients_sockets[username_trovato] = client_socket
         client_socket.sendall(json.dumps(username_trovato).encode('utf-8'))
-        manda_chat_client(client_socket, username_trovato)
-        manda_gruppi_client(client_socket, username_trovato)
+
+        chat = manda_chat_client(client_socket, username_trovato)
+        gruppi = manda_gruppi_client(client_socket, username_trovato)
+        # Invia direttamente le informazioni sui file
+        dato_da_inviare = {
+            "comando": "files_ready",
+            "cartella": f"temp_{username_trovato}",
+            "chat": chat,
+            "gruppi": gruppi
+        }
+        print(f"File da mandare all'utente: {dato_da_inviare}")
+        client_socket.sendall(json.dumps(dato_da_inviare).encode())
         with user_ai_chats_lock:
             if username_trovato not in user_ai_chats:
                 # Inizializza una nuova sessione di chat AI per questo utente
