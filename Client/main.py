@@ -39,7 +39,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "10.4.54.27"
+ip_server = "26.117.59.21"
 porta_server = 65432
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -615,9 +615,12 @@ class ChatScreen(Screen):
             thread = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
             thread.start()
 
+
     def accetta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = True
+            thread2 = threading.Thread(target=self.send_call)
+            thread2.start()
 
     def rifiuta_chiamata(self):
         with self.lock:
