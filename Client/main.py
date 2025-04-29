@@ -7,6 +7,7 @@ import threading
 import time
 from ftplib import FTP
 
+import self
 from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
@@ -476,18 +477,20 @@ class ChatScreen(Screen):
                 print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
 
     chiamata_accettata = None
+    lock = threading.Lock()
 
     def start_call(self):
         if user.get_destinatario() is not None:
-            if self.chiamata_accettata == None:
+            with self.lock:
+                accettata = self.chiamata_accettata
+
+            if accettata is None:
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
-            elif self.chiamata_accettata == True:
+            elif accettata is True:
                 thread = threading.Thread(target=self.send_call)
                 thread.start()
                 print("thread avviato")
-            else:
-                pass
 
 
     def get_call(self, pacchetto_audio2):
@@ -508,35 +511,30 @@ class ChatScreen(Screen):
     def accettazione_chiamata(self, start_time):
         while True:
             now = time.time()
-            elapsed = now - start_time  # Quanto tempo è passato
+            elapsed = now - start_time
 
-            if elapsed > 5:  # Se sono passati più di 5 secondi
-                #self.ids.incoming_call_box.opacity = 0
-                #self.ids.incoming_call_box.disabled = True
-                self.chiamata_accettata = False
+            with self.lock:
+                accettata = self.chiamata_accettata
+
+            if elapsed > 5 and accettata is None:
+                with self.lock:
+                    self.chiamata_accettata = False
                 break
 
+            if accettata is True or accettata is False:
+                break
+
+        with self.lock:
             if self.chiamata_accettata is True:
-                #self.ids.incoming_call_box.opacity = 0
-                #self.ids.incoming_call_box.disabled = True
-                break
-            elif self.chiamata_accettata is False:
-                #self.ids.incoming_call_box.opacity = 0
-                #self.ids.incoming_call_box.disabled = True
-                break
-
-        if self.chiamata_accettata == True:
-            azione = user.crea_azione(comando="chiamata_accettata")
-            coda_manda_msg.put(azione)
-        elif self.chiamata_accettata == False:
-            azione = user.crea_azione(comando="chiamata_rifiutata")
-            coda_manda_msg.put(azione)
-
+                azione = user.crea_azione(comando="chiamata_accettata")
+            else:
+                azione = user.crea_azione(comando="chiamata_rifiutata")
+        coda_manda_msg.put(azione)
 
     def receive_call(self, messaggio):
-        #avvio dei thread per ricevere e rimanadre indietro audio se la chiamata viene accettata
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
+
         if comando == "richiesta_chiamata":
             self.ids.incoming_call_box.opacity = 1
             self.ids.incoming_call_box.disabled = False
@@ -546,27 +544,27 @@ class ChatScreen(Screen):
             thread.start()
 
         elif comando == "chiamata_accettata":
-            self.chiamata_accettata = True
+            with self.lock:
+                self.chiamata_accettata = True
             self.start_call()
 
         elif comando == "chiamata_rifiutata":
-            self.chiamata_accettata = False
+            with self.lock:
+                self.chiamata_accettata = False
 
         elif comando == "chiamata":
             pacchetto_audio = messaggio.get("pacchetto_audio")
-            print(type(pacchetto_audio))
             user.set_destinatario(mittente)
-            self.start_call()
             thread = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
             thread.start()
 
-
-
     def accetta_chiamata(self):
-        self.chiamata_accettata = True
-    def rifiuta_chiamata(self):
-        self.chiamata_accettata = False
+        with self.lock:
+            self.chiamata_accettata = True
 
+    def rifiuta_chiamata(self):
+        with self.lock:
+            self.chiamata_accettata = False
 
 
 class AggiungiContatto(Screen):
