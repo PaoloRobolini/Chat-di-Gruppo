@@ -374,7 +374,7 @@ def inoltra_chiamata(messaggio, logged_in_username):
         messaggio_da_inoltrare = {"comando": comando, "nome_gruppo": destinatario,
                                   "mittente": mittente, "pacchetto_audio": pacchetto_audio}
     else:
-        messaggio_da_inoltrare = {"comando": comando, "mittente": mittente, "destinatario": destinatario,
+        messaggio_da_inoltrare = {"comando": comando, "mittente": mittente,
                                   "pacchetto_audio": pacchetto_audio}
 
     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
