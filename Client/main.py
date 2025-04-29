@@ -553,6 +553,9 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
+                self.ids.incoming_call_box.opacity = 1
+                self.ids.incoming_call_box.disabled = False
+                self.ids.caller_name = user.get_username()
                 thread = threading.Thread(target=self.send_call)
                 thread.start()
                 print("thread avviato")
