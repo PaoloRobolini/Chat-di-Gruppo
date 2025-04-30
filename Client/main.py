@@ -7,7 +7,6 @@ import threading
 import time
 from ftplib import FTP
 
-import self
 from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
@@ -39,8 +38,8 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "26.117.59.21"
-porta_server = 65432
+ip_server = "127.0.0.1"
+porta_server = 65433
 ftp_port = 21
 server = (ip_server, porta_server)
 
@@ -632,6 +631,8 @@ class ChatScreen(Screen):
     def accetta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = True
+            azione = user.crea_azione(comando="chiamata_accettata")
+            coda_manda_msg.put(azione)
             thread2 = threading.Thread(target=self.send_call)
             thread2.start()
 

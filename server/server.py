@@ -9,8 +9,8 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 
-HOST = "26.117.59.21"
-PORT = 65432
+HOST = "127.0.0.1"
+PORT = 65433
 FTP_PORT = 21
 server_address = (HOST, PORT)
 
