@@ -9,7 +9,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 65433
 FTP_PORT = 21
 server_address = (HOST, PORT)
@@ -468,7 +468,7 @@ def initialize_ai_async(username):
                 chat.send_message("Ecco tutti i tuoi gruppi:" + "\n".join(all_groups))
 
             # Messaggio finale di conferma
-            chat.send_message("Ho caricato tutte le tue chat e gruppi. Non rispondere a questo messaggio.")
+            print(f"Settings AI completato per {username}")
 
 def reload_ai_data_periodically(username, interval=300):  # interval in secondi (default 5 minuti)
     while True:
@@ -487,6 +487,7 @@ def setting_AI(username):
 
         # Avvia il thread per il ricaricamento periodico
         reload_thread = threading.Thread(target=reload_ai_data_periodically, args=(username,))
+        reload_thread.setDaemon(True)
         reload_thread.start()
 
 def setup_ftp_server():
@@ -546,10 +547,10 @@ def handle_client(client_socket, client_address):
 
             if comando == "login":
                 logged_in_username = login(messaggio)
-                setting_AI(logged_in_username)
+                #setting_AI(logged_in_username)
             elif comando == "signin":
                 logged_in_username = signin(messaggio)
-                setting_AI(logged_in_username)
+                #setting_AI(logged_in_username)
             elif comando == "crea_gruppo":
                 crea_gruppo(messaggio)
             elif comando == "messaggio":
@@ -617,7 +618,7 @@ def handle_client(client_socket, client_address):
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(server_address)
-server_socket.listen()
+server_socket.listen(10)
 
 # Crea le cartelle necessarie per il server
 os.makedirs("datiChat", exist_ok=True)
@@ -643,6 +644,7 @@ while True:
     try:
         client_socket, client_address = server_socket.accept()
         thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
+        thread.daemon = True
         thread.start()
     except Exception as e:
         print(f"Errore nell'accettare connessione: {e}")
