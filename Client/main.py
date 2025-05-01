@@ -742,7 +742,7 @@ if __name__ == '__main__':
                     continue
                 else:
                     print("conferma dell'invio")
-                    s.sendall(json.dumps(messaggio).encode("utf-8") + b'\n')
+                    s.sendall(json.dumps(messaggio).encode("utf-8"))
             except Exception as e:
                 print(f"Errore nell'invio del messaggio: {e}")
 

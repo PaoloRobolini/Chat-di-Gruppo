@@ -228,7 +228,7 @@ def login(messaggio):
         with user_ai_chats_lock:
             if username_trovato not in user_ai_chats:
                 # Inizializza una nuova sessione di chat AI per questo utente
-                model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
+                model = genai.GenerativeModel('gemini-2.0-flash')
                 user_ai_chats[username_trovato] = model.start_chat()
         return username_trovato
 
@@ -329,24 +329,31 @@ def prepara_chat_AI(username, nome_utente):
     else:
         return f"Il contatto '{nome_utente}' non esiste"
 
-
 def gestisci_carica_chat(chat, username, nome_utente):
 
     if nome_utente == "tutti":
-        all_chats = {}
+        all_chats = []
         cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
         for file_name in os.listdir(cartella_chat):
             if file_name.endswith(".json"):
                 chat_name_parts = file_name[:-5].split('_')
-                if username in chat_name_parts:
-                    chat_name_parts.remove(username)
-                    nome_utente = chat_name_parts[0]
-                    temp = prepara_chat_AI(username, nome_utente)
-                    all_chats[temp[0]] = temp[1]
+                if len(chat_name_parts) == 2 and username in chat_name_parts:
+                    other_user = chat_name_parts[0] if chat_name_parts[1] == username else chat_name_parts[1]
+                    try:
+                        with open(os.path.join(cartella_chat, file_name), 'r', encoding='utf-8') as f:
+                            chat_data = json.load(f)
+                            messages = []
+                            for msg in chat_data.get("chat", []):
+                                messages.append(f"{msg['mittente']}: {msg['messaggio']}")
+                            if messages:
+                                chat_context = f"\nChat con {other_user}:\n" + "\n".join(messages)
+                                all_chats.append(chat_context)
+                    except (FileNotFoundError, json.JSONDecodeError):
+                        continue
 
         if all_chats:
             chat.send_message("Ecco tutte le mie chat private:" + "\n".join(all_chats))
-            return "Ho caricato tutte le tue chat"
+            return "Ho caricato tutte le chat private"
     else:
         storico = prepara_chat_AI(username, nome_utente)
 
@@ -355,6 +362,20 @@ def gestisci_carica_chat(chat, username, nome_utente):
         else:
             chat.send_message(f"{storico[0]}:" + "\n".join(storico[1]))
             return f"Ho caricato la chat privata con {nome_utente}"
+
+def prepara_gruppo_AI (nome_gruppo):
+    storico = []
+
+    if nome_gruppo:
+        with open(os.path.join('datiGruppi', f"{nome_gruppo}.json"), 'r', encoding='utf-8') as f:
+            chat_data = json.load(f)
+
+        for msg in chat_data.get("gruppo", []):
+            storico.append(f"{msg['mittente']}: {msg['messaggio']}")
+        return f"Gruppo '{nome_gruppo}'", storico
+
+    else:
+        return f"Il gruppo '{nome_gruppo}' non esiste"
 
 def gestisci_carica_gruppo(chat, username, nome_gruppo):
     if nome_gruppo == "tutti":
@@ -383,25 +404,14 @@ def gestisci_carica_gruppo(chat, username, nome_gruppo):
 
         if all_groups:
             chat.send_message("Ecco tutti i miei gruppi:" + "\n".join(all_groups))
-            return "Ho caricato tutti i tuoi gruppi"
     else:
-        risposta = ""
-        messaggi = None
-        with lock_for_locks:
-            with open("datiGruppi.json", 'r', encoding='utf-8') as file:
-                dati = json.load(file)
-            for gruppo in dati.get("gruppi", []):
-                if gruppo.get("nome") == nome_gruppo and username in gruppo.get("membri", []):
-                    messaggi = gruppo
-                    break
-
-        if messaggi:
-            with open(os.path.join("datiGruppi", f"{nome_gruppo}.json"), 'w', encoding='utf-8') as file:
-                ...
-
-
-
-
+        storico = prepara_gruppo_AI(nome_gruppo)
+        if type(storico) is str:
+            return storico
+        else:
+            print(f"{storico[0]}:" + "\n".join(storico[1]))
+            chat.send_message(f"{storico[0]}:" + "\n".join(storico[1]))
+            return f"Ho caricato il gruppo {nome_gruppo}"
 
 
 
@@ -424,7 +434,7 @@ def ai(messaggio, username):
         nome_utente = msg[1].strip()
         risposta = gestisci_carica_chat(chat, username, nome_utente)
 
-    elif comando == "carica gruppi":
+    elif comando == "carica gruppo":
         nome_gruppo = msg[1].strip()
         risposta = gestisci_carica_gruppo(chat, username, nome_gruppo)
     else:
@@ -521,7 +531,7 @@ def setting_AI(username):
                 f"Succesivamente ti farò delle domande, rispondi come se io fossi {username} "
                 "In caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo. "
                 "Utilizza caratteri compatibili con il UTF-8,"
-                "Il metodo per caricare le chat è: Carica chat: Nome della chat, per caricare un gruppo: Carica gruppo,"
+                "Il metodo per caricare le chat è: Carica chat: 'Nome della chat', per caricare un gruppo: Carica gruppo: 'Nome del gruppo',"
                 "se volessi caricare tutte le chat o gruppi al posto del nome devo mettere la parola 'tutti'"
             )
 
