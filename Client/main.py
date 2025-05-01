@@ -38,7 +38,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "10.4.54.27"
+ip_server = "127.0.0.1"
 porta_server = 65433
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -279,6 +279,14 @@ class ChatScreen(Screen):
     chat_history = StringProperty("")
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
+    
+    def show_ai_status(self, show=True):
+        if show:
+            self.ids.ai_status.text = "L'AI sta elaborando la risposta..."
+            self.ids.ai_status.opacity = 1
+        else:
+            self.ids.ai_status.text = ""
+            self.ids.ai_status.opacity = 0
 
     def on_contact_buttons(self, instance, value):
         self.ids.contact_list_sidebar.clear_widgets()
@@ -303,10 +311,17 @@ class ChatScreen(Screen):
         if message and user.get_destinatario() is not None:
             if not chat[user.get_destinatario()]:
                 chat[user.get_destinatario()] = ''
+            
+            # Aggiunge il messaggio alla chat locale immediatamente
             chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message}"
             self.chat_history = chat[user.get_destinatario()]
-
             self.ids.message_input.text = ""
+
+            # Se il destinatario è l'AI, mostra l'indicatore di stato
+            if user.get_destinatario() == "AI":
+                self.show_ai_status(True)
+                
+            # Crea e invia il messaggio in modo asincrono
             azione = user.crea_azione(comando="messaggio", messaggio=message)
             coda_manda_msg.put(azione)
 
@@ -324,6 +339,10 @@ class ChatScreen(Screen):
             )
 
         if mittente == user.get_destinatario():
+            # Nasconde l'indicatore di stato se è una risposta dell'AI
+            if mittente == "AI":
+                self.show_ai_status(False)
+
             Clock.schedule_once(
                 lambda dt: setattr(self, 'chat_history', self.chat_history + nuovo_messaggio)
             )
