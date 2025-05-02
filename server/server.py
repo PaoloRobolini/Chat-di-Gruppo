@@ -352,21 +352,32 @@ def gestisci_carica_chat(chat, username, nome_utente):
                         continue
 
         if all_chats:
-            chat.send_message("Ecco tutte le mie chat private:" + "\n".join(all_chats))
-            return "Ho caricato tutte le chat private"
+            return chat.send_message("Ecco tutte le mie chat private:" + "\n".join(all_chats)).text
     else:
         storico = prepara_chat_AI(username, nome_utente)
 
         if type(storico) is str:
             return storico
         else:
-            chat.send_message(f"{storico[0]}:" + "\n".join(storico[1]))
-            return f"Ho caricato la chat privata con {nome_utente}"
+            return chat.send_message(f"{storico[0]}:" + "\n".join(storico[1])).text
 
-def prepara_gruppo_AI (nome_gruppo):
+def prepara_gruppo_AI (username, nome_gruppo):
     storico = []
 
-    if nome_gruppo:
+    with open("datiGruppi.json", 'r', encoding='utf-8') as file:
+        gruppi = json.load(file)
+
+    gruppi_utente = []
+    gruppi = gruppi["gruppi"]
+    for gruppo in gruppi:
+        if username in gruppo["membri"]:
+            gruppi_utente.append(gruppo["nome"])
+
+    if nome_gruppo not in gruppi_utente:
+        return f"Non appartieni a questo gruppo"
+
+    cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiGruppi'))
+    if f"{nome_gruppo}.json" in os.listdir(cartella_chat):
         with open(os.path.join('datiGruppi', f"{nome_gruppo}.json"), 'r', encoding='utf-8') as f:
             chat_data = json.load(f)
 
@@ -403,15 +414,14 @@ def gestisci_carica_gruppo(chat, username, nome_gruppo):
             pass
 
         if all_groups:
-            chat.send_message("Ecco tutti i miei gruppi:" + "\n".join(all_groups))
+            return str(chat.send_message("Ecco tutti i miei gruppi:" + "\n".join(all_groups)).text)
     else:
-        storico = prepara_gruppo_AI(nome_gruppo)
+        storico = prepara_gruppo_AI(username, nome_gruppo)
         if type(storico) is str:
             return storico
         else:
-            print(f"{storico[0]}:" + "\n".join(storico[1]))
-            chat.send_message(f"{storico[0]}:" + "\n".join(storico[1]))
-            return f"Ho caricato il gruppo {nome_gruppo}"
+            return chat.send_message(f"{storico[0]}:" + "\n".join(storico[1])).text
+
 
 
 
@@ -432,14 +442,34 @@ def ai(messaggio, username):
 
     if comando == "carica chat":
         nome_utente = msg[1].strip()
+        chat.send_message("In questo caso ti caricherò direttamente le chat, quindi non devi rispondermi con il comando che ti ho insegnato, ma con tipo 'caricata chat con e la persona'")
         risposta = gestisci_carica_chat(chat, username, nome_utente)
 
     elif comando == "carica gruppo":
         nome_gruppo = msg[1].strip()
+        chat.send_message("In questo caso ti caricherò direttamente i gruppi, quindi non devi rispondermi con il comando che ti ho insegnato, ma con tipo 'caricato gruppo con il nome del gruppo'")
+
         risposta = gestisci_carica_gruppo(chat, username, nome_gruppo)
     else:
         # Comportamento normale per altri messaggi
         risposta = str(chat.send_message(messaggio.get("messaggio")).text)
+        print("risposta: ", risposta)
+        if risposta == "Carica tutti":
+          gestisci_carica_chat(chat, username, "tutti")
+          risposta = gestisci_carica_gruppo(chat, username, "tutti")
+
+        elif risposta.startswith("Carica chat:") or risposta.startswith("Carica gruppo:"):
+            risposta = risposta.split(":")
+            comando = lower(risposta[0])
+            nome = risposta[1].strip().replace("'", "")
+
+            if comando == "carica chat":
+                risposta = gestisci_carica_chat(chat, username, nome)
+
+            elif comando == "carica gruppo":
+                risposta = gestisci_carica_gruppo(chat, username, nome)
+
+
 
     # Invio della risposta
     messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": nome_AI,
@@ -528,11 +558,13 @@ def setting_AI(username):
             chat = user_ai_chats[username]
 
             chat.send_message(
-                f"Succesivamente ti farò delle domande, rispondi come se io fossi {username} "
+                f"Succesivamente ti farò delle domande, rispondi come se io fossi {username}, io ti chiamerò {nome_AI} per semplicità"
                 "In caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo. "
                 "Utilizza caratteri compatibili con il UTF-8,"
                 "Il metodo per caricare le chat è: Carica chat: 'Nome della chat', per caricare un gruppo: Carica gruppo: 'Nome del gruppo',"
                 "se volessi caricare tutte le chat o gruppi al posto del nome devo mettere la parola 'tutti'"
+                "Se ti accorgi che ti manca una chat o un gruppo in particolare o tutte le chat o gruppi dopo una mia domanda rispondimi solamente con i comandi precedentemente insegnati, non aggiungere altri particolati,"
+                "poi ti verrà caricato ciò che ti manca per rispondere alla mia domanda"
             )
 
 def setup_ftp_server():
