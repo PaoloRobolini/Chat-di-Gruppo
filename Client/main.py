@@ -279,7 +279,7 @@ class ChatScreen(Screen):
     chat_history = StringProperty("")
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
-    
+
     def show_ai_status(self, show=True):
         if show:
             self.ids.ai_status.text = "L'AI sta elaborando la risposta..."
@@ -559,7 +559,9 @@ class ChatScreen(Screen):
                     print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
             else:
                 break
-        self.thread.join()
+        stream_input.stop_stream()
+        stream_input.close()
+        #self.thread_manda.join()
 
 
     def start_call(self):
@@ -573,12 +575,12 @@ class ChatScreen(Screen):
             elif accettata is True:
                 self.ids.incoming_call_box.opacity = 1
                 self.ids.incoming_call_box.disabled = False
-                self.ids.caller_name = user.get_username()
-                thread = threading.Thread(target=self.send_call)
-                thread.start()
+                self.ids.caller_name = user.get_nome()
+                self.thread_manda = threading.Thread(target=self.send_call)
+                self.thread_manda.start()
                 print("thread avviato")
             elif accettata is False:
-                self.thread.join()
+                print("Chiamata rifiutata.")
 
 
     def get_call(self, pacchetto_audio2):
@@ -595,6 +597,7 @@ class ChatScreen(Screen):
             print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
         else:
             print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+        #self.thread_ricevi.join()
 
     def accettazione_chiamata(self, start_time):
         while True:
@@ -618,6 +621,7 @@ class ChatScreen(Screen):
             else:
                 azione = user.crea_azione(comando="chiamata_rifiutata")
         coda_manda_msg.put(azione)
+        #self.thread_accettazione.join()
 
     def receive_call(self, messaggio):
         comando = messaggio.get("comando")
@@ -628,13 +632,13 @@ class ChatScreen(Screen):
             self.ids.incoming_call_box.disabled = False
             self.ids.caller_name = mittente
             start_time = time.time()
-            thread = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
-            thread.start()
+            self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
+            self.thread_accettazione.start()
 
         elif comando == "chiamata_accettata":
             with self.lock:
                 self.chiamata_accettata = True
-            self.start_call()
+                self.start_call()
 
         elif comando == "chiamata_rifiutata":
             with self.lock:
@@ -643,8 +647,8 @@ class ChatScreen(Screen):
         elif comando == "chiamata":
             pacchetto_audio = messaggio.get("pacchetto_audio")
             user.set_destinatario(mittente)
-            thread = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
-            thread.start()
+            self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
+            self.thread_ricevi.start()
 
 
     def accetta_chiamata(self):
@@ -652,15 +656,14 @@ class ChatScreen(Screen):
             self.chiamata_accettata = True
             azione = user.crea_azione(comando="chiamata_accettata")
             coda_manda_msg.put(azione)
-            thread2 = threading.Thread(target=self.send_call)
-            thread2.start()
+        self.start_call()
 
     def rifiuta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = False
             azione = user.crea_azione(comando="chiamata_rifiutata")
             coda_manda_msg.put(azione)
-            self.thread.join()
+            #self.thread.join()
 
 
 class AggiungiContatto(Screen):
