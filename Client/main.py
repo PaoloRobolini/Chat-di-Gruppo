@@ -573,9 +573,9 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
-                self.ids.incoming_call_box.opacity = 1
-                self.ids.incoming_call_box.disabled = False
-                self.ids.caller_name = user.get_nome()
+                #self.ids.incoming_call_box.opacity = 1
+                #self.ids.incoming_call_box.disabled = False
+                #self.ids.caller_name = user.get_nome()
                 self.thread_manda = threading.Thread(target=self.send_call)
                 self.thread_manda.start()
                 print("thread avviato")
@@ -630,8 +630,8 @@ class ChatScreen(Screen):
         mittente = messaggio.get("mittente")
 
         if comando == "richiesta_chiamata":
-            self.ids.incoming_call_box.opacity = 1
-            self.ids.incoming_call_box.disabled = False
+            #self.ids.incoming_call_box.opacity = 1
+            #self.ids.incoming_call_box.disabled = False
             self.ids.caller_name = mittente
             start_time = time.time()
             self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
@@ -641,7 +641,8 @@ class ChatScreen(Screen):
             with self.lock:
                 self.chiamata_accettata = True
                 print("entro")
-                self.start_call()
+            self.start_call()
+            print("in teoria avvio start call")
 
         elif comando == "chiamata_rifiutata":
             with self.lock:
@@ -709,8 +710,16 @@ if __name__ == '__main__':
                 print(f"Dato ricevuto: {data}")
                 if data:
                     try:
+                        print("nel try di ricezione")
                         messaggio = json.loads(data.decode())
-                        Clock.schedule_once(lambda dt: processa_messaggio(messaggio))
+
+                        if "comando" in messaggio:
+                            if messaggio["comando"] in ["richiesta_chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata"]:
+                                chat_screen = App.get_running_app().root.get_screen('chat')
+                                chat_screen.receive_call(messaggio)
+                            else:
+                                Clock.schedule_once(lambda dt: processa_messaggio(messaggio))
+                        print("in treoria ne sono anche uscito")
                     except json.JSONDecodeError:
                         pass
             except (OSError, ConnectionResetError):
@@ -719,22 +728,17 @@ if __name__ == '__main__':
 
     def processa_messaggio(messaggio):
         chat_screen = App.get_running_app().root.get_screen('chat')
+        print("entro in processa_messaggio")
 
         if "comando" in messaggio:
+            print("entro nel controllo del comando")
             if messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
                 if "via FTP" in messaggio.get("messaggio", ""):
                     chat_screen.receive_file(messaggio)
                 else:
                     chat_screen.receive_message(messaggio)
-            #elif messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
             else:
-                print("entra nell'if di ricezione")
-                chat_screen.receive_call(messaggio)
-            #else:
-            #    print(f"Comando non gestito: {messaggio['comando']}")
-        else:
-            print("entra nell'if di ricezione2")
-            chat_screen.receive_call(messaggio)
+                print(f"Comando non gestito: {messaggio['comando']}")
 
     def manda_messaggi():
         while True:
