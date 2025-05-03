@@ -584,6 +584,7 @@ class ChatScreen(Screen):
 
 
     def get_call(self, pacchetto_audio2):
+        print("dati chiamata mostrati")
         #thread che riceve e gestisce il pacchetto audio
         print(type(pacchetto_audio2))
         pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
@@ -624,6 +625,7 @@ class ChatScreen(Screen):
         #self.thread_accettazione.join()
 
     def receive_call(self, messaggio):
+        print("entro in receive call")
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
 
@@ -638,6 +640,7 @@ class ChatScreen(Screen):
         elif comando == "chiamata_accettata":
             with self.lock:
                 self.chiamata_accettata = True
+                print("entro")
                 self.start_call()
 
         elif comando == "chiamata_rifiutata":
@@ -645,6 +648,7 @@ class ChatScreen(Screen):
                 self.chiamata_accettata = False
 
         elif comando == "chiamata":
+            print("chiamata")
             pacchetto_audio = messaggio.get("pacchetto_audio")
             user.set_destinatario(mittente)
             self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
@@ -654,16 +658,11 @@ class ChatScreen(Screen):
     def accetta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = True
-            azione = user.crea_azione(comando="chiamata_accettata")
-            coda_manda_msg.put(azione)
         self.start_call()
 
     def rifiuta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = False
-            azione = user.crea_azione(comando="chiamata_rifiutata")
-            coda_manda_msg.put(azione)
-            #self.thread.join()
 
 
 class AggiungiContatto(Screen):
@@ -706,7 +705,7 @@ if __name__ == '__main__':
     def ricevi_messaggi():
         while True:
             try:
-                data = s.recv(4096)
+                data = s.recv(8192)
                 print(f"Dato ricevuto: {data}")
                 if data:
                     try:
@@ -720,16 +719,22 @@ if __name__ == '__main__':
 
     def processa_messaggio(messaggio):
         chat_screen = App.get_running_app().root.get_screen('chat')
-        if "comando" in messaggio and messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
-            if "via FTP" in messaggio.get("messaggio", ""):
-                chat_screen.receive_file(messaggio)
-            else:
-                chat_screen.receive_message(messaggio)
 
-        elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
-            chat_screen.receive_call(messaggio)
+        if "comando" in messaggio:
+            if messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
+                if "via FTP" in messaggio.get("messaggio", ""):
+                    chat_screen.receive_file(messaggio)
+                else:
+                    chat_screen.receive_message(messaggio)
+            #elif messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+            else:
+                print("entra nell'if di ricezione")
+                chat_screen.receive_call(messaggio)
+            #else:
+            #    print(f"Comando non gestito: {messaggio['comando']}")
         else:
-            print(f"Comando non gestito: {messaggio['comando']}")
+            print("entra nell'if di ricezione2")
+            chat_screen.receive_call(messaggio)
 
     def manda_messaggi():
         while True:

@@ -643,7 +643,7 @@ def handle_client(client_socket, client_address):
     try:
         while True:
             try:
-                data = client_socket.recv(4096)
+                data = client_socket.recv(8192)
                 print(f"{client_address}: {data}")
                 if not data:
                     print(f"Client {client_address} disconnesso.")
