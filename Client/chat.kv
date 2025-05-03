@@ -143,8 +143,8 @@
         # Sezione chiamata in arrivo
         BoxLayout:
             id: incoming_call_box
-            opacity: 1
-            disabled: False
+            opacity: 0
+            disabled: True
             orientation: 'horizontal'
             size_hint: None, None
             size: 250, 50
@@ -167,7 +167,6 @@
 
             Button:
                 id: accept_call
-                text: "✓"
                 font_size: 20
                 size_hint_x: None
                 width: 40
@@ -177,9 +176,15 @@
                 color: 1, 1, 1, 1
                 on_release: root.accetta_chiamata()
 
+                Image:
+                    source: 'phone_icon.png'
+                    center_x: self.parent.center_x
+                    center_y: self.parent.center_y
+                    size_hint: None, None
+                    size: 30, 30
+
             Button:
                 id: reject_call
-                text: "✗"
                 font_size: 20
                 size_hint_x: None
                 width: 40
@@ -188,6 +193,14 @@
                 background_color: 0.8, 0, 0, 1
                 color: 1, 1, 1, 1
                 on_release: root.rifiuta_chiamata()
+
+                Image:
+                    source: 'phone_icon.png'
+                    center_x: self.parent.center_x
+                    center_y: self.parent.center_y
+                    size_hint: None, None
+                    size: 30, 30
+
         # Pulsante telefono
         Button:
             id: call_button

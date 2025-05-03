@@ -7,7 +7,8 @@ import threading
 import time
 from ftplib import FTP
 
-from kivy.clock import Clock
+import self
+from kivy.clock import Clock, mainthread
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
@@ -561,7 +562,6 @@ class ChatScreen(Screen):
                 break
         stream_input.stop_stream()
         stream_input.close()
-        #self.thread_manda.join()
 
 
     def start_call(self):
@@ -573,8 +573,8 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
-                #self.ids.incoming_call_box.opacity = 1
-                #self.ids.incoming_call_box.disabled = False
+                Clock.schedule_once(self.opacity1)
+                Clock.schedule_once(self.updateFalse)
                 #self.ids.caller_name = user.get_nome()
                 self.thread_manda = threading.Thread(target=self.send_call)
                 self.thread_manda.start()
@@ -585,7 +585,6 @@ class ChatScreen(Screen):
 
     def get_call(self, pacchetto_audio2):
         print("dati chiamata mostrati")
-        #thread che riceve e gestisce il pacchetto audio
         print(type(pacchetto_audio2))
         pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
         stream_output.write(pacchetto_audio2)
@@ -598,7 +597,6 @@ class ChatScreen(Screen):
             print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
         else:
             print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
-        #self.thread_ricevi.join()
 
     def accettazione_chiamata(self, start_time):
         while True:
@@ -622,7 +620,6 @@ class ChatScreen(Screen):
             else:
                 azione = user.crea_azione(comando="chiamata_rifiutata")
         coda_manda_msg.put(azione)
-        #self.thread_accettazione.join()
 
     def receive_call(self, messaggio):
         print("entro in receive call")
@@ -630,9 +627,9 @@ class ChatScreen(Screen):
         mittente = messaggio.get("mittente")
 
         if comando == "richiesta_chiamata":
-            #self.ids.incoming_call_box.opacity = 1
-            #self.ids.incoming_call_box.disabled = False
-            self.ids.caller_name = mittente
+            Clock.schedule_once(self.opacity1)
+            Clock.schedule_once(self.updateFalse)
+            #self.ids.caller_name = mittente
             start_time = time.time()
             self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
             self.thread_accettazione.start()
@@ -655,6 +652,13 @@ class ChatScreen(Screen):
             self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
             self.thread_ricevi.start()
 
+        elif comando == "chiamata_terminata":
+            with self.lock:
+                self.chiamata_accettata = None
+            self.thread_ricevi.join()
+            self.thread_manda.join()
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
 
     def accetta_chiamata(self):
         with self.lock:
@@ -663,7 +667,43 @@ class ChatScreen(Screen):
 
     def rifiuta_chiamata(self):
         with self.lock:
+            accettata = self.chiamata_accettata
+        if accettata is True:
+            with self.lock:
+                self.chiamata_accettata = None
+            azione = user.crea_azione(comando="chiamata_terminata")
+            coda_manda_msg.put(azione)
+            self.thread_ricevi.join()
+            self.thread_manda.join()
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
+        elif accettata is False:
+            azione = user.crea_azione(comando="chiamata_rifiutata")
+            coda_manda_msg.put(azione)
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
+        '''elif accettata is None:
             self.chiamata_accettata = False
+            azione = user.crea_azione(comando="chiamata_rifiutata")
+            coda_manda_msg.put(azione)
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)'''
+
+    @mainthread
+    def opacity1(self, dt):
+        self.ids.incoming_call_box.opacity = 1
+
+    @mainthread
+    def opacity0(self, dt):
+        self.ids.incoming_call_box.opacity = 0
+
+    @mainthread
+    def updateFalse(self, dt):
+        self.ids.incoming_call_box.disabled = False
+
+    @mainthread
+    def updateTrue(self, dt):
+        self.ids.incoming_call_box.disabled = True
 
 
 class AggiungiContatto(Screen):

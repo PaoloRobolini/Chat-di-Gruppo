@@ -104,6 +104,12 @@ class utente:
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
             }
+        elif comando == "chiamata_terminata":
+            return {
+                "comando": "chiamata_terminata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+            }
 
         else:
             print(f"Comando sconosciuto: {comando}")
