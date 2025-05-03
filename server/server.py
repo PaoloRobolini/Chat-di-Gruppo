@@ -11,7 +11,7 @@ from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
 
 HOST = "0.0.0.0"
-PORT = 65433
+PORT = 50000
 FTP_PORT = 21
 server_address = (HOST, PORT)
 
@@ -337,7 +337,7 @@ def gestisci_carica_chat(chat, username, nome_utente):
         for file_name in os.listdir(cartella_chat):
             if file_name.endswith(".json"):
                 chat_name_parts = file_name[:-5].split('_')
-                if len(chat_name_parts) == 2 and username in chat_name_parts:
+                if username in chat_name_parts:
                     other_user = chat_name_parts[0] if chat_name_parts[1] == username else chat_name_parts[1]
                     try:
                         with open(os.path.join(cartella_chat, file_name), 'r', encoding='utf-8') as f:
@@ -423,7 +423,31 @@ def gestisci_carica_gruppo(chat, username, nome_gruppo):
             return chat.send_message(f"{storico[0]}:" + "\n".join(storico[1])).text
 
 
+def verifica_nomi(username):
+    # Selezione di tutte le chat
+    all_chats = []
+    cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
+    for file_name in os.listdir(cartella_chat):
+        if file_name.endswith(".json"):
+            chat_name_parts = file_name[:-5].split('_')
+            if username in chat_name_parts:
+                other_user = chat_name_parts[0] if chat_name_parts[1] == username else chat_name_parts[1]
+                all_chats.append(other_user)
 
+    # Selezione dei nomi di tutti i gruppi:
+    with open("datiGruppi.json", 'r', encoding='utf-8') as file:
+        gruppi = json.load(file)
+
+    gruppi_utente = []
+    gruppi = gruppi["gruppi"]
+    for gruppo in gruppi:
+        if username in gruppo["membri"]:
+            gruppi_utente.append(gruppo["nome"])
+
+    return {
+        "gruppi": gruppi_utente,
+        "chat": all_chats
+    }
 
 def ai(messaggio, username):
     #Salvataggio del messaggio dell'utente
@@ -453,21 +477,34 @@ def ai(messaggio, username):
     else:
         # Comportamento normale per altri messaggi
         risposta = str(chat.send_message(messaggio.get("messaggio")).text)
-        print("risposta: ", risposta)
-        if risposta == "Carica tutti":
-          gestisci_carica_chat(chat, username, "tutti")
-          risposta = gestisci_carica_gruppo(chat, username, "tutti")
+        risposta = risposta.strip()
+        esci = False
+        while not esci:
+            print(f"risposta: '{risposta}'")
+            if "Carica tutti" in risposta:
+              gestisci_carica_chat(chat, username, "tutti")
+              risposta = gestisci_carica_gruppo(chat, username, "tutti")
+              esci = True
 
-        elif risposta.startswith("Carica chat:") or risposta.startswith("Carica gruppo:"):
-            risposta = risposta.split(":")
-            comando = lower(risposta[0])
-            nome = risposta[1].strip().replace("'", "")
+            elif risposta.startswith("Carica chat:") or risposta.startswith("Carica gruppo:"):
+                risposta = risposta.split(":")
+                comando = lower(risposta[0])
+                nome = risposta[1].strip().replace("'", "")
 
-            if comando == "carica chat":
-                risposta = gestisci_carica_chat(chat, username, nome)
+                if comando == "carica chat":
+                    risposta = gestisci_carica_chat(chat, username, nome)
 
-            elif comando == "carica gruppo":
-                risposta = gestisci_carica_gruppo(chat, username, nome)
+                elif comando == "carica gruppo":
+                    risposta = gestisci_carica_gruppo(chat, username, nome)
+
+                esci = True
+
+            elif "Verifica nomi" in risposta:
+                nomi = verifica_nomi(username)
+                risposta = str(chat.send_message(f"Questi sono tutti gli utenti con cui ho delle chat: {nomi["chat"]} questi sono i gruppi a cui faccio parte: {nomi["gruppi"]}").text)
+            else:
+                esci = True
+
 
 
 
@@ -559,12 +596,13 @@ def setting_AI(username):
 
             chat.send_message(
                 f"Succesivamente ti farò delle domande, rispondi come se io fossi {username}, io ti chiamerò {nome_AI} per semplicità"
-                "In caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo. "
-                "Utilizza caratteri compatibili con il UTF-8,"
+                "In caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo."
                 "Il metodo per caricare le chat è: Carica chat: 'Nome della chat', per caricare un gruppo: Carica gruppo: 'Nome del gruppo',"
                 "se volessi caricare tutte le chat o gruppi al posto del nome devo mettere la parola 'tutti'"
                 "Se ti accorgi che ti manca una chat o un gruppo in particolare o tutte le chat o gruppi dopo una mia domanda rispondimi solamente con i comandi precedentemente insegnati, non aggiungere altri particolati,"
-                "poi ti verrà caricato ciò che ti manca per rispondere alla mia domanda"
+                "poi ti verrà caricato ciò che ti manca per rispondere alla mia domanda,"
+                "Se tu volessi verificare i nomi delle chat o gruppi a cui appattengo prima di lanciare il comando per caricare una chat specifica o gruppo usa il comando 'Verifica nomi', per non inserire il nome errato per magari delle maiuscole scambiate per minuscole o viceversa,"
+                "o solamente per sapere queli sono le mie chat o i gruppi a cui appartengo"
             )
 
 def setup_ftp_server():
