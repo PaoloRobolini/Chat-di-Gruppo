@@ -74,7 +74,7 @@
     BoxLayout:
         orientation: 'vertical'
         padding: 60
-        spacing: 25
+        spacing: 20
 
         Label:
             text: "Registrati su Biscord!"
@@ -127,6 +127,14 @@
             background_color: 0.1, 0.6, 1, 1
             color: 1, 1, 1, 1
             on_release: root.signin()
+
+        Button:
+            text: "Hai già un account? Accedi!"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.6, 0.8, 1, 1
+            on_release: app.root.current = "login"
 
 
 <ChatScreen>:
