@@ -346,7 +346,8 @@ class ChatScreen(Screen):
             'other_text': (0.2, 0.2, 0.2, 1),
             'system_bubble': (0.9, 0.9, 0.9, 0.7),
             'system_text': (0.4, 0.4, 0.4, 1),
-            'sender_name': (0.5, 0.5, 0.5, 1)
+            'sender_name_user': (1, 1, 1, 1),      # Nome utente in bianco per contrasto su sfondo blu
+            'sender_name_other': (0.3, 0.3, 0.3, 1)  # Nome altri utenti in grigio scuro per contrasto su sfondo chiaro
         }
 
         # Scegli i colori appropriati
@@ -377,18 +378,14 @@ class ChatScreen(Screen):
             spacing=4
         )
 
-        # Imposta la larghezza massima della bolla (70% della larghezza del container)
         max_bubble_width = self.ids.chat_history_container.width * 0.7
 
-        # Crea una Label temporanea per calcolare la larghezza necessaria del testo
         temp_label = Label(
             text=message_content,
-            font_size='14sp'
+            font_size='16sp'  # Aumentato da 14sp a 16sp
         )
-        # Forza il calcolo della texture
         temp_label.texture_update()
 
-        # Calcola la larghezza ottimale per il testo (con un minimo di 100 pixel)
         text_width = min(max(temp_label.texture_size[0] + 20, 100), max_bubble_width - bubble.padding[0] - bubble.padding[2])
 
         # Aggiungi il nome del mittente se non è un messaggio di sistema
@@ -396,8 +393,8 @@ class ChatScreen(Screen):
             sender_label = Label(
                 text=sender,
                 size_hint=(None, None),
-                color=colors['sender_name'],
-                font_size='12sp',
+                color=colors['sender_name_user'] if is_user_message else colors['sender_name_other'],
+                font_size='15sp',  # Aumentato da 12sp a 15sp
                 bold=True,
                 halign='left'
             )
@@ -409,7 +406,7 @@ class ChatScreen(Screen):
             text=message_content,
             size_hint=(None, None),
             color=text_color,
-            font_size='14sp',
+            font_size='16sp',  # Aumentato da 14sp a 16sp
             text_size=(text_width, None),  # Usa la larghezza calcolata
             halign='left',
             valign='middle'
@@ -463,7 +460,6 @@ class ChatScreen(Screen):
             row.add_widget(bubble)
             row.add_widget(Widget(size_hint_x=1))  # Spacer a destra
 
-        # Forza l'aggiornamento delle dimensioni
         update_bubble_size()
 
         # Aggiungi la riga alla chat
@@ -473,7 +469,7 @@ class ChatScreen(Screen):
         message = self.ids.message_input.text.strip()
         if message and user.get_destinatario() is not None:
             if user.get_destinatario() not in chat:
-                chat[user.get_destinatario()] = [] # Inizializza come lista vuota se non esiste
+                chat[user.get_destinatario()] = []
 
             # Aggiunge il messaggio alla chat locale immediatamente come stringa
             full_message_text = f"{user.get_nome()}> {message}"
@@ -491,7 +487,6 @@ class ChatScreen(Screen):
             coda_manda_msg.put(azione)
 
     def receive_message(self, messaggio):
-        # Il messaggio ricevuto è già un dizionario
         if "nome_gruppo" in messaggio:
             chat_id = messaggio["nome_gruppo"]
         else:
@@ -504,14 +499,11 @@ class ChatScreen(Screen):
                 lambda dt: self.aggiungi_nuovo_contatto(chat_id)
             )
 
-        # Aggiunge il messaggio alla chat locale come stringa
         if chat_id not in chat:
             chat[chat_id] = []
         chat[chat_id].append(nuovo_messaggio_text)
 
-        # Se la chat visualizzata è quella corrente, aggiunge il bottone alla UI
         if chat_id == user.get_destinatario():
-            # Nasconde l'indicatore di stato se è una risposta dell'AI
             if chat_id == "AI":
                 self.show_ai_status(False)
             Clock.schedule_once(
@@ -541,12 +533,10 @@ class ChatScreen(Screen):
 
             if user.get_destinatario() is None:
                 print("Errore: destinatario non impostato per invio file")
-                # Aggiunge il messaggio di errore come una bolla di sistema
                 self.add_message_bubble(f"[Sistema] Errore: Seleziona un destinatario prima di inviare un file.")
                 root.destroy()
                 return
 
-            # Aggiunge il messaggio di sistema come una bolla
             self.add_message_bubble(f"[Sistema] Iniziando invio file {nome_file_basename} via FTP...")
 
 
@@ -556,7 +546,6 @@ class ChatScreen(Screen):
                 ftp.connect(ip_server, ftp_port)
                 ftp.login(user=user.get_nome(), passwd=user.get_password())
 
-                # Usa la directory del mittente per salvare il file
                 mittente_dir = user.get_nome()
                 try:
                     ftp.cwd(mittente_dir)
@@ -566,7 +555,6 @@ class ChatScreen(Screen):
                         ftp.cwd(mittente_dir)
                     except Exception as e:
                         print(f"Errore nella creazione/accesso della directory {mittente_dir}: {e}")
-                        # Aggiunge il messaggio di errore come una bolla
                         self.add_message_bubble(f"[Sistema] Errore: Impossibile accedere alla directory del mittente.")
                         return
 
@@ -583,24 +571,17 @@ class ChatScreen(Screen):
                 }
                 coda_manda_msg.put(notifica)
 
-                # Aggiunge il messaggio di successo come una bolla
                 self.add_message_bubble(f"[Sistema] File {nome_file_basename} inviato con successo via FTP!")
 
 
             except Exception as e:
                 error_msg = f"[Sistema] Errore nell'invio del file via FTP: {str(e)}"
-                # Aggiunge il messaggio di errore come una bolla
                 self.add_message_bubble(error_msg)
                 print(f"Errore FTP dettagliato: {e}")
 
         root.destroy()
 
     def update_ftp_progress(self, block, nome_file):
-        # Questa funzione aggiornava una Label, ora potremmo voler aggiornare una bolla di progresso
-        # Questo richiede una logica più complessa per trovare e aggiornare la bolla specifica.
-        # Per semplicità, per ora, potremmo omettere l'aggiornamento in tempo reale o
-        # aggiungere un semplice messaggio di stato.
-        # Esempio semplificato:
         print(f"[Progresso invio FTP] Trasferimento di {nome_file} in corso...")
 
 
