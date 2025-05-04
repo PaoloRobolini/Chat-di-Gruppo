@@ -10,7 +10,7 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
 
-HOST = "127.0.0.1"
+HOST = "26.117.59.21"
 PORT = 50000
 FTP_PORT = 21
 server_address = (HOST, PORT)
@@ -718,7 +718,7 @@ def handle_client(client_socket, client_address):
                         }
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
-            elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+            elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata_terminata"]:
                 inoltra_chiamata(messaggio, logged_in_username)
 
 
