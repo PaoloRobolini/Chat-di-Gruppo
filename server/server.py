@@ -700,7 +700,8 @@ def handle_client(client_socket, client_address):
                             "comando": "nuovo_messaggio_gruppo",
                             "nome_gruppo": destinatario,
                             "mittente": mittente,
-                            "messaggio": messaggio_notifica
+                            "messaggio": messaggio_notifica,
+                            "ftp": True
                         }
                     else:
                         nuovo_messaggio_salvataggio = {
@@ -714,10 +715,12 @@ def handle_client(client_socket, client_address):
                         messaggio_da_inoltrare = {
                             "comando": "nuovo_messaggio_privato",
                             "mittente": mittente,
-                            "messaggio": messaggio_notifica
+                            "messaggio": messaggio_notifica,
+                            "ftp": True
                         }
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+
             elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
                 inoltra_chiamata(messaggio, logged_in_username)
 

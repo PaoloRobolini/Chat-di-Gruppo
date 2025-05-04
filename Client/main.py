@@ -510,9 +510,6 @@ class ChatScreen(Screen):
                 lambda dt: self.add_message_bubble(nuovo_messaggio_text)
             )
 
-        Clock.schedule_once(
-            lambda dt: self.salva_messaggio(chat_id, nuovo_messaggio_text)
-        )
 
     def aggiungicontatto(self):
         self.manager.current = 'aggiungicontatto'
@@ -882,7 +879,7 @@ if __name__ == '__main__':
     def processa_messaggio(messaggio):
         chat_screen = App.get_running_app().root.get_screen('chat')
         if "comando" in messaggio and messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
-            if "via FTP" in messaggio.get("messaggio", ""):
+            if "ftp" in messaggio:
                 chat_screen.receive_file(messaggio)
             else:
                 chat_screen.receive_message(messaggio)
