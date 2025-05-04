@@ -39,7 +39,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "26.117.59.21"
+ip_server = "127.0.0.1"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
