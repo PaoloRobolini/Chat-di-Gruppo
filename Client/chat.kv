@@ -262,21 +262,30 @@
                     size_hint_y: None
                     height: 40
 
+                # AI Status Label
+                Label:
+                    id: ai_status
+                    text: ""
+                    font_size: 16
+                    color: 0.5, 0.8, 1, 1 # Light blue color
+                    size_hint_y: None
+                    height: 20
+                    opacity: 0 # Initially hidden
+
                 ScrollView:
                     size_hint_y: 0.8
                     do_scroll_x: False
                     do_scroll_y: True
+                    bar_width: 5
 
-                    Label:
-                        id: chat_label
-                        text: root.chat_history
-                        text_size: self.width, None
+                    # Sostituita la Label con un BoxLayout per i bottoni dei messaggi
+                    BoxLayout:
+                        id: chat_history_container # Nuovo ID per il contenitore dei messaggi
+                        orientation: 'vertical'
                         size_hint_y: None
-                        height: self.texture_size[1]
-                        halign: 'left'
-                        valign: 'top'
-                        padding: 10, 10
-                        color: 1, 1, 1, 1
+                        height: self.minimum_height
+                        spacing: 5 # Spazio tra i bottoni dei messaggi
+                        padding: 10 # Padding interno al contenitore
 
                 BoxLayout:
                     size_hint_y: None
