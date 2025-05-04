@@ -573,6 +573,7 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
+                user.set_destinatario_chiamata(user.get_destinatario())
                 Clock.schedule_once(self.opacity1)
                 Clock.schedule_once(self.updateFalse)
                 #self.ids.caller_name = user.get_nome()
@@ -584,19 +585,20 @@ class ChatScreen(Screen):
 
 
     def get_call(self, pacchetto_audio2):
-        print("dati chiamata mostrati")
-        print(type(pacchetto_audio2))
-        pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
-        stream_output.write(pacchetto_audio2)
+        if self.chiamata_accettata is True:
+            print("dati chiamata mostrati")
+            print(type(pacchetto_audio2))
+            pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
+            stream_output.write(pacchetto_audio2)
 
-        data_decoded = pacchetto_audio2
-        samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
-        energy = sum(abs(sample) for sample in samples) / len(samples)
+            data_decoded = pacchetto_audio2
+            samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+            energy = sum(abs(sample) for sample in samples) / len(samples)
 
-        if energy > SILENCE_THRESHOLD:
-            print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
-        else:
-            print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+            if energy > SILENCE_THRESHOLD:
+                print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
+            else:
+                print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
 
     def accettazione_chiamata(self, start_time):
         while True:
@@ -648,11 +650,12 @@ class ChatScreen(Screen):
         elif comando == "chiamata":
             print("chiamata")
             pacchetto_audio = messaggio.get("pacchetto_audio")
-            user.set_destinatario(mittente)
+            user.set_destinatario_chiamata(mittente)
             self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
             self.thread_ricevi.start()
 
         elif comando == "chiamata_terminata":
+            print("entro in chiamata terminata")
             with self.lock:
                 self.chiamata_accettata = None
             self.thread_ricevi.join()
@@ -668,7 +671,7 @@ class ChatScreen(Screen):
     def rifiuta_chiamata(self):
         with self.lock:
             accettata = self.chiamata_accettata
-        if accettata is True:
+        if accettata is True or None:
             with self.lock:
                 self.chiamata_accettata = None
             azione = user.crea_azione(comando="chiamata_terminata")
@@ -754,7 +757,7 @@ if __name__ == '__main__':
                         messaggio = json.loads(data.decode())
 
                         if "comando" in messaggio:
-                            if messaggio["comando"] in ["richiesta_chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata"]:
+                            if messaggio["comando"] in ["richiesta_chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata", "chiamata_terminata"]:
                                 chat_screen = App.get_running_app().root.get_screen('chat')
                                 chat_screen.receive_call(messaggio)
                             else:
