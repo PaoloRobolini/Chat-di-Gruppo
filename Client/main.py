@@ -17,7 +17,6 @@ from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.label import Label # Importa Label per i messaggi
 from kivy.uix.boxlayout import BoxLayout # Importa BoxLayout
-from kivy.uix.floatlayout import FloatLayout # Importa FloatLayout per posizionare le bolle a destra/sinistra
 from kivy.graphics import Color, RoundedRectangle # Importa per disegnare rettangoli arrotondati
 from kivy.uix.widget import Widget # Importa Widget per lo Spacer
 from tkinter import Tk
@@ -279,9 +278,9 @@ class SigninScreen(Screen):
 
 class ChatScreen(Screen):
     username = StringProperty("")
-    # Rimosso chat_history StringProperty in quanto non usiamo più una singola stringa per la chat
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
+    _selected_contact_button = None # Aggiunta: variabile per tenere traccia del pulsante selezionato
 
     def show_ai_status(self, show=True):
         if show:
@@ -293,15 +292,35 @@ class ChatScreen(Screen):
 
     def on_contact_buttons(self, instance, value):
         self.ids.contact_list_sidebar.clear_widgets()
-        print("Sono nella funzione: on_contact_buttons")
         for contact in self.contact_buttons:
-            btn = Button(text=contact, size_hint=(None, None), size=(50, 50))
+            # Modificato: Creazione del pulsante con stile di default
+            btn = Button(
+                text=contact,
+                size_hint=(None, None),
+                size=(90, 50),
+                background_normal='',
+                background_color=(0.2, 0.2, 0.3, 1), # Colore di default
+                color=(1, 1, 1, 1),
+                font_size=16
+            )
             btn.bind(on_press=self.on_contact_button_click)
             self.ids.contact_list_sidebar.add_widget(btn)
 
     def on_contact_button_click(self, instance):
         global user
         testo = instance.text
+
+        # Modificato: Gestione del colore di sfondo dei pulsanti
+        if self._selected_contact_button:
+            # Ripristina il colore del pulsante precedentemente selezionato
+            self._selected_contact_button.background_color = (0.2, 0.2, 0.3, 1) # Colore di default
+
+        # Imposta il colore del pulsante attualmente selezionato
+        instance.background_color = (0.1, 0.6, 1, 1) # Colore selezionato (blu)
+
+        # Aggiorna la variabile del pulsante selezionato
+        self._selected_contact_button = instance
+
         user.set_destinatario(testo)
         self.selected_contact = f"Chat con {testo}"
         testo = testo.replace("'", '')
@@ -517,6 +536,9 @@ class ChatScreen(Screen):
     def aggiungi_nuovo_contatto(self, contatto):
         if contatto not in self.contact_buttons:
             self.contact_buttons.append(contatto)
+            # Quando aggiungiamo un nuovo contatto, assicuriamoci che non sia selezionato
+            # In questo caso, non facciamo nulla qui, la selezione avviene solo al click.
+
 
     def send_file(self, instance):
         root = Tk()
@@ -902,7 +924,6 @@ if __name__ == '__main__':
                     print(f"Attenzione: messaggio non valido nella coda: {type(messaggio)}")
                     continue
                 else:
-                    print("conferma dell'invio")
                     s.sendall(json.dumps(messaggio).encode("utf-8"))
             except Exception as e:
                 print(f"Errore nell'invio del messaggio: {e}")

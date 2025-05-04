@@ -97,15 +97,6 @@
             id: mail
             hint_text: "Inserisci il tuo indirizzo mail"
             font_size: 20
-            background_normal: ''
-            background_color: 0.2, 0.2, 0.3, 1
-            foreground_color: 1, 1, 1, 1
-            padding: 15
-
-        TextInput:
-            id: password
-            hint_text: "Inserisci la password"
-            font_size: 20
             password: True
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
@@ -222,7 +213,7 @@
             BoxLayout:
                 orientation: 'vertical'
                 size_hint_x: None
-                width: 80
+                width: 120
                 spacing: 10
                 padding: 10
 
@@ -235,9 +226,9 @@
 
                 Button:
                     size_hint: None, None
-                    size: 60, 60
+                    size: 100, 60
                     text: "+"
-                    font_size: 24
+                    font_size: 32
                     background_normal: ''
                     background_color: 0.1, 0.6, 1, 1
                     color: 1, 1, 1, 1
@@ -254,6 +245,8 @@
                         height: self.minimum_height
                         spacing: 10
                         padding: 5
+
+
 
             # CHAT PRINCIPALE
             BoxLayout:
@@ -302,6 +295,7 @@
 
                     TextInput:
                         id: message_input
+                        size_hint_x: 0.6  # Occupa il 70% dello spazio disponibile
                         hint_text: "Scrivi un messaggio..."
                         multiline: False
                         background_normal: ''
@@ -310,6 +304,7 @@
                         padding: 10
 
                     Button:
+                        size_hint_x: 0.2  # Occupa il 15% dello spazio disponibile
                         text: "Invia"
                         background_normal: ''
                         background_color: 0.1, 0.6, 1, 1
@@ -317,6 +312,7 @@
                         on_release: root.send_message()
 
                     Button:
+                        size_hint_x: 0.2  # Occupa il 15% dello spazio disponibile
                         text: "scegli un file"
                         background_normal: ''
                         background_color: 0.1, 0.6, 1, 1
@@ -339,16 +335,14 @@
         padding: 60
         spacing: 25
 
-        # Pulsante INDIETRO in alto a destra
+        # Pulsante INDIETRO in alto a sinistra
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
             height: 40
 
-            Widget:
-
             Button:
-                text: "← Indietro"
+                text: "< Indietro"
                 size_hint: None, None
                 size: 120, 40
                 font_size: 16
@@ -356,6 +350,8 @@
                 background_color: 0.1, 0.6, 1, 1
                 color: 1, 1, 1, 1
                 on_release: app.root.current = "chat"
+
+            Widget:
 
         Label:
             text: "Aggiungi un contatto o unisciti a un gruppo"
