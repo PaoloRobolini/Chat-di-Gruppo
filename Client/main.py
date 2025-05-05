@@ -281,10 +281,13 @@ class SigninScreen(Screen):
                 chat_screen = self.manager.get_screen('chat')
                 chat_screen.username = username
                 self.manager.current = 'chat'
-                thread_ricevi = threading.Thread(target=ricevi_messaggi)
+
                 thread_manda = threading.Thread(target=manda_messaggi)
                 thread_manda.start()
+
+                thread_ricevi = (threading.Thread(target=ricevi_messaggi))
                 thread_ricevi.start()
+
             elif reply == "1":
                 self.ids.signin_data_error.text = "la mail e` gia` associata a un account"
                 self.ids.mail.text = ""
@@ -307,10 +310,16 @@ class ChatScreen(Screen):
 
 
     def logout(self):
-        schermata = self.manager.get_screen('login')
-        schermata.ids.username.text.clear()
-        schermata.ids.password.text.clear()
         self.manager.current = 'login'
+        coda_manda_msg.put(user.crea_azione(comando="logout"))
+        chat = {}
+        if thread_manda.is_alive():
+            print("Il thread manda è vivo")
+            thread_ricevi.join()
+        if thread_ricevi.is_alive():
+            print("Il thread ricevi è ancora vivo")
+            thread_manda.join()
+
 
     def show_ai_status(self, show=True):
         if show:
@@ -911,53 +920,62 @@ class ChatApp(App):
         return sm
 
 
-if __name__ == '__main__':
 
-    def ricevi_messaggi():
-        while True:
-            try:
-                data = s.recv(4096)
-                print(f"Dato ricevuto: {data}")
-                if data:
-                    try:
-                        messaggio = json.loads(data.decode())
+def ricevi_messaggi():
+    while True:
+         try:
+             data = s.recv(4096)
+             if data:
+                 print(f"Dato ricevuto: {data}")
+                 try:
+                     messaggio = json.loads(data.decode())
+                     if messaggio["comando"] == "logout":
+                         print("Ho ricevuto il logout")
+                         break
+                     else:
                         Clock.schedule_once(lambda dt: processa_messaggio(messaggio))
-                    except json.JSONDecodeError:
-                        pass
-            except (OSError, ConnectionResetError):
-                pass
+                 except json.JSONDecodeError:
+                     pass
+         except (OSError, ConnectionResetError, BlockingIOError):
+             pass
+    print("Esco dal while true (ricevi)")
 
-
-    def processa_messaggio(messaggio):
-        chat_screen = App.get_running_app().root.get_screen('chat')
-        if "comando" in messaggio and messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
-            if "ftp" in messaggio:
-                chat_screen.receive_file(messaggio)
-            else:
-                chat_screen.receive_message(messaggio)
-
-        elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
-            chat_screen.receive_call(messaggio)
-        else:
-            print(f"Comando non gestito: {messaggio['comando']}")
-
-    def manda_messaggi():
-        while True:
-            messaggio = coda_manda_msg.get()
+def manda_messaggi():
+    while True:
+        messaggio = coda_manda_msg.get()
+        if messaggio is not None:
             print(f"Dato manda a {server}: {messaggio}")
-            if messaggio is None:
-                print("Attenzione: messaggio None ricevuto nella coda")
-                continue
-
             try:
                 if not isinstance(messaggio, dict):
                     print(f"Attenzione: messaggio non valido nella coda: {type(messaggio)}")
                     continue
                 else:
                     s.sendall(json.dumps(messaggio).encode("utf-8"))
+                    if messaggio["comando"] == "logout":
+                        print("Ho mandato il logout")
+                        break
             except Exception as e:
                 print(f"Errore nell'invio del messaggio: {e}")
+    print("Esco dal while true (manda)")
 
+def processa_messaggio(messaggio):
+    chat_screen = App.get_running_app().root.get_screen('chat')
+    if "comando" in messaggio and messaggio["comando"] in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"]:
+        if "ftp" in messaggio:
+            chat_screen.receive_file(messaggio)
+        else:
+            chat_screen.receive_message(messaggio)
+
+    elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+        chat_screen.receive_call(messaggio)
+    else:
+        print(f"Comando non gestito: {messaggio['comando']}")
+
+thread_manda = threading.Thread(target=manda_messaggi)
+thread_ricevi = threading.Thread(target=ricevi_messaggi)
+
+
+if __name__ == '__main__':
     cartella_destinazione = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_ricevuti")
     os.makedirs(cartella_destinazione, exist_ok=True)
     os.makedirs("datiChat", exist_ok=True)
