@@ -57,6 +57,9 @@ global user
 global temp_folder_info
 temp_folder_info = None
 
+global conta
+conta = None
+
 
 def carica_gruppi():
     files_chat = [
@@ -534,7 +537,7 @@ class ChatScreen(Screen):
     lock = threading.Lock()
 
 
-    def send_call(self):
+    def send_call(self, nome_gruppo = None, destinatari = None):
         stream_input = p.open(format=FORMAT,
                               channels=CHANNELS,
                               rate=RATE,
@@ -545,6 +548,9 @@ class ChatScreen(Screen):
                 data = stream_input.read(CHUNK, exception_on_overflow=False)
                 data = base64.b64encode(data).decode('utf-8')
                 user.set_pacchetto_audio(data)
+                user.set_destinatario(destinatari)
+                if nome_gruppo:
+                    user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata")
 
                 coda_manda_msg.put(azione)
@@ -564,7 +570,7 @@ class ChatScreen(Screen):
         stream_input.close()
 
 
-    def start_call(self):
+    def start_call(self, nome_gruppo = None, mittente = None):
         if user.get_destinatario() is not None:
             with self.lock:
                 accettata = self.chiamata_accettata
@@ -573,12 +579,20 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
-                user.set_destinatario_chiamata(user.get_destinatario())
-                Clock.schedule_once(self.opacity1)
-                Clock.schedule_once(self.updateFalse)
-                #self.ids.caller_name = user.get_nome()
-                self.thread_manda = threading.Thread(target=self.send_call)
-                self.thread_manda.start()
+                if not nome_gruppo:
+                    user.set_destinatario_chiamata(mittente)
+                    Clock.schedule_once(self.opacity1)
+                    Clock.schedule_once(self.updateFalse)
+                    # self.ids.caller_name = user.get_nome()
+                    self.thread_manda = threading.Thread(target=self.send_call)
+                    self.thread_manda.start()
+                else:
+                    user.set_destinatario_chiamata(mittente)
+                    Clock.schedule_once(self.opacity1)
+                    Clock.schedule_once(self.updateFalse)
+                    # self.ids.caller_name = user.get_nome()
+                    self.thread_manda = threading.Thread(target=self.send_call, args=(nome_gruppo, mittente))
+                    self.thread_manda.start()
                 print("thread avviato")
             elif accettata is False:
                 print("Chiamata rifiutata.")
@@ -600,7 +614,7 @@ class ChatScreen(Screen):
             else:
                 print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
 
-    def accettazione_chiamata(self, start_time):
+    def accettazione_chiamata(self, start_time, nome_gruppo):
         while True:
             now = time.time()
             elapsed = now - start_time
@@ -618,39 +632,63 @@ class ChatScreen(Screen):
 
         with self.lock:
             if self.chiamata_accettata is True:
+                if nome_gruppo:
+                    user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata_accettata")
             else:
+                if nome_gruppo:
+                    user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata_rifiutata")
         coda_manda_msg.put(azione)
 
     def receive_call(self, messaggio):
         print("entro in receive call")
         comando = messaggio.get("comando")
+        global mittente
         mittente = messaggio.get("mittente")
 
+        global nome_gruppo
+
+        try:
+            membri = messaggio.get("membri")
+        except:
+            pass
+
+        try:
+            nome_gruppo = messaggio.get("nome_gruppo")
+        except:
+            pass
+
         if comando == "richiesta_chiamata":
+            user.set_destinatario_chiamata(mittente)
             Clock.schedule_once(self.opacity1)
             Clock.schedule_once(self.updateFalse)
             #self.ids.caller_name = mittente
             start_time = time.time()
-            self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
+            self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time, nome_gruppo))
             self.thread_accettazione.start()
 
         elif comando == "chiamata_accettata":
             with self.lock:
                 self.chiamata_accettata = True
                 print("entro")
-            self.start_call()
+            self.start_call(nome_gruppo, mittente)
             print("in teoria avvio start call")
 
         elif comando == "chiamata_rifiutata":
-            with self.lock:
-                self.chiamata_accettata = False
+            conta += 1
+            if conta == len(membri):
+                with self.lock:
+                    self.chiamata_accettata = False
+            else:
+                with self.lock:
+                    self.chiamata_accettata = None
+
+
 
         elif comando == "chiamata":
             print("chiamata")
             pacchetto_audio = messaggio.get("pacchetto_audio")
-            user.set_destinatario_chiamata(mittente)
             self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
             self.thread_ricevi.start()
 
@@ -664,9 +702,14 @@ class ChatScreen(Screen):
             Clock.schedule_once(self.updateTrue)
 
     def accetta_chiamata(self):
-        with self.lock:
-            self.chiamata_accettata = True
-        self.start_call()
+        if nome_gruppo is None:
+            with self.lock:
+                self.chiamata_accettata = True
+            self.start_call()
+        else:
+            with self.lock:
+                self.chiamata_accettata = True
+            self.start_call(nome_gruppo, mittente)
 
     def rifiuta_chiamata(self):
         with self.lock:

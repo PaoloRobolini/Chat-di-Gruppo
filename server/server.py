@@ -545,19 +545,37 @@ def inoltra_messaggio(messaggio, logged_in_username):
 
 def inoltra_chiamata(messaggio, logged_in_username):
 
+    global gruppo2
+    gruppo2 = None
+
     print("entro in ilk=noltyra chiamata")
 
     comando = messaggio.get("comando")
     mittente = messaggio.get("mittente")
     destinatario = messaggio.get("destinatario")
     pacchetto_audio = messaggio.get("pacchetto_audio")
+    nome_gruppo = messaggio.get("nome_gruppo")
+
+    print(nome_gruppo)
 
     gruppo, membri = is_group(destinatario)
 
+    if nome_gruppo != None:
+        print("entro nel controllo del gruppo2")
+        gruppo2, membri2 = is_group(nome_gruppo)
+
+    print("sono andato avanti")
+
     if gruppo:
+        print("sono in gruppo")
         messaggio_da_inoltrare = {"comando": comando, "nome_gruppo": destinatario,
-                                  "mittente": mittente, "pacchetto_audio": pacchetto_audio}
+                                  "mittente": mittente, "pacchetto_audio": pacchetto_audio, "membri": membri}
+    elif gruppo2 != None:
+        print("sono in gruppo2")
+        messaggio_da_inoltrare = {"comando": comando, "nome_gruppo": nome_gruppo,
+                                 "mittente": mittente, "pacchetto_audio": pacchetto_audio, "membri": membri2}
     else:
+        print("non sono in nessun gruppo")
         messaggio_da_inoltrare = {"comando": comando, "mittente": mittente,
                                   "pacchetto_audio": pacchetto_audio}
 
@@ -719,7 +737,9 @@ def handle_client(client_socket, client_address):
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
             elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata_terminata"]:
+                print("mando a inoltra chiamata")
                 inoltra_chiamata(messaggio, logged_in_username)
+                print("ho mandato a inoltra chiamata")
 
 
 
