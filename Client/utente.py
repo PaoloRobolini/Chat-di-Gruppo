@@ -104,7 +104,11 @@ class utente:
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
             }
-
+        elif comando == "logout":
+            return {
+                "comando": "logout",
+                "mittente": self.__username
+            }
         else:
             print(f"Comando sconosciuto: {comando}")
             return {"comando": "sconosciuto"}

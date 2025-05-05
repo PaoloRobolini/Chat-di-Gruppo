@@ -563,7 +563,7 @@ def inoltra_chiamata(messaggio, logged_in_username):
 
     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
-    print("esco da ilk=noltyra chiamata")
+    print("esco da inoltra chiamata")
 
 
 def is_in_gruppo(messaggio, logged_in_username):
@@ -673,6 +673,24 @@ def handle_client(client_socket, client_address):
             elif comando == "messaggio":
                 inoltra = threading.Thread(target=inoltra_messaggio, args=(messaggio,logged_in_username,))
                 inoltra.start()
+            elif comando == "logout":
+
+                if logged_in_username:
+
+                    messaggio_da_inoltrare = {
+                        "comando": "logout"
+                    }
+
+                    client_socket.send(json.dumps(messaggio_da_inoltrare).encode('utf-8'))
+
+                    with clients_lock:
+                        if logged_in_username in clients_sockets and clients_sockets[
+                            logged_in_username] == client_socket:
+                            del clients_sockets[logged_in_username]
+                            del user_ai_chats[logged_in_username]
+
+
+
             elif comando == "is_in_gruppo":
                 is_in_gruppo(messaggio, logged_in_username)
             elif comando == "ftp_file_notification":
