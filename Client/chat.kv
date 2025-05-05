@@ -38,11 +38,30 @@
             foreground_color: 1, 1, 1, 1
             padding: 15
 
-        Label:
-            id: login_data_error
-            text: ""
-            font_size: 18
-            color: 1, 0.3, 0.3, 1
+
+        BoxLayout:
+            orientation: 'horizontal'
+            CheckBox:
+                id: ricorda
+                color: 0.294, 0.761, 0.623
+                size_hint_x: .20
+
+            Label:
+                id: label_ricorda_credenziali
+                text: "Ricorda la mia mail"
+                font_size: 18
+                foreground_color: 1, 1, 1, 1
+                size_hint_x: .80
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.size  # per far rispettare halign/valigntext_size: self.size  # per far rispettare halign/valign
+
+
+                Label:
+                    id: login_data_error
+                    text: ""
+                    font_size: 18
+                    color: 1, 0.3, 0.3, 1
 
         Button:
             text: "Accedi"
@@ -253,7 +272,7 @@
                     background_normal: ''
                     background_color: 1, 0.1, 0.1, 1
                     color: 1, 1, 1, 1
-                    on_release: app.root.current = 'login'
+                    on_release: root.logout()
 
                 ScrollView:
                     do_scroll_y: True

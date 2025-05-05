@@ -207,12 +207,11 @@ class LoginScreen(Screen):
     def on_pre_enter(self, *args):
         self.ids.mail.text = ''
         self.ids.password.text = ''
-
-    def check_state(self):
-        if self.ids.ricorda.active:
-            print("Checked")
-        else:
-            print("Unchecked")
+        try:
+            with open("credenziali.txt", 'r') as f:
+                self.ids.mail.text = f.read()
+        except Exception as e:
+            pass
 
     def login(self):
         mail = self.ids.mail.text.strip()
@@ -243,10 +242,20 @@ class LoginScreen(Screen):
                 carica_chat()
                 carica_gruppi()
 
-                thread_ricevi = threading.Thread(target=ricevi_messaggi)
                 thread_manda = threading.Thread(target=manda_messaggi)
                 thread_manda.start()
+
+
+                thread_ricevi = (threading.Thread(target=ricevi_messaggi))
                 thread_ricevi.start()
+
+
+                if self.ids.ricorda.active:
+                    with open("credenziali.txt", 'w') as f:
+                        f.write(mail)
+                else:
+                    with open("credenziali.txt", 'w') as f:
+                        f.write("")
 
             else:
                 self.ids.login_data_error.text = "mail o password non corrispondono"
@@ -289,6 +298,8 @@ class SigninScreen(Screen):
 
 
 class ChatScreen(Screen):
+
+
     username = StringProperty("")
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
