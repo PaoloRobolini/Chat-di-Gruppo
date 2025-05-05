@@ -103,6 +103,16 @@
             foreground_color: 1, 1, 1, 1
             padding: 15
 
+        TextInput:
+            id: password
+            hint_text: "Inserisci la password"
+            font_size: 20
+            password: True
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.3, 1
+            foreground_color: 1, 1, 1, 1
+            padding: 15
+
         Label:
             id: signin_data_error
             text: ""
@@ -224,6 +234,7 @@
                         pos: self.pos
                         size: self.size
 
+                # aggiungi contatto
                 Button:
                     size_hint: None, None
                     size: 100, 60
@@ -233,6 +244,16 @@
                     background_color: 0.1, 0.6, 1, 1
                     color: 1, 1, 1, 1
                     on_release: root.aggiungicontatto()
+
+                Button:
+                    size_hint: None, None
+                    size: 100, 60
+                    text: "Logout"
+                    font_size: 32
+                    background_normal: ''
+                    background_color: 1, 0.1, 0.1, 1
+                    color: 1, 1, 1, 1
+                    on_release: app.root.current = 'login'
 
                 ScrollView:
                     do_scroll_y: True

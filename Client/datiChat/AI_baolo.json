@@ -1,0 +1,28 @@
+{
+    "chat": [
+        {
+            "mittente": "baolo",
+            "messaggio": "ciao"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Bella zi! Che se dice? T'hai bisogno de qualcosa?"
+        },
+        {
+            "mittente": "baolo",
+            "messaggio": "come mando qualcuno a quel paese (come insulto) in maniera aulica"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "A zi', in maniera aulica, per manda' uno a quel paese, je poi di': \"Vattene a strologare le stelle in culonia remota!\" oppure \"Che tu possa peregrinare in lande desolate e infruttuose!\" Capito? Fa' che se ne vada col miasma sotto al naso!"
+        },
+        {
+            "mittente": "baolo",
+            "messaggio": "una domanda, perch\u00e9 mi stai rispondendo in romanaccio?"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Ah\u00f2! M'hai detto de fa' er baolo! Er baolo parla romanaccio, no? Che c'\u00e8 che non va?"
+        }
+    ]
+}

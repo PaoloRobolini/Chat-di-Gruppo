@@ -11,6 +11,7 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
+
 from utente import utente
 
 from kivy.app import App
@@ -202,6 +203,17 @@ def rimuovi_cartella_temp():
 
 
 class LoginScreen(Screen):
+
+    def on_pre_enter(self, *args):
+        self.ids.mail.text = ''
+        self.ids.password.text = ''
+
+    def check_state(self):
+        if self.ids.ricorda.active:
+            print("Checked")
+        else:
+            print("Unchecked")
+
     def login(self):
         mail = self.ids.mail.text.strip()
         password = self.ids.password.text.strip()
@@ -281,6 +293,13 @@ class ChatScreen(Screen):
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
     _selected_contact_button = None # Aggiunta: variabile per tenere traccia del pulsante selezionato
+
+
+    def logout(self):
+        schermata = self.manager.get_screen('login')
+        schermata.ids.username.text.clear()
+        schermata.ids.password.text.clear()
+        self.manager.current = 'login'
 
     def show_ai_status(self, show=True):
         if show:

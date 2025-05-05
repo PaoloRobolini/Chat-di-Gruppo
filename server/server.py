@@ -501,7 +501,7 @@ def ai(messaggio, username):
 
             elif "Verifica nomi" in risposta:
                 nomi = verifica_nomi(username)
-                risposta = str(chat.send_message(f"Questi sono tutti gli utenti con cui ho delle chat: {nomi["chat"]} questi sono i gruppi a cui faccio parte: {nomi["gruppi"]}").text)
+                risposta = str(chat.send_message(f"Questi sono tutti gli utenti con cui ho delle chat: {nomi['chat']} questi sono i gruppi a cui faccio parte: {nomi['gruppi']}").text)
             else:
                 esci = True
 
