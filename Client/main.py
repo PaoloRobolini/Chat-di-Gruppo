@@ -6,6 +6,7 @@ import socket
 import threading
 import time
 from ftplib import FTP
+import datetime
 
 from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -74,8 +75,14 @@ def carica_gruppi():
             with open(f"datiGruppi/{file}", "r") as f:
                 dati = json.load(f)
                 file = file[:-5]
-                # Modificato: Memorizza i messaggi come lista di stringhe
-                chat[file] = [f"{message['mittente']}> {message['messaggio']}" for message in dati['gruppo']]
+                chat[file] = [
+                    {
+                        "mittente": message["mittente"],
+                        "messaggio": message["messaggio"],
+                        "orario": message.get("orario", "")
+                    }
+                    for message in dati['gruppo']
+                ]
                 chat_screen = App.get_running_app().root.get_screen('chat')
                 chat_screen.aggiungi_nuovo_contatto(file)
 
@@ -95,8 +102,14 @@ def carica_chat():
 
             with open('datichat/' + nome_file, 'r') as file:
                 dati = json.load(file)
-                # Modificato: Memorizza i messaggi come lista di stringhe
-                chat[altro_utente] = [f"{message['mittente']}> {message['messaggio']}" for message in dati['chat']]
+                chat[altro_utente] = [
+                    {
+                        "mittente": message["mittente"],
+                        "messaggio": message["messaggio"],
+                        "orario": message.get("orario", "")
+                    }
+                    for message in dati['chat']
+                ]
                 chat_screen = App.get_running_app().root.get_screen('chat')
                 chat_screen.aggiungi_nuovo_contatto(altro_utente)
         except ValueError:
@@ -371,32 +384,60 @@ class ChatScreen(Screen):
             self.display_chat_history(testo) # Visualizza la chat vuota
 
     def display_chat_history(self, contact):
-        """Visualizza la cronologia della chat per il contatto selezionato."""
-        self.ids.chat_history_container.clear_widgets() # Pulisce i messaggi precedenti
+        self.ids.chat_history_container.clear_widgets()
+        last_date = None
         if contact in chat:
-            for message_text in chat[contact]:
-                self.add_message_bubble(message_text) # Aggiunge ogni messaggio come una bolla
+            for message_dict in chat[contact]:
+                # Estrai la data dal campo orario (formato: 'dd/mm/yyyy HH:MM:SS')
+                orario = message_dict.get("orario", "")
+                giorno = orario.split(" ")[0] if orario else None
+                if giorno and giorno != last_date:
+                    self.add_date_bubble(giorno)
+                    last_date = giorno
+                self.add_message_bubble(message_dict)
 
-    def add_message_bubble(self, message_text):
-        """Crea e aggiunge una bolla di messaggio alla chat con stile moderno."""
-        # Determina se il messaggio è dell'utente corrente
-        is_user_message = message_text.startswith(user.get_nome())
-        is_system_message = message_text.startswith("[Sistema]")
+    def add_date_bubble(self, giorno):
+        # Crea una bolla centrale per la data, più leggibile
+        date_row = BoxLayout(size_hint_y=None, height=36, padding=[0, 0, 0, 0])
+        date_bubble = BoxLayout(orientation='horizontal', size_hint=(None, None), size=(0, 0), padding=[16, 4, 16, 4])
+        date_label = Label(
+            text=giorno,
+            font_size='17sp',
+            color=(0.2, 0.2, 0.2, 1),
+            bold=True,
+            halign='center',
+            valign='middle',
+            size_hint=(None, None)
+        )
+        date_label.bind(texture_size=date_label.setter('size'))
+        date_bubble.add_widget(date_label)
+        def update_bubble_size(*args):
+            date_bubble.size = (date_label.width + date_bubble.padding[0] + date_bubble.padding[2], date_label.height + date_bubble.padding[1] + date_bubble.padding[3])
+            date_row.height = date_bubble.height + 8
+        date_label.bind(texture_size=update_bubble_size)
+        with date_bubble.canvas.before:
+            Color(0.85, 0.85, 0.85, 1)
+            bubble_bg = RoundedRectangle(pos=date_bubble.pos, size=date_bubble.size, radius=[12, 12, 12, 12])
+            date_bubble.bind(pos=lambda instance, value: setattr(bubble_bg, 'pos', value), size=lambda instance, value: setattr(bubble_bg, 'size', value))
+        date_row.add_widget(Widget(size_hint_x=1))
+        date_row.add_widget(date_bubble)
+        date_row.add_widget(Widget(size_hint_x=1))
+        update_bubble_size()
+        self.ids.chat_history_container.add_widget(date_row)
 
-        # Estrai mittente e messaggio
-        if is_system_message:
-            sender = "Sistema"
-            message_content = message_text[9:].strip()
-        else:
-            parts = message_text.split('>', 1)
-            if len(parts) > 1:
-                sender = parts[0].strip()
-                message_content = parts[1].strip()
-            else:
-                sender = "Sistema"
-                message_content = message_text.strip()
-
-        # Definisci i colori per diversi tipi di messaggi
+    def add_message_bubble(self, message_dict):
+        sender = message_dict["mittente"]
+        message_content = message_dict["messaggio"]
+        orario = message_dict.get("orario", "")
+        # Mostra solo l'orario (HH:MM) nella bolla, non la data
+        orario_solo = ""
+        if orario:
+            try:
+                orario_solo = orario.split(" ")[1][:5]  # Prendi solo HH:MM
+            except Exception:
+                orario_solo = orario
+        is_user_message = sender == user.get_nome()
+        is_system_message = sender == "Sistema"
         colors = {
             'user_bubble': (0.2, 0.6, 1, 1),
             'user_text': (1, 1, 1, 1),
@@ -404,11 +445,11 @@ class ChatScreen(Screen):
             'other_text': (0.2, 0.2, 0.2, 1),
             'system_bubble': (0.9, 0.9, 0.9, 0.7),
             'system_text': (0.4, 0.4, 0.4, 1),
-            'sender_name_user': (1, 1, 1, 1),      # Nome utente in bianco per contrasto su sfondo blu
-            'sender_name_other': (0.3, 0.3, 0.3, 1)  # Nome altri utenti in grigio scuro per contrasto su sfondo chiaro
+            'sender_name_user': (1, 1, 1, 1),
+            'sender_name_other': (0.3, 0.3, 0.3, 1),
+            'orario_user': (1, 1, 1, 0.85),  # Orario bianco semitrasparente per bolle blu
+            'orario_other': (0.3, 0.3, 0.3, 1)  # Orario scuro per bolle chiare
         }
-
-        # Scegli i colori appropriati
         if is_system_message:
             bubble_color = colors['system_bubble']
             text_color = colors['system_text']
@@ -418,109 +459,68 @@ class ChatScreen(Screen):
         else:
             bubble_color = colors['other_bubble']
             text_color = colors['other_text']
-
-        # Crea il layout della riga del messaggio
-        row = BoxLayout(
-            size_hint_y=None,
-            height=44,  # Altezza iniziale che verrà aggiornata
-            padding=[10, 5, 10, 5],  # Padding esterno della riga
-            spacing=10
-        )
-
-        # Crea il layout della bolla
-        bubble = BoxLayout(
-            orientation='vertical',
-            size_hint=(None, None),
-            size=(0, 0),  # Sarà aggiornato in base al contenuto
-            padding=[15, 10, 15, 10],  # Padding interno della bolla
-            spacing=4
-        )
-
+        row = BoxLayout(size_hint_y=None, height=44, padding=[10, 5, 10, 5], spacing=10)
+        bubble = BoxLayout(orientation='vertical', size_hint=(None, None), size=(0, 0), padding=[15, 10, 15, 10], spacing=4)
         max_bubble_width = self.ids.chat_history_container.width * 0.7
-
-        temp_label = Label(
-            text=message_content,
-            font_size='16sp'  # Aumentato da 14sp a 16sp
-        )
+        temp_label = Label(text=message_content, font_size='16sp')
         temp_label.texture_update()
-
         text_width = min(max(temp_label.texture_size[0] + 20, 100), max_bubble_width - bubble.padding[0] - bubble.padding[2])
-
-        # Aggiungi il nome del mittente se non è un messaggio di sistema
         if not is_system_message:
-            sender_label = Label(
-                text=sender,
-                size_hint=(None, None),
-                color=colors['sender_name_user'] if is_user_message else colors['sender_name_other'],
-                font_size='15sp',  # Aumentato da 12sp a 15sp
-                bold=True,
-                halign='left'
-            )
+            sender_label = Label(text=sender, size_hint=(None, None), color=colors['sender_name_user'] if is_user_message else colors['sender_name_other'], font_size='15sp', bold=True, halign='left')
             sender_label.bind(texture_size=sender_label.setter('size'))
             bubble.add_widget(sender_label)
-
-        # Crea la label per il messaggio
-        msg_label = Label(
-            text=message_content,
-            size_hint=(None, None),
-            color=text_color,
-            font_size='16sp',  # Aumentato da 14sp a 16sp
-            text_size=(text_width, None),  # Usa la larghezza calcolata
-            halign='left',
-            valign='middle'
-        )
+        msg_label = Label(text=message_content, size_hint=(None, None), color=text_color, font_size='16sp', text_size=(text_width, None), halign='left', valign='middle')
         msg_label.bind(texture_size=msg_label.setter('size'))
         bubble.add_widget(msg_label)
-
-        # Funzione per aggiornare le dimensioni della bolla
+        # Orario in basso a destra, solo HH:MM
+        if orario_solo:
+            orario_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=18)
+            if is_user_message:
+                orario_label = Label(
+                    text=orario_solo,
+                    size_hint=(1, None),
+                    color=colors['orario_user'],
+                    font_size='13sp',
+                    halign='right',
+                    valign='bottom',
+                    padding_x=0, padding_y=0
+                )
+            else:
+                orario_label = Label(
+                    text=orario_solo,
+                    size_hint=(1, None),
+                    color=colors['orario_other'],
+                    font_size='12sp',
+                    halign='right',
+                    valign='bottom',
+                    padding_x=0, padding_y=0
+                )
+            orario_label.bind(texture_size=orario_label.setter('size'))
+            orario_box.add_widget(Widget(size_hint_x=1))
+            orario_box.add_widget(orario_label)
+            bubble.add_widget(orario_box)
         def update_bubble_size(*args):
-            # Calcola l'altezza totale del contenuto
             content_height = sum(c.height for c in bubble.children) + bubble.spacing * (len(bubble.children) - 1)
-            # Trova la larghezza massima tra i widget
-            content_width = max(c.width for c in bubble.children)
-            # Aggiorna le dimensioni della bolla considerando il padding
-            bubble.size = (
-                content_width + bubble.padding[0] + bubble.padding[2],
-                content_height + bubble.padding[1] + bubble.padding[3]
-            )
-            # Aggiorna l'altezza della riga
+            content_width = max((c.width for c in bubble.children), default=0)
+            bubble.size = (content_width + bubble.padding[0] + bubble.padding[2], content_height + bubble.padding[1] + bubble.padding[3])
             row.height = bubble.height + row.padding[1] + row.padding[3]
-
-        # Collega l'aggiornamento delle dimensioni
         msg_label.bind(texture_size=update_bubble_size)
         if not is_system_message:
             sender_label.bind(texture_size=update_bubble_size)
-
-        # Aggiungi lo sfondo della bolla
+        if orario_solo:
+            orario_label.bind(texture_size=update_bubble_size)
         with bubble.canvas.before:
             Color(*bubble_color)
-            if is_user_message:
-                radius = [15, 15, 3, 15]
-            else:
-                radius = [15, 15, 15, 3]
-
-            bubble_bg = RoundedRectangle(
-                pos=bubble.pos,
-                size=bubble.size,
-                radius=radius
-            )
-            # Aggiorna la posizione e dimensione dello sfondo quando la bolla cambia
-            bubble.bind(
-                pos=lambda instance, value: setattr(bubble_bg, 'pos', value),
-                size=lambda instance, value: setattr(bubble_bg, 'size', value)
-            )
-
-        # Aggiungi la bolla alla riga con l'allineamento appropriato
+            radius = [15, 15, 3, 15] if is_user_message else [15, 15, 15, 3]
+            bubble_bg = RoundedRectangle(pos=bubble.pos, size=bubble.size, radius=radius)
+            bubble.bind(pos=lambda instance, value: setattr(bubble_bg, 'pos', value), size=lambda instance, value: setattr(bubble_bg, 'size', value))
         if is_user_message:
-            row.add_widget(Widget(size_hint_x=1))  # Spacer a sinistra
+            row.add_widget(Widget(size_hint_x=1))
             row.add_widget(bubble)
         else:
             row.add_widget(bubble)
-            row.add_widget(Widget(size_hint_x=1))  # Spacer a destra
-
+            row.add_widget(Widget(size_hint_x=1))
         update_bubble_size()
-
-        # Aggiungi la riga alla chat
         self.ids.chat_history_container.add_widget(row)
 
     def send_message(self):
@@ -529,10 +529,14 @@ class ChatScreen(Screen):
             if user.get_destinatario() not in chat:
                 chat[user.get_destinatario()] = []
 
-            # Aggiunge il messaggio alla chat locale immediatamente come stringa
-            full_message_text = f"{user.get_nome()}> {message}"
-            chat[user.get_destinatario()].append(full_message_text)
-            self.add_message_bubble(full_message_text) # Aggiunge il bottone alla UI
+            # Crea il dizionario messaggio
+            message_dict = {
+                "mittente": user.get_nome(),
+                "messaggio": message,
+                "orario": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            }
+            chat[user.get_destinatario()].append(message_dict)
+            self.add_message_bubble(message_dict) # Aggiunge il bottone alla UI
 
             self.ids.message_input.text = ""
 
@@ -550,7 +554,11 @@ class ChatScreen(Screen):
         else:
             chat_id = messaggio["mittente"]
 
-        nuovo_messaggio_text = f"{messaggio['mittente']} > {messaggio['messaggio']}"
+        message_dict = {
+            "mittente": messaggio["mittente"],
+            "messaggio": messaggio["messaggio"],
+            "orario": messaggio.get("orario", datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+        }
 
         if chat_id not in self.contact_buttons:
             Clock.schedule_once(
@@ -559,13 +567,13 @@ class ChatScreen(Screen):
 
         if chat_id not in chat:
             chat[chat_id] = []
-        chat[chat_id].append(nuovo_messaggio_text)
+        chat[chat_id].append(message_dict)
 
         if chat_id == user.get_destinatario():
             if chat_id == "AI":
                 self.show_ai_status(False)
             Clock.schedule_once(
-                lambda dt: self.add_message_bubble(nuovo_messaggio_text)
+                lambda dt: self.add_message_bubble(message_dict)
             )
 
 
