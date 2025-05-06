@@ -11,7 +11,7 @@ from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
 import datetime
 
-HOST = "0.0.0.0"
+HOST = "26.117.59.21"
 PORT = 50000
 FTP_PORT = 21
 server_address = (HOST, PORT)
@@ -645,7 +645,7 @@ def handle_client(client_socket, client_address):
     try:
         while True:
             try:
-                data = client_socket.recv(4096)
+                data = client_socket.recv(8192)
                 print(f"{client_address}: {data}")
                 if not data:
                     print(f"Client {client_address} disconnesso.")
