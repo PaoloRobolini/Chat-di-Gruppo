@@ -24,22 +24,8 @@ from kivy.uix.widget import Widget # Importa Widget per lo Spacer
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
-import pyaudio
+
 import struct
-
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 44100
-SILENCE_THRESHOLD = 500  # più basso = più sensibile
-
-p = pyaudio.PyAudio()
-
-stream_output = p.open(format=FORMAT,
-                                   channels=CHANNELS,
-                                   rate=RATE,
-                                   output=True,
-                                   frames_per_buffer=CHUNK)
 
 
 Builder.load_file("chat.kv")
@@ -218,19 +204,21 @@ def rimuovi_cartella_temp():
 class LoginScreen(Screen):
 
     def on_pre_enter(self, *args):
-        self.ids.mail.text = ''
         self.ids.password.text = ''
-        try:
-            with open("credenziali.txt", 'r') as f:
-                self.ids.mail.text = f.read()
-        except Exception as e:
-            pass
+        with open("credenziali.txt", 'r') as f:
+            self.ids.mail.text = f.read()
+            self.ids.ricorda.active = (self.ids.mail.text != '')
+
+
 
     def login(self):
+        global user
+        user = None
+        if user != None:
+            del user
         mail = self.ids.mail.text.strip()
         password = self.ids.password.text.strip()
         if mail and password:
-            global user
             user = utente(mail=mail, password=password)
 
             dati_serializzati = json.dumps(user.crea_azione(comando="login")).encode('utf-8')
@@ -264,10 +252,13 @@ class LoginScreen(Screen):
 
 
                 if self.ids.ricorda.active:
+                    #print("Checkbox attivo")
                     with open("credenziali.txt", 'w') as f:
+                        #print(f"Ho salvato la mail {mail} nel file")
                         f.write(mail)
                 else:
                     with open("credenziali.txt", 'w') as f:
+                        #("Svuoto")
                         f.write("")
 
             else:
@@ -323,6 +314,7 @@ class ChatScreen(Screen):
 
 
     def logout(self):
+        user.set_nome(None)
         self.manager.current = 'login'
         coda_manda_msg.put(user.crea_azione(comando="logout"))
         chat = {}
@@ -743,154 +735,6 @@ class ChatScreen(Screen):
     lock = threading.Lock()
 
 
-    def send_call(self):
-        stream_input = p.open(format=FORMAT,
-                              channels=CHANNELS,
-                              rate=RATE,
-                              input=True,
-                              frames_per_buffer=CHUNK)
-        while True:
-            if self.chiamata_accettata is True:
-                data = stream_input.read(CHUNK, exception_on_overflow=False)
-                data = base64.b64encode(data).decode('utf-8')
-                user.set_pacchetto_audio(data)
-                azione = user.crea_azione(comando="chiamata")
-
-                coda_manda_msg.put(azione)
-
-                # Calcola energia del pacchetto audio
-                data_decoded = base64.b64decode(data)  # 🔥 Da base64 torna a bytes veri
-                samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
-                energy = sum(abs(sample) for sample in samples) / len(samples)
-
-                if energy > SILENCE_THRESHOLD:
-                    print("🎙️ Sto inviando audio... (energia:", int(energy), ")")
-                else:
-                    print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
-            else:
-                break
-        # Assicurati che il thread termini correttamente
-        if hasattr(self, 'thread') and self.thread.is_alive():
-             self.thread.join()
-
-
-    def start_call(self):
-        if user.get_destinatario() is not None:
-            with self.lock:
-                accettata = self.chiamata_accettata
-
-            if accettata is None:
-                azione = user.crea_azione(comando="richiesta_chiamata")
-                coda_manda_msg.put(azione)
-            elif accettata is True:
-                self.ids.incoming_call_box.opacity = 1
-                self.ids.incoming_call_box.disabled = False
-                # Assicurati che caller_name sia impostato correttamente
-                self.ids.caller_name.text = user.get_destinatario() # Mostra il nome del destinatario
-                self.thread = threading.Thread(target=self.send_call) # Salva il thread per poterlo joinare
-                self.thread.start()
-                print("thread avviato")
-            elif accettata is False:
-                # Assicurati che il thread esista prima di provare a joinarlo
-                 if hasattr(self, 'thread') and self.thread.is_alive():
-                    self.thread.join()
-
-
-    def get_call(self, pacchetto_audio2):
-        #thread che riceve e gestisce il pacchetto audio
-        print(type(pacchetto_audio2))
-        pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
-        stream_output.write(pacchetto_audio2)
-
-        data_decoded = pacchetto_audio2
-        samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
-        energy = sum(abs(sample) for sample in samples) / len(samples)
-
-        if energy > SILENCE_THRESHOLD:
-            print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
-        else:
-            print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
-
-    def accettazione_chiamata(self, start_time):
-        while True:
-            now = time.time()
-            elapsed = now - start_time
-
-            with self.lock:
-                accettata = self.chiamata_accettata
-
-            if elapsed > 5 and accettata is None:
-                with self.lock:
-                    self.chiamata_accettata = False
-                break
-
-            if accettata is True or accettata is False:
-                break
-
-        with self.lock:
-            if self.chiamata_accettata is True:
-                azione = user.crea_azione(comando="chiamata_accettata")
-            else:
-                azione = user.crea_azione(comando="chiamata_rifiutata")
-        coda_manda_msg.put(azione)
-
-    def receive_call(self, messaggio):
-        comando = messaggio.get("comando")
-        mittente = messaggio.get("mittente")
-
-        if comando == "richiesta_chiamata":
-            self.ids.incoming_call_box.opacity = 1
-            self.ids.incoming_call_box.disabled = False
-            self.ids.caller_name.text = mittente # Mostra il nome del chiamante
-            start_time = time.time()
-            thread = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
-            thread.start()
-
-        elif comando == "chiamata_accettata":
-            with self.lock:
-                self.chiamata_accettata = True
-            self.start_call() # Avvia la chiamata in uscita dopo l'accettazione
-
-        elif comando == "chiamata_rifiutata":
-            with self.lock:
-                self.chiamata_accettata = False
-            # Nasconde la finestra di chiamata in arrivo se rifiutata
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-
-
-        elif comando == "chiamata":
-            pacchetto_audio = messaggio.get("pacchetto_audio")
-            # user.set_destinatario(mittente) # Non impostare il destinatario qui, potrebbe cambiare la chat corrente
-            thread = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
-            thread.start()
-
-
-    def accetta_chiamata(self):
-        with self.lock:
-            self.chiamata_accettata = True
-            azione = user.crea_azione(comando="chiamata_accettata")
-            coda_manda_msg.put(azione)
-            # Nasconde la finestra di chiamata in arrivo
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-            # Avvia l'invio dell'audio solo se non è già in corso
-            if not hasattr(self, 'thread') or not self.thread.is_alive():
-                 self.thread = threading.Thread(target=self.send_call)
-                 self.thread.start()
-
-
-    def rifiuta_chiamata(self):
-        with self.lock:
-            self.chiamata_accettata = False
-            azione = user.crea_azione(comando="chiamata_rifiutata")
-            coda_manda_msg.put(azione)
-            # Nasconde la finestra di chiamata in arrivo
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-            # Assicurati che il thread esista prima di provare a joinarlo
-            if hasattr(self, 'thread') and self.thread.is_alive():
-                 self.thread.join()
 
 
 class AggiungiContatto(Screen):
