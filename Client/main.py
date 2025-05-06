@@ -63,6 +63,7 @@ global temp_folder_info
 temp_folder_info = None
 
 
+
 def carica_gruppi():
     files_chat = [
         f for f in os.listdir('datiGruppi')
@@ -224,6 +225,13 @@ class LoginScreen(Screen):
             self.ids.ricorda.active = (self.ids.mail.text != '')
 
 
+    def chiudi(self):
+        try:
+            ChatScreen.logout(self)
+        except NameError:
+            pass
+        App.get_running_app().stop()
+
 
     def login(self):
         global user
@@ -282,6 +290,10 @@ class LoginScreen(Screen):
 
 
 class SigninScreen(Screen):
+
+    def chiudi(self):
+        return LoginScreen.chiudi(self)
+
     def signin(self):
         username = self.ids.username.text
         mail = self.ids.mail.text.strip()

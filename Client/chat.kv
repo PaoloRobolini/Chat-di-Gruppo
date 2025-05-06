@@ -8,8 +8,8 @@
 
     BoxLayout:
         orientation: 'vertical'
-        padding: 60, 30, 60, 30
-        spacing: 25
+        padding: 60, 15, 60, 10
+        spacing: 20
 
         Label:
             text: "Benvenuto in Biscord!"
@@ -41,6 +41,7 @@
 
         BoxLayout:
             orientation: 'horizontal'
+            padding: 0, 0, 0, 0
             CheckBox:
                 id: ricorda
                 color: 0.294, 0.761, 0.623
@@ -82,6 +83,15 @@
             on_release: app.root.current = "signin"
 
 
+        Button:
+            text: "Esci"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.9, 0.4, 0.4, 1
+            on_release: root.chiudi()
+
+
 <SigninScreen>:
     canvas.before:
         Color:
@@ -92,7 +102,7 @@
 
     BoxLayout:
         orientation: 'vertical'
-        padding: 60, 30, 60, 50
+        padding: 60, 15, 60, 20
         spacing: 20
 
         Label:
@@ -106,7 +116,7 @@
         TextInput:
             id: username
             hint_text: "Inserisci il tuo username"
-            font_size: 20
+            font_size: 18
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
             foreground_color: 1, 1, 1, 1
@@ -115,7 +125,7 @@
         TextInput:
             id: mail
             hint_text: "Inserisci il tuo indirizzo mail"
-            font_size: 20
+            font_size: 18
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
             foreground_color: 1, 1, 1, 1
@@ -124,7 +134,7 @@
         TextInput:
             id: password
             hint_text: "Inserisci la password"
-            font_size: 20
+            font_size: 18
             password: True
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
@@ -154,6 +164,14 @@
             background_color: 0, 0, 0, 0
             color: 0.6, 0.8, 1, 1
             on_release: app.root.current = "login"
+
+        Button:
+            text: "Esci"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.9, 0.4, 0.4, 1
+            on_release: root.chiudi()
 
 
 <ChatScreen>:
@@ -272,6 +290,13 @@
                     background_color: 1, 0.1, 0.1, 1
                     color: 1, 1, 1, 1
                     on_release: root.logout()
+                    Image:
+                        size: 100, 60
+                        source: 'logout.png'
+                        center_x: self.parent.center_x
+                        center_y: self.parent.center_y
+                        size_hint: None, None
+
 
                 ScrollView:
                     do_scroll_y: True
