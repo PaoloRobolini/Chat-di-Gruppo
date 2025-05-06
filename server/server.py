@@ -10,7 +10,7 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
 
-HOST = "26.117.59.21"
+HOST = "127.0.0.1"
 PORT = 50000
 FTP_PORT = 21
 server_address = (HOST, PORT)
@@ -28,19 +28,6 @@ user_ai_chats_lock = threading.Lock()
 
 # Variabili globali per l'authorizer FTP
 ftp_authorizer = DummyAuthorizer()
-
-
-global gruppi_chiamate
-gruppi_chiamate = [
-    {
-        "nome": "Amici",
-        "membri": ["Luca", "Anna"]
-    },
-    {
-        "nome": "Famiglia",
-        "membri": ["Mamma", "Papà"]
-    }
-]
 
 with open("chiave.txt", "r") as file:
     chiave = file.read()
@@ -72,7 +59,7 @@ def manda_messaggio(messaggio, mittente, destinatario):
     gruppo, membri = is_group(destinatario)
     with clients_lock:
         for membro in membri:
-            if membro in clients_sockets:
+            if membro != mittente and membro in clients_sockets:
                 clients_sockets[membro].sendall(json.dumps(messaggio).encode('utf-8'))
 
 def is_group(destinatario):
@@ -556,8 +543,7 @@ def inoltra_messaggio(messaggio, logged_in_username):
 
         manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
-
-'''def inoltra_chiamata(messaggio, logged_in_username):
+def inoltra_chiamata(messaggio, logged_in_username):
 
     print("entro in ilk=noltyra chiamata")
 
@@ -565,169 +551,19 @@ def inoltra_messaggio(messaggio, logged_in_username):
     mittente = messaggio.get("mittente")
     destinatario = messaggio.get("destinatario")
     pacchetto_audio = messaggio.get("pacchetto_audio")
-    nome_gruppo = messaggio.get("gruppo_chiamata")
-
-    print(nome_gruppo)
 
     gruppo, membri = is_group(destinatario)
 
     if gruppo:
-        print("e` un gruppo e quindi metto in nome gruppo il nome del gruppo")
-        nome_gruppo = destinatario
-
-    print("nome_gruppo = ", nome_gruppo)
-
-    if comando == "richiesta_chiamata":
-        if gruppo:
-            for i in gruppi_chiamate:
-                print("gruppo chiamata: ", i)
-                if i["nome"] == nome_gruppo:
-                    if mittente in i["membri"]:
-                        messaggio_da_inoltrare = {"comando": "chiamata_accettata", "nome_gruppo": nome_gruppo,
-                                                "pacchetto_audio": pacchetto_audio}
-                        manda_messaggio(messaggio_da_inoltrare, mittente, mittente)
-                        break
-                    else:
-                        gruppo["membri"].append(mittente)
-                        break
-            lista_temp = [mittente]
-            nuovo_gruppo = {"nome": destinatario, "membri": lista_temp, }
-            gruppi_chiamate.append(nuovo_gruppo)
-            messaggio_da_inoltrare = {"comando": "chiamata_accettata", "nome_gruppo": destinatario,
-                                      "pacchetto_audio": pacchetto_audio,
-                                      "membri": membri}
-            manda_messaggio(messaggio_da_inoltrare, mittente, mittente) #anceh se il secondo parametro sarebbe il destinatario
-                                                                        #in questo caso si rimanda ikl pachchetto al mittente
-        else:
-            print("non sono in nessun gruppo")
-            messaggio_da_inoltrare = {"comando": comando, "mittente": mittente,
-                                      "pacchetto_audio": pacchetto_audio}
-            manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
-    elif comando == "chiamata":
-        if gruppo:
-            for i in gruppi_chiamate:
-                if i["nome"] == nome_gruppo:
-                    for x in gruppo["membri"]:
-                        messaggio_da_inoltrare = {"comando": "chiamata", "nome_gruppo": nome_gruppo,
-                                                  "pacchetto_audio": pacchetto_audio}
-                        manda_messaggio(messaggio_da_inoltrare, mittente, x)
-        else:
-            print("non sono in nessun gruppo")
-            messaggio_da_inoltrare = {"comando": comando, "mittente": mittente,
-                                      "pacchetto_audio": pacchetto_audio}
-            manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
-
-    elif comando == "chiamata_terminata":
-        if gruppo:
-            for i in range(len(gruppi_chiamate)):
-                if i["nome"] == nome_gruppo:
-                    for i in gruppo["membri"]:
-                        if i == mittente:
-                            gruppo["membri"].remove(mittente)
-
+        messaggio_da_inoltrare = {"comando": comando, "nome_gruppo": destinatario,
+                                  "mittente": mittente, "pacchetto_audio": pacchetto_audio}
     else:
         messaggio_da_inoltrare = {"comando": comando, "mittente": mittente,
                                   "pacchetto_audio": pacchetto_audio}
-        manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
+    manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
     print("esco da ilk=noltyra chiamata")
-'''
-
-def inoltra_chiamata(messaggio, logged_in_username):
-    print("entro in inoltra_chiamata")
-
-    comando = messaggio.get("comando")
-    mittente = messaggio.get("mittente")
-    destinatario = messaggio.get("destinatario")
-    pacchetto_audio = messaggio.get("pacchetto_audio")
-    nome_gruppo = messaggio.get("gruppo_chiamata")
-
-    print("gruppo_chiamata (iniziale):", nome_gruppo)
-
-    gruppo, membri = is_group(destinatario)
-
-    if gruppo:
-        print("È un gruppo: aggiorno nome_gruppo")
-        nome_gruppo = destinatario
-
-    print("nome_gruppo =", nome_gruppo)
-
-    if comando == "richiesta_chiamata":
-        if gruppo:
-            trovato = False
-            for g in gruppi_chiamate:
-                if g.get("nome") == nome_gruppo:
-                    trovato = True
-                    if mittente in g["membri"]:
-                        messaggio_da_inoltrare = {
-                            "comando": "chiamata_accettata",
-                            "nome_gruppo": nome_gruppo,
-                            "pacchetto_audio": pacchetto_audio
-                        }
-                        manda_messaggio(messaggio_da_inoltrare, mittente, mittente)
-                    else:
-                        g["membri"].append(mittente)
-                    break
-
-            if not trovato:
-                lista_temp = [mittente]
-                nuovo_gruppo = {"nome": nome_gruppo, "membri": lista_temp}
-                gruppi_chiamate.append(nuovo_gruppo)
-                messaggio_da_inoltrare = {
-                    "comando": "chiamata_accettata",
-                    "nome_gruppo": nome_gruppo,
-                    "pacchetto_audio": pacchetto_audio,
-                    "membri": membri
-                }
-                manda_messaggio(messaggio_da_inoltrare, mittente, mittente)
-        else:
-            print("Non è un gruppo")
-            messaggio_da_inoltrare = {
-                "comando": comando,
-                "mittente": mittente,
-                "pacchetto_audio": pacchetto_audio
-            }
-            manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
-
-
-    elif comando == "chiamata":
-        for g in gruppi_chiamate:
-            if g.get("nome") == nome_gruppo:
-                for membro in g["membri"]:
-                    if membro != mittente:  # evita di inviare il pacchetto a se stesso
-                        messaggio_da_inoltrare = {
-                            "comando": "chiamata",
-                            "nome_gruppo": nome_gruppo,
-                            "pacchetto_audio": pacchetto_audio
-                        }
-                        manda_messaggio(messaggio_da_inoltrare, mittente, membro)
-                break
-        else:
-            messaggio_da_inoltrare = {
-                "comando": comando,
-                "mittente": mittente,
-                "pacchetto_audio": pacchetto_audio
-            }
-            manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
-
-    elif comando == "chiamata_terminata":
-        if gruppo:
-            for g in gruppi_chiamate:
-                if g.get("nome") == nome_gruppo:
-                    if mittente in g["membri"]:
-                        g["membri"].remove(mittente)
-                    break
-
-    else:
-        messaggio_da_inoltrare = {
-            "comando": comando,
-            "mittente": mittente,
-            "pacchetto_audio": pacchetto_audio
-        }
-        manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
-
-    print("esco da inoltra_chiamata")
 
 
 def is_in_gruppo(messaggio, logged_in_username):
@@ -883,9 +719,7 @@ def handle_client(client_socket, client_address):
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
             elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata_terminata"]:
-                print("mando a inoltra chiamata")
                 inoltra_chiamata(messaggio, logged_in_username)
-                print("ho mandato a inoltra chiamata")
 
 
 

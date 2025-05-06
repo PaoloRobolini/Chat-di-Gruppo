@@ -31,15 +31,14 @@ SILENCE_THRESHOLD = 500  # più basso = più sensibile
 p = pyaudio.PyAudio()
 
 stream_output = p.open(format=FORMAT,
-                                   channels=CHANNELS,
-                                   rate=RATE,
-                                   output=True,
-                                   frames_per_buffer=CHUNK)
-
+                       channels=CHANNELS,
+                       rate=RATE,
+                       output=True,
+                       frames_per_buffer=CHUNK)
 
 Builder.load_file("chat.kv")
 
-ip_server = "26.117.59.21"
+ip_server = "127.0.0.1"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -56,9 +55,6 @@ chat = {}
 global user
 global temp_folder_info
 temp_folder_info = None
-
-global conta
-conta = None
 
 
 def carica_gruppi():
@@ -105,7 +101,6 @@ def carica_chat():
 
 
 def scarica_chat(cartella, cartella_temp, files):
-
     try:
         global temp_folder_info
 
@@ -132,7 +127,7 @@ def scarica_chat(cartella, cartella_temp, files):
             for nome_file in files:
                 file_path = os.path.join(cartella, nome_file)
                 print(f"Scaricamento di {nome_file}...")
-                
+
                 try:
                     with open(file_path, 'wb') as f:
                         ftp.retrbinary(f'RETR {nome_file}', f.write)
@@ -159,7 +154,7 @@ def rimuovi_cartella_temp():
     if temp_folder_info is None:
         print("Nessuna informazione sulla cartella temporanea disponibile")
         return
-        
+
     try:
         ftp = FTP()
         ftp.connect(ip_server, ftp_port)
@@ -190,10 +185,10 @@ def rimuovi_cartella_temp():
             ftp.cwd("/")
             ftp.rmd(cartella_temp)
             print(f"Cartella temporanea {cartella_temp} rimossa dal server")
-            
+
             # Resetta le informazioni della cartella temporanea
             temp_folder_info = None
-            
+
         except Exception as e:
             print(f"Errore nella rimozione della cartella temporanea {cartella_temp}: {e}")
 
@@ -315,7 +310,7 @@ class ChatScreen(Screen):
         if message and user.get_destinatario() is not None:
             if not chat[user.get_destinatario()]:
                 chat[user.get_destinatario()] = ''
-            
+
             # Aggiunge il messaggio alla chat locale immediatamente
             chat[user.get_destinatario()] += f"\n{user.get_nome()}> {message}"
             self.chat_history = chat[user.get_destinatario()]
@@ -324,7 +319,7 @@ class ChatScreen(Screen):
             # Se il destinatario è l'AI, mostra l'indicatore di stato
             if user.get_destinatario() == "AI":
                 self.show_ai_status(True)
-                
+
             # Crea e invia il messaggio in modo asincrono
             azione = user.crea_azione(comando="messaggio", messaggio=message)
             coda_manda_msg.put(azione)
@@ -450,7 +445,8 @@ class ChatScreen(Screen):
         else:
             chat_id = mittente
 
-        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio", ""):
+        if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio",
+                                                                                                           ""):
             if chat_id in chat:
                 chat[chat_id] += f"\n{messaggio['messaggio']}"
                 if chat_id == user.get_destinatario():
@@ -531,13 +527,10 @@ class ChatScreen(Screen):
                         self.chat_history += error_msg
                 print(f"Errore FTP dettagliato: {e}")
 
-
-
     chiamata_accettata = None
     lock = threading.Lock()
 
-
-    def send_call(self, nome_gruppo = None):
+    def send_call(self):
         stream_input = p.open(format=FORMAT,
                               channels=CHANNELS,
                               rate=RATE,
@@ -548,8 +541,6 @@ class ChatScreen(Screen):
                 data = stream_input.read(CHUNK, exception_on_overflow=False)
                 data = base64.b64encode(data).decode('utf-8')
                 user.set_pacchetto_audio(data)
-                if nome_gruppo:
-                    user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata")
 
                 coda_manda_msg.put(azione)
@@ -568,8 +559,7 @@ class ChatScreen(Screen):
         stream_input.stop_stream()
         stream_input.close()
 
-
-    def start_call(self, nome_gruppo = None, mittente = None):
+    def start_call(self):
         if user.get_destinatario() is not None:
             with self.lock:
                 accettata = self.chiamata_accettata
@@ -578,25 +568,15 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
-                if nome_gruppo == None:
-                    user.set_destinatario_chiamata(mittente)
-                    Clock.schedule_once(self.opacity1)
-                    Clock.schedule_once(self.updateFalse)
-                    # self.ids.caller_name = user.get_nome()
-                    self.thread_manda_chiamata = threading.Thread(target=self.send_call)
-                    self.thread_manda_chiamata.start()
-                else:
-                    user.set_destinatario_chiamata(None)
-                    user.set_destinatario(nome_gruppo)
-                    Clock.schedule_once(self.opacity1)
-                    Clock.schedule_once(self.updateFalse)
-                    # self.ids.caller_name = user.get_nome()
-                    self.thread_manda_chiamata = threading.Thread(target=self.send_call, args=(nome_gruppo,))
-                    self.thread_manda_chiamata.start()
+                user.set_destinatario_chiamata(user.get_destinatario())
+                Clock.schedule_once(self.opacity1)
+                Clock.schedule_once(self.updateFalse)
+                # self.ids.caller_name = user.get_nome()
+                self.thread_manda = threading.Thread(target=self.send_call)
+                self.thread_manda.start()
                 print("thread avviato")
             elif accettata is False:
                 print("Chiamata rifiutata.")
-
 
     def get_call(self, pacchetto_audio2):
         if self.chiamata_accettata is True:
@@ -614,7 +594,7 @@ class ChatScreen(Screen):
             else:
                 print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
 
-    def accettazione_chiamata(self, start_time, nome_gruppo):
+    def accettazione_chiamata(self, start_time):
         while True:
             now = time.time()
             elapsed = now - start_time
@@ -632,94 +612,55 @@ class ChatScreen(Screen):
 
         with self.lock:
             if self.chiamata_accettata is True:
-                if nome_gruppo:
-                    user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata_accettata")
             else:
-                if nome_gruppo:
-                    user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata_rifiutata")
         coda_manda_msg.put(azione)
 
     def receive_call(self, messaggio):
         print("entro in receive call")
         comando = messaggio.get("comando")
-        global mittente
         mittente = messaggio.get("mittente")
 
-        global nome_gruppo
-
-        try:
-            membri = messaggio.get("membri")
-        except:
-            pass
-
-        try:
-            nome_gruppo = messaggio.get("nome_gruppo")
-        except:
-            pass
-
         if comando == "richiesta_chiamata":
-            if nome_gruppo:
-                user.set_destinatario_chiamata(nome_gruppo)
-            else:
-                user.set_destinatario_chiamata(mittente)
             Clock.schedule_once(self.opacity1)
             Clock.schedule_once(self.updateFalse)
-            #self.ids.caller_name = mittente
+            # self.ids.caller_name = mittente
             start_time = time.time()
-            self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time, nome_gruppo))
+            self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
             self.thread_accettazione.start()
 
         elif comando == "chiamata_accettata":
-            if nome_gruppo:
-                with self.lock:
-                    self.chiamata_accettata = True
-                    print("entro")
-                self.start_call(nome_gruppo)
-                print("in teoria avvio start call")
-            else:
-                with self.lock:
-                    self.chiamata_accettata = True
-                    print("entro")
-                self.start_call(nome_gruppo, mittente)
-                print("in teoria avvio start call")
+            with self.lock:
+                self.chiamata_accettata = True
+                print("entro")
+            self.start_call()
+            print("in teoria avvio start call")
 
         elif comando == "chiamata_rifiutata":
-            conta += 1
-            if conta == len(membri):
-                with self.lock:
-                    self.chiamata_accettata = False
-            else:
-                with self.lock:
-                    self.chiamata_accettata = None
-
-
+            with self.lock:
+                self.chiamata_accettata = False
 
         elif comando == "chiamata":
             print("chiamata")
             pacchetto_audio = messaggio.get("pacchetto_audio")
-            self.thread_ricevi_chiamata = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
-            self.thread_ricevi_chiamata.start()
+            user.set_destinatario_chiamata(mittente)
+            self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
+            self.thread_ricevi.start()
 
         elif comando == "chiamata_terminata":
             print("entro in chiamata terminata")
             with self.lock:
                 self.chiamata_accettata = None
-            self.thread_ricevi_chiamata.join()
-            self.thread_manda_chiamata.join()
+            self.thread_ricevi.join()
+            self.thread_manda.join()
             Clock.schedule_once(self.opacity0)
             Clock.schedule_once(self.updateTrue)
 
     def accetta_chiamata(self):
-        if nome_gruppo is None:
-            with self.lock:
-                self.chiamata_accettata = True
-            self.start_call()
-        else:
-            with self.lock:
-                self.chiamata_accettata = True
-            self.start_call(nome_gruppo, mittente)
+        with self.lock:
+            self.chiamata_accettata = True
+        self.start_call()
 
     def rifiuta_chiamata(self):
         with self.lock:
@@ -729,8 +670,8 @@ class ChatScreen(Screen):
                 self.chiamata_accettata = None
             azione = user.crea_azione(comando="chiamata_terminata")
             coda_manda_msg.put(azione)
-            self.thread_ricevi_chiamata.join()
-            self.thread_manda_chiamata.join()
+            self.thread_ricevi.join()
+            self.thread_manda.join()
             Clock.schedule_once(self.opacity0)
             Clock.schedule_once(self.updateTrue)
         elif accettata is False:
@@ -810,7 +751,8 @@ if __name__ == '__main__':
                         messaggio = json.loads(data.decode())
 
                         if "comando" in messaggio:
-                            if messaggio["comando"] in ["richiesta_chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata", "chiamata_terminata"]:
+                            if messaggio["comando"] in ["richiesta_chiamata", "chiamata_accettata",
+                                                        "chiamata_rifiutata", "chiamata", "chiamata_terminata"]:
                                 chat_screen = App.get_running_app().root.get_screen('chat')
                                 chat_screen.receive_call(messaggio)
                             else:
@@ -836,6 +778,7 @@ if __name__ == '__main__':
             else:
                 print(f"Comando non gestito: {messaggio['comando']}")
 
+
     def manda_messaggi():
         while True:
             messaggio = coda_manda_msg.get()
@@ -853,6 +796,7 @@ if __name__ == '__main__':
                     s.sendall(json.dumps(messaggio).encode("utf-8"))
             except Exception as e:
                 print(f"Errore nell'invio del messaggio: {e}")
+
 
     cartella_destinazione = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_ricevuti")
     os.makedirs(cartella_destinazione, exist_ok=True)

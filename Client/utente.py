@@ -7,7 +7,6 @@ class utente:
         self.__destinatario_chiamata = None
         self.__nome_file = None
         self.__pacchetto_audio = None
-        self.__gruppo_chiamata = None
 
     def set_nome(self, nome):
         self.__username = nome
@@ -39,12 +38,6 @@ class utente:
 
     def get_destinatario_chiamata(self):
         return self.__destinatario_chiamata
-
-    def set_gruppo_chiamata(self, gruppo_chiamata):
-        self.__gruppo_chiamata = gruppo_chiamata
-
-    def get_gruppo_chiamata(self):
-        return self.__gruppo_chiamata
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -97,38 +90,32 @@ class utente:
             return {
                 "comando": "richiesta_chiamata",
                 "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "gruppo_chiamata": self.__gruppo_chiamata
+                "destinatario": self.__destinatario
             }
         elif comando == "chiamata":
             return {
                 "comando": "chiamata",
                 "mittente": self.__username,
-                "gruppo_chiamata": self.__gruppo_chiamata,
                 "destinatario": self.__destinatario_chiamata,
                 "pacchetto_audio": self.__pacchetto_audio
-
             }
         elif comando == "chiamata_accettata":
             return {
                 "comando": "chiamata_accettata",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "gruppo_chiamata": self.__gruppo_chiamata
             }
         elif comando == "chiamata_rifiutata":
             return {
                 "comando": "chiamata_rifiutata",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "gruppo_chiamata": self.__gruppo_chiamata
             }
         elif comando == "chiamata_terminata":
             return {
                 "comando": "chiamata_terminata",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario_chiamata,
-                "gruppo_chiamata": self.__gruppo_chiamata
             }
 
         else:
