@@ -2,6 +2,7 @@ import base64
 import json
 import multiprocessing
 import os
+import shutil
 import socket
 import threading
 import time
@@ -350,6 +351,36 @@ class ChatScreen(Screen):
         if thread_ricevi.is_alive():
             print("Il thread ricevi è ancora vivo")
             thread_manda.join()
+
+        for elemento in os.listdir('/Client/datiChat'):
+            percorso_elemento = os.path.join('/Client/datiChat', elemento)
+            try:
+                if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
+                    os.unlink(percorso_elemento)  # elimina file o link simbolico
+                elif os.path.isdir(percorso_elemento):
+                    shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
+            except Exception as e:
+                print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
+
+        for elemento in os.listdir('/Client/datiGruppi'):
+            percorso_elemento = os.path.join('/Client/datiGruppi', elemento)
+            try:
+                if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
+                    os.unlink(percorso_elemento)  # elimina file o link simbolico
+                elif os.path.isdir(percorso_elemento):
+                    shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
+            except Exception as e:
+                print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
+
+        for elemento in os.listdir('/Client/file_ricevuti'):
+            percorso_elemento = os.path.join('/Client/file_ricevuti', elemento)
+            try:
+                if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
+                    os.unlink(percorso_elemento)  # elimina file o link simbolico
+                elif os.path.isdir(percorso_elemento):
+                    shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
+            except Exception as e:
+                print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
 
 
     def show_ai_status(self, show=True):
