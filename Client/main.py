@@ -39,7 +39,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "127.0.0.1"
+ip_server = "26.117.59.21"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -583,16 +583,16 @@ class ChatScreen(Screen):
                     Clock.schedule_once(self.opacity1)
                     Clock.schedule_once(self.updateFalse)
                     # self.ids.caller_name = user.get_nome()
-                    self.thread_manda = threading.Thread(target=self.send_call)
-                    self.thread_manda.start()
+                    self.thread_manda_chiamata = threading.Thread(target=self.send_call)
+                    self.thread_manda_chiamata.start()
                 else:
                     user.set_destinatario_chiamata(None)
                     user.set_destinatario(nome_gruppo)
                     Clock.schedule_once(self.opacity1)
                     Clock.schedule_once(self.updateFalse)
                     # self.ids.caller_name = user.get_nome()
-                    self.thread_manda = threading.Thread(target=self.send_call, args=(nome_gruppo,))
-                    self.thread_manda.start()
+                    self.thread_manda_chiamata = threading.Thread(target=self.send_call, args=(nome_gruppo,))
+                    self.thread_manda_chiamata.start()
                 print("thread avviato")
             elif accettata is False:
                 print("Chiamata rifiutata.")
@@ -699,15 +699,15 @@ class ChatScreen(Screen):
         elif comando == "chiamata":
             print("chiamata")
             pacchetto_audio = messaggio.get("pacchetto_audio")
-            self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
-            self.thread_ricevi.start()
+            self.thread_ricevi_chiamata = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
+            self.thread_ricevi_chiamata.start()
 
         elif comando == "chiamata_terminata":
             print("entro in chiamata terminata")
             with self.lock:
                 self.chiamata_accettata = None
-            self.thread_ricevi.join()
-            self.thread_manda.join()
+            self.thread_ricevi_chiamata.join()
+            self.thread_manda_chiamata.join()
             Clock.schedule_once(self.opacity0)
             Clock.schedule_once(self.updateTrue)
 
@@ -729,8 +729,8 @@ class ChatScreen(Screen):
                 self.chiamata_accettata = None
             azione = user.crea_azione(comando="chiamata_terminata")
             coda_manda_msg.put(azione)
-            self.thread_ricevi.join()
-            self.thread_manda.join()
+            self.thread_ricevi_chiamata.join()
+            self.thread_manda_chiamata.join()
             Clock.schedule_once(self.opacity0)
             Clock.schedule_once(self.updateTrue)
         elif accettata is False:
