@@ -537,7 +537,7 @@ class ChatScreen(Screen):
     lock = threading.Lock()
 
 
-    def send_call(self, nome_gruppo = None, destinatari = None):
+    def send_call(self, nome_gruppo = None):
         stream_input = p.open(format=FORMAT,
                               channels=CHANNELS,
                               rate=RATE,
@@ -548,7 +548,6 @@ class ChatScreen(Screen):
                 data = stream_input.read(CHUNK, exception_on_overflow=False)
                 data = base64.b64encode(data).decode('utf-8')
                 user.set_pacchetto_audio(data)
-                user.set_destinatario(destinatari)
                 if nome_gruppo:
                     user.set_gruppo_chiamata(nome_gruppo)
                 azione = user.crea_azione(comando="chiamata")
@@ -579,7 +578,7 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
-                if not nome_gruppo:
+                if nome_gruppo == None:
                     user.set_destinatario_chiamata(mittente)
                     Clock.schedule_once(self.opacity1)
                     Clock.schedule_once(self.updateFalse)
@@ -587,11 +586,12 @@ class ChatScreen(Screen):
                     self.thread_manda = threading.Thread(target=self.send_call)
                     self.thread_manda.start()
                 else:
-                    user.set_destinatario_chiamata(mittente)
+                    user.set_destinatario_chiamata(None)
+                    user.set_destinatario(nome_gruppo)
                     Clock.schedule_once(self.opacity1)
                     Clock.schedule_once(self.updateFalse)
                     # self.ids.caller_name = user.get_nome()
-                    self.thread_manda = threading.Thread(target=self.send_call, args=(nome_gruppo, mittente))
+                    self.thread_manda = threading.Thread(target=self.send_call, args=(nome_gruppo,))
                     self.thread_manda.start()
                 print("thread avviato")
             elif accettata is False:
@@ -660,7 +660,10 @@ class ChatScreen(Screen):
             pass
 
         if comando == "richiesta_chiamata":
-            user.set_destinatario_chiamata(mittente)
+            if nome_gruppo:
+                user.set_destinatario_chiamata(nome_gruppo)
+            else:
+                user.set_destinatario_chiamata(mittente)
             Clock.schedule_once(self.opacity1)
             Clock.schedule_once(self.updateFalse)
             #self.ids.caller_name = mittente
@@ -669,11 +672,18 @@ class ChatScreen(Screen):
             self.thread_accettazione.start()
 
         elif comando == "chiamata_accettata":
-            with self.lock:
-                self.chiamata_accettata = True
-                print("entro")
-            self.start_call(nome_gruppo, mittente)
-            print("in teoria avvio start call")
+            if nome_gruppo:
+                with self.lock:
+                    self.chiamata_accettata = True
+                    print("entro")
+                self.start_call(nome_gruppo)
+                print("in teoria avvio start call")
+            else:
+                with self.lock:
+                    self.chiamata_accettata = True
+                    print("entro")
+                self.start_call(nome_gruppo, mittente)
+                print("in teoria avvio start call")
 
         elif comando == "chiamata_rifiutata":
             conta += 1
