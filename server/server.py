@@ -741,7 +741,7 @@ def handle_client(client_socket, client_address):
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
-            elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+            elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata_terminata"]:
                 inoltra_chiamata(messaggio, logged_in_username)
 
 
