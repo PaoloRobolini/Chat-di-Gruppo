@@ -8,7 +8,7 @@
 
     BoxLayout:
         orientation: 'vertical'
-        padding: 60
+        padding: 60, 30, 60, 30
         spacing: 25
 
         Label:
@@ -57,11 +57,11 @@
                 text_size: self.size  # per far rispettare halign/valigntext_size: self.size  # per far rispettare halign/valign
 
 
-                Label:
-                    id: login_data_error
-                    text: ""
-                    font_size: 18
-                    color: 1, 0.3, 0.3, 1
+        Label:
+            id: login_data_error
+            text: ""
+            font_size: 18
+            color: 1, 0.3, 0.3, 1
 
         Button:
             text: "Accedi"
@@ -92,7 +92,7 @@
 
     BoxLayout:
         orientation: 'vertical'
-        padding: 60
+        padding: 60, 30, 60, 50
         spacing: 20
 
         Label:
@@ -116,7 +116,6 @@
             id: mail
             hint_text: "Inserisci il tuo indirizzo mail"
             font_size: 20
-            password: True
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
             foreground_color: 1, 1, 1, 1

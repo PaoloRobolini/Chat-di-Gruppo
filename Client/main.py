@@ -226,10 +226,13 @@ class LoginScreen(Screen):
 
 
     def login(self):
+        global user
+        user = None
+        if user != None:
+            del user
         mail = self.ids.mail.text.strip()
         password = self.ids.password.text.strip()
         if mail and password:
-            global user
             user = utente(mail=mail, password=password)
 
             dati_serializzati = json.dumps(user.crea_azione(comando="login")).encode('utf-8')
@@ -263,13 +266,13 @@ class LoginScreen(Screen):
 
 
                 if self.ids.ricorda.active:
-                    print("Checkbox attivo")
+                    #print("Checkbox attivo")
                     with open("credenziali.txt", 'w') as f:
-                        print(f"Ho salvato la mail {mail} nel file")
+                        #print(f"Ho salvato la mail {mail} nel file")
                         f.write(mail)
                 else:
                     with open("credenziali.txt", 'w') as f:
-                        print("Svuoto")
+                        #("Svuoto")
                         f.write("")
 
             else:
@@ -325,6 +328,7 @@ class ChatScreen(Screen):
 
 
     def logout(self):
+        user.set_nome(None)
         self.manager.current = 'login'
         coda_manda_msg.put(user.crea_azione(comando="logout"))
         chat = {}
