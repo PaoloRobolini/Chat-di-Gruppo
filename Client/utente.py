@@ -1,13 +1,10 @@
-import time
-from datetime import datetime
-
-
 class utente:
     def __init__(self, mail="", password="", username=""):
         self.__username = username
         self.__mail = mail
         self.__password = password
         self.__destinatario = None
+        self.__destinatario_chiamata = None
         self.__nome_file = None
         self.__pacchetto_audio = None
 
@@ -36,6 +33,12 @@ class utente:
     def get_pacchetto_audio(self):
         return self.__pacchetto_audio
 
+    def set_destinatario_chiamata(self, destinatario_chiamata):
+        self.__destinatario_chiamata = destinatario_chiamata
+
+    def get_destinatario_chiamata(self):
+        return self.__destinatario_chiamata
+
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
         if comando == "login":  # si registra presso il server
@@ -59,8 +62,7 @@ class utente:
                 "comando": "messaggio",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "messaggio": kwargs["messaggio"],
-                "orario": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                "messaggio": kwargs["messaggio"]
             }
         elif comando == "crea_gruppo":  # crea un messaggio per un gruppo
             return {
@@ -94,7 +96,7 @@ class utente:
             return {
                 "comando": "chiamata",
                 "mittente": self.__username,
-                "destinatario": self.__destinatario,
+                "destinatario": self.__destinatario_chiamata,
                 "pacchetto_audio": self.__pacchetto_audio
             }
         elif comando == "chiamata_accettata":
@@ -109,11 +111,13 @@ class utente:
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
             }
-        elif comando == "logout":
+        elif comando == "chiamata_terminata":
             return {
-                "comando": "logout",
-                "mittente": self.__username
+                "comando": "chiamata_terminata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario_chiamata,
             }
+
         else:
             print(f"Comando sconosciuto: {comando}")
             return {"comando": "sconosciuto"}
