@@ -9,6 +9,7 @@ import time
 from ftplib import FTP
 import datetime
 
+from docutils.nodes import contact
 from kivy.clock import Clock, mainthread
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
@@ -352,8 +353,8 @@ class ChatScreen(Screen):
             print("Il thread ricevi è ancora vivo")
             thread_manda.join()
 
-        for elemento in os.listdir('/Client/datiChat'):
-            percorso_elemento = os.path.join('/Client/datiChat', elemento)
+        for elemento in os.listdir('datiChat'):
+            percorso_elemento = os.path.join('datiChat', elemento)
             try:
                 if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
                     os.unlink(percorso_elemento)  # elimina file o link simbolico
@@ -362,8 +363,8 @@ class ChatScreen(Screen):
             except Exception as e:
                 print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
 
-        for elemento in os.listdir('/Client/datiGruppi'):
-            percorso_elemento = os.path.join('/Client/datiGruppi', elemento)
+        for elemento in os.listdir('datiGruppi'):
+            percorso_elemento = os.path.join('datiGruppi', elemento)
             try:
                 if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
                     os.unlink(percorso_elemento)  # elimina file o link simbolico
@@ -372,8 +373,8 @@ class ChatScreen(Screen):
             except Exception as e:
                 print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
 
-        for elemento in os.listdir('/Client/file_ricevuti'):
-            percorso_elemento = os.path.join('/Client/file_ricevuti', elemento)
+        for elemento in os.listdir('file_ricevuti'):
+            percorso_elemento = os.path.join('file_ricevuti', elemento)
             try:
                 if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
                     os.unlink(percorso_elemento)  # elimina file o link simbolico
@@ -381,6 +382,8 @@ class ChatScreen(Screen):
                     shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
             except Exception as e:
                 print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
+
+        self.contact_buttons.clear()
 
 
     def show_ai_status(self, show=True):
