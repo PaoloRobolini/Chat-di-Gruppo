@@ -218,13 +218,12 @@ def rimuovi_cartella_temp():
 class LoginScreen(Screen):
 
     def on_pre_enter(self, *args):
-        self.ids.mail.text = ''
         self.ids.password.text = ''
-        try:
-            with open("credenziali.txt", 'r') as f:
-                self.ids.mail.text = f.read()
-        except Exception as e:
-            pass
+        with open("credenziali.txt", 'r') as f:
+            self.ids.mail.text = f.read()
+            self.ids.ricorda.active = (self.ids.mail.text != '')
+
+
 
     def login(self):
         mail = self.ids.mail.text.strip()
@@ -264,10 +263,13 @@ class LoginScreen(Screen):
 
 
                 if self.ids.ricorda.active:
+                    print("Checkbox attivo")
                     with open("credenziali.txt", 'w') as f:
+                        print(f"Ho salvato la mail {mail} nel file")
                         f.write(mail)
                 else:
                     with open("credenziali.txt", 'w') as f:
+                        print("Svuoto")
                         f.write("")
 
             else:
