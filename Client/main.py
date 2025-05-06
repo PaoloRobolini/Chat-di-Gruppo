@@ -897,19 +897,29 @@ class ChatScreen(Screen):
                  self.thread = threading.Thread(target=self.send_call)
                  self.thread.start()
 
-
     def rifiuta_chiamata(self):
         with self.lock:
+            accettata = self.chiamata_accettata
+        if accettata is True or None:
+            with self.lock:
+                self.chiamata_accettata = None
+            azione = user.crea_azione(comando="chiamata_terminata")
+            coda_manda_msg.put(azione)
+            self.thread_ricevi.join()
+            self.thread_manda.join()
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
+        elif accettata is False:
+            azione = user.crea_azione(comando="chiamata_rifiutata")
+            coda_manda_msg.put(azione)
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
+        '''elif accettata is None:
             self.chiamata_accettata = False
             azione = user.crea_azione(comando="chiamata_rifiutata")
             coda_manda_msg.put(azione)
-            # Nasconde la finestra di chiamata in arrivo
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-            # Assicurati che il thread esista prima di provare a joinarlo
-            if hasattr(self, 'thread') and self.thread.is_alive():
-                 self.thread.join()
-
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)'''
 
 class AggiungiContatto(Screen):
 
