@@ -8,7 +8,7 @@ import time
 from ftplib import FTP
 import datetime
 
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
@@ -913,6 +913,22 @@ class ChatScreen(Screen):
             coda_manda_msg.put(azione)
             Clock.schedule_once(self.opacity0)
             Clock.schedule_once(self.updateTrue)'''
+
+    @mainthread
+    def opacity1(self, dt):
+        self.ids.incoming_call_box.opacity = 1
+
+    @mainthread
+    def opacity0(self, dt):
+        self.ids.incoming_call_box.opacity = 0
+
+    @mainthread
+    def updateFalse(self, dt):
+        self.ids.incoming_call_box.disabled = False
+
+    @mainthread
+    def updateTrue(self, dt):
+        self.ids.incoming_call_box.disabled = True
 
 class AggiungiContatto(Screen):
 
