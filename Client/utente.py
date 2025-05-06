@@ -10,6 +10,7 @@ class utente:
         self.__destinatario = None
         self.__nome_file = None
         self.__pacchetto_audio = None
+        self.__destinatario_chiamata = None
 
     def set_nome(self, nome):
         self.__username = nome
@@ -35,6 +36,12 @@ class utente:
         self.__pacchetto_audio = pacchetto_audio
     def get_pacchetto_audio(self):
         return self.__pacchetto_audio
+
+    def set_destinatario_chiamata(self, destinatario_chiamata):
+        self.__destinatario_chiamata = destinatario_chiamata
+
+    def get_destinatario_chiamata(self):
+        return self.__destinatario_chiamata
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -101,13 +108,13 @@ class utente:
             return {
                 "comando": "chiamata_accettata",
                 "mittente": self.__username,
-                "destinatario": self.__destinatario,
+                "destinatario": self.__destinatario_chiamata,
             }
         elif comando == "chiamata_rifiutata":
             return {
                 "comando": "chiamata_rifiutata",
                 "mittente": self.__username,
-                "destinatario": self.__destinatario,
+                "destinatario": self.__destinatario_chiamata,
             }
         elif comando == "logout":
             return {

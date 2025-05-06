@@ -565,7 +565,7 @@ def inoltra_chiamata(messaggio, logged_in_username):
 
     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
-    print("esco da inoltra chiamata")
+    print("esco da ilk=noltyra chiamata")
 
 
 def is_in_gruppo(messaggio, logged_in_username):

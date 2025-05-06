@@ -8,7 +8,7 @@ import time
 from ftplib import FTP
 import datetime
 
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
@@ -760,7 +760,6 @@ class ChatScreen(Screen):
     chiamata_accettata = None
     lock = threading.Lock()
 
-
     def send_call(self):
         stream_input = p.open(format=FORMAT,
                               channels=CHANNELS,
@@ -787,9 +786,8 @@ class ChatScreen(Screen):
                     print("😶 Silenzio mentre invio... (energia:", int(energy), ")")
             else:
                 break
-        # Assicurati che il thread termini correttamente
-        if hasattr(self, 'thread') and self.thread.is_alive():
-             self.thread.join()
+        stream_input.stop_stream()
+        stream_input.close()
 
 
     def start_call(self):
@@ -801,33 +799,32 @@ class ChatScreen(Screen):
                 azione = user.crea_azione(comando="richiesta_chiamata")
                 coda_manda_msg.put(azione)
             elif accettata is True:
-                self.ids.incoming_call_box.opacity = 1
-                self.ids.incoming_call_box.disabled = False
-                # Assicurati che caller_name sia impostato correttamente
-                self.ids.caller_name.text = user.get_destinatario() # Mostra il nome del destinatario
-                self.thread = threading.Thread(target=self.send_call) # Salva il thread per poterlo joinare
-                self.thread.start()
+                user.set_destinatario_chiamata(user.get_destinatario())
+                Clock.schedule_once(self.opacity1)
+                Clock.schedule_once(self.updateFalse)
+                # self.ids.caller_name = user.get_nome()
+                self.thread_manda = threading.Thread(target=self.send_call)
+                self.thread_manda.start()
                 print("thread avviato")
             elif accettata is False:
-                # Assicurati che il thread esista prima di provare a joinarlo
-                 if hasattr(self, 'thread') and self.thread.is_alive():
-                    self.thread.join()
+                print("Chiamata rifiutata.")
 
 
     def get_call(self, pacchetto_audio2):
-        #thread che riceve e gestisce il pacchetto audio
-        print(type(pacchetto_audio2))
-        pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
-        stream_output.write(pacchetto_audio2)
+        if self.chiamata_accettata is True:
+            print("dati chiamata mostrati")
+            print(type(pacchetto_audio2))
+            pacchetto_audio2 = base64.b64decode(pacchetto_audio2)
+            stream_output.write(pacchetto_audio2)
 
-        data_decoded = pacchetto_audio2
-        samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
-        energy = sum(abs(sample) for sample in samples) / len(samples)
+            data_decoded = pacchetto_audio2
+            samples = struct.unpack('<' + ('h' * (len(data_decoded) // 2)), data_decoded)
+            energy = sum(abs(sample) for sample in samples) / len(samples)
 
-        if energy > SILENCE_THRESHOLD:
-            print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
-        else:
-            print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
+            if energy > SILENCE_THRESHOLD:
+                print("🔊 Sto ricevendo audio... (energia:", int(energy), ")")
+            else:
+                print("🛑 Ricevo silenzio... (energia:", int(energy), ")")
 
     def accettazione_chiamata(self, start_time):
         while True:
@@ -853,62 +850,91 @@ class ChatScreen(Screen):
         coda_manda_msg.put(azione)
 
     def receive_call(self, messaggio):
+        print("entro in receive call")
         comando = messaggio.get("comando")
         mittente = messaggio.get("mittente")
 
         if comando == "richiesta_chiamata":
-            self.ids.incoming_call_box.opacity = 1
-            self.ids.incoming_call_box.disabled = False
-            self.ids.caller_name.text = mittente # Mostra il nome del chiamante
+            Clock.schedule_once(self.opacity1)
+            Clock.schedule_once(self.updateFalse)
+            # self.ids.caller_name = mittente
             start_time = time.time()
-            thread = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
-            thread.start()
+            self.thread_accettazione = threading.Thread(target=self.accettazione_chiamata, args=(start_time,))
+            self.thread_accettazione.start()
 
         elif comando == "chiamata_accettata":
             with self.lock:
                 self.chiamata_accettata = True
-            self.start_call() # Avvia la chiamata in uscita dopo l'accettazione
+                print("entro")
+            self.start_call()
+            print("in teoria avvio start call")
 
         elif comando == "chiamata_rifiutata":
             with self.lock:
                 self.chiamata_accettata = False
-            # Nasconde la finestra di chiamata in arrivo se rifiutata
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-
 
         elif comando == "chiamata":
+            print("chiamata")
             pacchetto_audio = messaggio.get("pacchetto_audio")
-            # user.set_destinatario(mittente) # Non impostare il destinatario qui, potrebbe cambiare la chat corrente
-            thread = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
-            thread.start()
+            user.set_destinatario_chiamata(mittente)
+            self.thread_ricevi = threading.Thread(target=self.get_call, args=(pacchetto_audio,))
+            self.thread_ricevi.start()
+
+        elif comando == "chiamata_terminata":
+            print("entro in chiamata terminata")
+            with self.lock:
+                self.chiamata_accettata = None
+            self.thread_ricevi.join()
+            self.thread_manda.join()
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
 
 
     def accetta_chiamata(self):
         with self.lock:
             self.chiamata_accettata = True
-            azione = user.crea_azione(comando="chiamata_accettata")
-            coda_manda_msg.put(azione)
-            # Nasconde la finestra di chiamata in arrivo
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-            # Avvia l'invio dell'audio solo se non è già in corso
-            if not hasattr(self, 'thread') or not self.thread.is_alive():
-                 self.thread = threading.Thread(target=self.send_call)
-                 self.thread.start()
+        self.start_call()
 
 
     def rifiuta_chiamata(self):
         with self.lock:
+            accettata = self.chiamata_accettata
+        if accettata is True or None:
+            with self.lock:
+                self.chiamata_accettata = None
+            azione = user.crea_azione(comando="chiamata_terminata")
+            coda_manda_msg.put(azione)
+            self.thread_ricevi.join()
+            self.thread_manda.join()
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
+        elif accettata is False:
+            azione = user.crea_azione(comando="chiamata_rifiutata")
+            coda_manda_msg.put(azione)
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)
+        '''elif accettata is None:
             self.chiamata_accettata = False
             azione = user.crea_azione(comando="chiamata_rifiutata")
             coda_manda_msg.put(azione)
-            # Nasconde la finestra di chiamata in arrivo
-            self.ids.incoming_call_box.opacity = 0
-            self.ids.incoming_call_box.disabled = True
-            # Assicurati che il thread esista prima di provare a joinarlo
-            if hasattr(self, 'thread') and self.thread.is_alive():
-                 self.thread.join()
+            Clock.schedule_once(self.opacity0)
+            Clock.schedule_once(self.updateTrue)'''
+
+    @mainthread
+    def opacity1(self, dt):
+        self.ids.incoming_call_box.opacity = 1
+
+    @mainthread
+    def opacity0(self, dt):
+        self.ids.incoming_call_box.opacity = 0
+
+    @mainthread
+    def updateFalse(self, dt):
+        self.ids.incoming_call_box.disabled = False
+
+    @mainthread
+    def updateTrue(self, dt):
+        self.ids.incoming_call_box.disabled = True
 
 
 class AggiungiContatto(Screen):
