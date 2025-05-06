@@ -330,6 +330,7 @@ class ChatScreen(Screen):
     def receive_message(self, messaggio):
         nuovo_messaggio = f"\n{messaggio['mittente']} > {messaggio['messaggio']}"
 
+
         if "nome_gruppo" in messaggio:
             mittente = messaggio["nome_gruppo"]
         else:
