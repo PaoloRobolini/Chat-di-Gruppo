@@ -324,6 +324,9 @@ class ChatScreen(Screen):
             azione = user.crea_azione(comando="messaggio", messaggio=message)
             coda_manda_msg.put(azione)
 
+
+
+
     def receive_message(self, messaggio):
         nuovo_messaggio = f"\n{messaggio['mittente']} > {messaggio['messaggio']}"
 
