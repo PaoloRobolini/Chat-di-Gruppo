@@ -8,8 +8,8 @@
 
     BoxLayout:
         orientation: 'vertical'
-        padding: 60
-        spacing: 25
+        padding: 60, 15, 60, 10
+        spacing: 20
 
         Label:
             text: "Benvenuto in Biscord!"
@@ -38,6 +38,26 @@
             foreground_color: 1, 1, 1, 1
             padding: 15
 
+
+        BoxLayout:
+            orientation: 'horizontal'
+            padding: 0, 0, 0, 0
+            CheckBox:
+                id: ricorda
+                color: 0.294, 0.761, 0.623
+                size_hint_x: .20
+
+            Label:
+                id: label_ricorda_credenziali
+                text: "Ricorda la mia mail"
+                font_size: 18
+                foreground_color: 1, 1, 1, 1
+                size_hint_x: .80
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.size  # per far rispettare halign/valigntext_size: self.size  # per far rispettare halign/valign
+
+
         Label:
             id: login_data_error
             text: ""
@@ -63,6 +83,15 @@
             on_release: app.root.current = "signin"
 
 
+        Button:
+            text: "Esci"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.9, 0.4, 0.4, 1
+            on_release: root.chiudi()
+
+
 <SigninScreen>:
     canvas.before:
         Color:
@@ -73,8 +102,8 @@
 
     BoxLayout:
         orientation: 'vertical'
-        padding: 60
-        spacing: 25
+        padding: 60, 15, 60, 20
+        spacing: 20
 
         Label:
             text: "Registrati su Biscord!"
@@ -87,7 +116,7 @@
         TextInput:
             id: username
             hint_text: "Inserisci il tuo username"
-            font_size: 20
+            font_size: 18
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
             foreground_color: 1, 1, 1, 1
@@ -96,7 +125,7 @@
         TextInput:
             id: mail
             hint_text: "Inserisci il tuo indirizzo mail"
-            font_size: 20
+            font_size: 18
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
             foreground_color: 1, 1, 1, 1
@@ -105,7 +134,7 @@
         TextInput:
             id: password
             hint_text: "Inserisci la password"
-            font_size: 20
+            font_size: 18
             password: True
             background_normal: ''
             background_color: 0.2, 0.2, 0.3, 1
@@ -127,6 +156,22 @@
             background_color: 0.1, 0.6, 1, 1
             color: 1, 1, 1, 1
             on_release: root.signin()
+
+        Button:
+            text: "Hai già un account? Accedi!"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.6, 0.8, 1, 1
+            on_release: app.root.current = "login"
+
+        Button:
+            text: "Esci"
+            font_size: 18
+            background_normal: ''
+            background_color: 0, 0, 0, 0
+            color: 0.9, 0.4, 0.4, 1
+            on_release: root.chiudi()
 
 
 <ChatScreen>:
@@ -214,7 +259,7 @@
             BoxLayout:
                 orientation: 'vertical'
                 size_hint_x: None
-                width: 80
+                width: 120
                 spacing: 10
                 padding: 10
 
@@ -225,15 +270,33 @@
                         pos: self.pos
                         size: self.size
 
+                # aggiungi contatto
                 Button:
                     size_hint: None, None
-                    size: 60, 60
+                    size: 100, 60
                     text: "+"
-                    font_size: 24
+                    font_size: 32
                     background_normal: ''
                     background_color: 0.1, 0.6, 1, 1
                     color: 1, 1, 1, 1
                     on_release: root.aggiungicontatto()
+
+                Button:
+                    size_hint: None, None
+                    size: 100, 60
+                    text: "Logout"
+                    font_size: 32
+                    background_normal: ''
+                    background_color: 1, 0.1, 0.1, 1
+                    color: 1, 1, 1, 1
+                    on_release: root.logout()
+                    Image:
+                        size: 100, 60
+                        source: 'logout.png'
+                        center_x: self.parent.center_x
+                        center_y: self.parent.center_y
+                        size_hint: None, None
+
 
                 ScrollView:
                     do_scroll_y: True
@@ -246,6 +309,8 @@
                         height: self.minimum_height
                         spacing: 10
                         padding: 5
+
+
 
             # CHAT PRINCIPALE
             BoxLayout:
@@ -262,21 +327,30 @@
                     size_hint_y: None
                     height: 40
 
+                # AI Status Label
+                Label:
+                    id: ai_status
+                    text: ""
+                    font_size: 16
+                    color: 0.5, 0.8, 1, 1 # Light blue color
+                    size_hint_y: None
+                    height: 20
+                    opacity: 0 # Initially hidden
+
                 ScrollView:
                     size_hint_y: 0.8
                     do_scroll_x: False
                     do_scroll_y: True
+                    bar_width: 5
 
-                    Label:
-                        id: chat_label
-                        text: root.chat_history
-                        text_size: self.width, None
+                    # Sostituita la Label con un BoxLayout per i bottoni dei messaggi
+                    BoxLayout:
+                        id: chat_history_container # Nuovo ID per il contenitore dei messaggi
+                        orientation: 'vertical'
                         size_hint_y: None
-                        height: self.texture_size[1]
-                        halign: 'left'
-                        valign: 'top'
-                        padding: 10, 10
-                        color: 1, 1, 1, 1
+                        height: self.minimum_height
+                        spacing: 5 # Spazio tra i bottoni dei messaggi
+                        padding: 10 # Padding interno al contenitore
 
                 BoxLayout:
                     size_hint_y: None
@@ -285,6 +359,7 @@
 
                     TextInput:
                         id: message_input
+                        size_hint_x: 0.6  # Occupa il 70% dello spazio disponibile
                         hint_text: "Scrivi un messaggio..."
                         multiline: False
                         background_normal: ''
@@ -293,6 +368,7 @@
                         padding: 10
 
                     Button:
+                        size_hint_x: 0.2  # Occupa il 15% dello spazio disponibile
                         text: "Invia"
                         background_normal: ''
                         background_color: 0.1, 0.6, 1, 1
@@ -300,6 +376,7 @@
                         on_release: root.send_message()
 
                     Button:
+                        size_hint_x: 0.2  # Occupa il 15% dello spazio disponibile
                         text: "scegli un file"
                         background_normal: ''
                         background_color: 0.1, 0.6, 1, 1
@@ -322,16 +399,14 @@
         padding: 60
         spacing: 25
 
-        # Pulsante INDIETRO in alto a destra
+        # Pulsante INDIETRO in alto a sinistra
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
             height: 40
 
-            Widget:
-
             Button:
-                text: "← Indietro"
+                text: "< Indietro"
                 size_hint: None, None
                 size: 120, 40
                 font_size: 16
@@ -339,6 +414,8 @@
                 background_color: 0.1, 0.6, 1, 1
                 color: 1, 1, 1, 1
                 on_release: app.root.current = "chat"
+
+            Widget:
 
         Label:
             text: "Aggiungi un contatto o unisciti a un gruppo"

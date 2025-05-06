@@ -1,3 +1,7 @@
+import time
+from datetime import datetime
+
+
 class utente:
     def __init__(self, mail="", password="", username=""):
         self.__username = username
@@ -55,7 +59,8 @@ class utente:
                 "comando": "messaggio",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "messaggio": kwargs["messaggio"]
+                "messaggio": kwargs["messaggio"],
+                "orario": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             }
         elif comando == "crea_gruppo":  # crea un messaggio per un gruppo
             return {
@@ -104,7 +109,11 @@ class utente:
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
             }
-
+        elif comando == "logout":
+            return {
+                "comando": "logout",
+                "mittente": self.__username
+            }
         else:
             print(f"Comando sconosciuto: {comando}")
             return {"comando": "sconosciuto"}

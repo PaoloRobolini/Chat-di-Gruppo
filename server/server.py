@@ -9,6 +9,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
+import datetime
 
 HOST = "0.0.0.0"
 PORT = 50000
@@ -83,7 +84,8 @@ def salva_messaggio(cartella_chat, nuovo_messaggio):
         list_key = 'chat'
         message_data = {
             'mittente': nuovo_messaggio['mittente'].strip(),
-            'messaggio': nuovo_messaggio['messaggio'].strip()
+            'messaggio': nuovo_messaggio['messaggio'].strip(),
+            'orario': nuovo_messaggio['orario']
         }
     elif 'nome_gruppo' in nuovo_messaggio:
         nome_file = f"{nuovo_messaggio['nome_gruppo']}.json"
@@ -91,7 +93,8 @@ def salva_messaggio(cartella_chat, nuovo_messaggio):
         list_key = 'gruppo'
         message_data = {
             'mittente': nuovo_messaggio['mittente'].strip(),
-            'messaggio': nuovo_messaggio['messaggio'].strip()
+            'messaggio': nuovo_messaggio['messaggio'].strip(),
+            'orario': nuovo_messaggio['orario']
         }
     else:
         return
@@ -323,7 +326,7 @@ def prepara_chat_AI(username, nome_utente):
         with open(os.path.join('datiChat', nome_file), 'r', encoding='utf-8') as f:
             chat_data = json.load(f)
         for msg in chat_data.get("chat", []):
-            storico.append(f"{msg['mittente']}: {msg['messaggio']}")
+            storico.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
         return f"Chat privata con '{nome_utente}'", storico
 
     else:
@@ -344,7 +347,7 @@ def gestisci_carica_chat(chat, username, nome_utente):
                             chat_data = json.load(f)
                             messages = []
                             for msg in chat_data.get("chat", []):
-                                messages.append(f"{msg['mittente']}: {msg['messaggio']}")
+                                messages.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
                             if messages:
                                 chat_context = f"\nChat con {other_user}:\n" + "\n".join(messages)
                                 all_chats.append(chat_context)
@@ -382,7 +385,7 @@ def prepara_gruppo_AI (username, nome_gruppo):
             chat_data = json.load(f)
 
         for msg in chat_data.get("gruppo", []):
-            storico.append(f"{msg['mittente']}: {msg['messaggio']}")
+            storico.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
         return f"Gruppo '{nome_gruppo}'", storico
 
     else:
@@ -404,7 +407,7 @@ def gestisci_carica_gruppo(chat, username, nome_gruppo):
                                     gruppo_data = json.load(f)
                                     messages = []
                                     for msg in gruppo_data.get("gruppo", []):
-                                        messages.append(f"{msg['mittente']}: {msg['messaggio']}")
+                                        messages.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
                                     if messages:
                                         group_context = f"\nGruppo {nome_gruppo}:\n" + "\n".join(messages)
                                         all_groups.append(group_context)
@@ -451,7 +454,7 @@ def verifica_nomi(username):
 
 def ai(messaggio, username):
     #Salvataggio del messaggio dell'utente
-    messaggio_salvataggio = {"mittente": username, "destinatario": nome_AI, "messaggio": messaggio.get("messaggio")}
+    messaggio_salvataggio = {"mittente": username, "destinatario": nome_AI, "messaggio": messaggio.get("messaggio"), "orario": messaggio["orario"]}
     salva_messaggio('datiChat', messaggio_salvataggio)
 
     with user_ai_chats_lock:
@@ -501,19 +504,18 @@ def ai(messaggio, username):
 
             elif "Verifica nomi" in risposta:
                 nomi = verifica_nomi(username)
-                risposta = str(chat.send_message(f"Questi sono tutti gli utenti con cui ho delle chat: {nomi["chat"]} questi sono i gruppi a cui faccio parte: {nomi["gruppi"]}").text)
+                risposta = str(chat.send_message(f"Questi sono tutti gli utenti con cui ho delle chat: {nomi['chat']} questi sono i gruppi a cui faccio parte: {nomi['gruppi']}").text)
             else:
                 esci = True
 
 
 
-
     # Invio della risposta
     messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": nome_AI,
-                              "messaggio": risposta}
+                              "messaggio": risposta, "orario": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
 
     manda_messaggio(messaggio_da_inoltrare, nome_AI, username)
-    messaggio_salvataggio = {"mittente": nome_AI, "destinatario": username, "messaggio": risposta}
+    messaggio_salvataggio = {"mittente": nome_AI, "destinatario": username, "messaggio": risposta, "orario": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S") }
     print(messaggio_salvataggio)
     salva_messaggio('datiChat', messaggio_salvataggio)
 
@@ -532,13 +534,13 @@ def inoltra_messaggio(messaggio, logged_in_username):
 
         if gruppo:
             messaggio_da_inoltrare = {"comando": "nuovo_messaggio_gruppo", "nome_gruppo": destinatario,
-                                      "mittente": mittente, "messaggio": testo_messaggio}
-            nuovo_messaggio_salvataggio = {"nome_gruppo": destinatario, "mittente": mittente, "messaggio": testo_messaggio}
+                                      "mittente": mittente, "messaggio": testo_messaggio, "orario": messaggio["orario"]}
+            nuovo_messaggio_salvataggio = {"nome_gruppo": destinatario, "mittente": mittente, "messaggio": testo_messaggio, "orario": messaggio["orario"]}
             salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
         else:
             messaggio_da_inoltrare = {"comando": "nuovo_messaggio_privato", "mittente": mittente,
-                                      "messaggio": testo_messaggio}
-            nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario, "messaggio": testo_messaggio}
+                                      "messaggio": testo_messaggio, "orario": messaggio["orario"]}
+            nuovo_messaggio_salvataggio = {"mittente": mittente, "destinatario": destinatario, "messaggio": testo_messaggio, "orario": messaggio["orario"]}
             salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
 
         manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
@@ -563,7 +565,7 @@ def inoltra_chiamata(messaggio, logged_in_username):
 
     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
 
-    print("esco da ilk=noltyra chiamata")
+    print("esco da inoltra chiamata")
 
 
 def is_in_gruppo(messaggio, logged_in_username):
@@ -673,6 +675,24 @@ def handle_client(client_socket, client_address):
             elif comando == "messaggio":
                 inoltra = threading.Thread(target=inoltra_messaggio, args=(messaggio,logged_in_username,))
                 inoltra.start()
+            elif comando == "logout":
+
+                if logged_in_username:
+
+                    messaggio_da_inoltrare = {
+                        "comando": "logout"
+                    }
+
+                    client_socket.send(json.dumps(messaggio_da_inoltrare).encode('utf-8'))
+
+                    with clients_lock:
+                        if logged_in_username in clients_sockets and clients_sockets[
+                            logged_in_username] == client_socket:
+                            del clients_sockets[logged_in_username]
+                            del user_ai_chats[logged_in_username]
+
+
+
             elif comando == "is_in_gruppo":
                 is_in_gruppo(messaggio, logged_in_username)
             elif comando == "ftp_file_notification":
@@ -700,7 +720,8 @@ def handle_client(client_socket, client_address):
                             "comando": "nuovo_messaggio_gruppo",
                             "nome_gruppo": destinatario,
                             "mittente": mittente,
-                            "messaggio": messaggio_notifica
+                            "messaggio": messaggio_notifica,
+                            "ftp": True
                         }
                     else:
                         nuovo_messaggio_salvataggio = {
@@ -714,10 +735,12 @@ def handle_client(client_socket, client_address):
                         messaggio_da_inoltrare = {
                             "comando": "nuovo_messaggio_privato",
                             "mittente": mittente,
-                            "messaggio": messaggio_notifica
+                            "messaggio": messaggio_notifica,
+                            "ftp": True
                         }
 
                     manda_messaggio(messaggio_da_inoltrare, mittente, destinatario)
+
             elif comando in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
                 inoltra_chiamata(messaggio, logged_in_username)
 
