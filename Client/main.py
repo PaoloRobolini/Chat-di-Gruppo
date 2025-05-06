@@ -1012,6 +1012,7 @@ def processa_messaggio(messaggio):
             chat_screen.receive_message(messaggio)
 
     elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata_terminata"]:
+        print("e` la chiamata terminata")
         chat_screen.receive_call(messaggio)
     else:
         print(f"Comando non gestito: {messaggio['comando']}")
