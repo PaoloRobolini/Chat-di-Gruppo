@@ -43,6 +43,9 @@ class utente:
     def get_destinatario_chiamata(self):
         return self.__destinatario_chiamata
 
+    def get_orario(self):
+        datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
         if comando == "login":  # si registra presso il server

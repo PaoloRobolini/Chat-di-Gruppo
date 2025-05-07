@@ -670,11 +670,21 @@ class ChatScreen(Screen):
 
             if user.get_destinatario() is None:
                 print("Errore: destinatario non impostato per invio file")
-                self.add_message_bubble(f"[Sistema] Errore: Seleziona un destinatario prima di inviare un file.")
+                dizionario = {
+                    "mittente": "[Sistema]",
+                    "messaggio": f"Errore: Seleziona un destinatario prima di inviare un file.",
+                    "orario": user.get_orario()
+                }
+                self.add_message_bubble(dizionario)
                 root.destroy()
                 return
 
-            self.add_message_bubble(f"[Sistema] Iniziando invio file {nome_file_basename} via FTP...")
+            dizionario = {
+                "mittente": "[Sistema]",
+                "messaggio": f"Iniziando invio file {nome_file_basename} via FTP...",
+                "orario": user.get_orario()
+            }
+            self.add_message_bubble(dizionario)
 
 
             try:
@@ -692,7 +702,12 @@ class ChatScreen(Screen):
                         ftp.cwd(mittente_dir)
                     except Exception as e:
                         print(f"Errore nella creazione/accesso della directory {mittente_dir}: {e}")
-                        self.add_message_bubble(f"[Sistema] Errore: Impossibile accedere alla directory del mittente.")
+                        dizionario = {
+                            "mittente": "[Sistema]",
+                            "messaggio": f"Errore: Impossibile accedere alla directory del mittente.",
+                            "orario": user.get_orario()
+                        }
+                        self.add_message_bubble(dizionario)
                         return
 
                 with open(file_path, 'rb') as file:
@@ -708,7 +723,13 @@ class ChatScreen(Screen):
                 }
                 coda_manda_msg.put(notifica)
 
-                self.add_message_bubble(f"[Sistema] File {nome_file_basename} inviato con successo via FTP!")
+
+                dizionario = {
+                    "mittente": "[Sistema]",
+                    "messaggio": f"File {nome_file_basename} inviato con successo via FTP!",
+                    "orario": user.get_orario()
+                }
+                self.add_message_bubble(dizionario)
 
 
             except Exception as e:
@@ -734,7 +755,12 @@ class ChatScreen(Screen):
 
         if comando in ["nuovo_messaggio_privato", "nuovo_messaggio_gruppo"] and "via FTP" in messaggio.get("messaggio", ""):
             # Aggiunge il messaggio di notifica file come una bolla
-            self.add_message_bubble(f"{messaggio['mittente']} > {messaggio['messaggio']}")
+            dizionario = {
+                "mittente": messaggio['mittente'],
+                "messaggio": messaggio['messaggio'],
+                "orario": messaggio['orario']
+            }
+            self.add_message_bubble(dizionario)
 
             try:
                 cartella_destinazione = "file_ricevuti"
@@ -755,7 +781,12 @@ class ChatScreen(Screen):
                 except Exception as e:
                     print(f"Errore nell'accesso alla directory {mittente}: {e}")
                     # Aggiunge il messaggio di errore come una bolla
-                    self.add_message_bubble(f"[Sistema] Errore: Impossibile accedere alla directory del mittente per il download.")
+                    dizionario = {
+                        "mittente": "[Sistema]",
+                        "messaggio": "Errore: Impossibile accedere alla directory del mittente per il download.",
+                        "orario": user.get_orario()
+                    }
+                    self.add_message_bubble(dizionario)
                     return
 
                 # Estrai il nome del file dal messaggio
@@ -769,7 +800,12 @@ class ChatScreen(Screen):
 
                 if nome_file is None:
                      print("Nome file non trovato nel messaggio")
-                     self.add_message_bubble(f"[Sistema] Errore: Nome file non trovato nel messaggio.")
+                     dizionario = {
+                         "mittente": "[Sistema]",
+                         "messaggio": "Errore: Nome file non trovato nel messaggio.",
+                         "orario": user.get_orario()
+                     }
+                     self.add_message_bubble(dizionario)
                      return
 
 
@@ -778,13 +814,23 @@ class ChatScreen(Screen):
                 print(f"File disponibili: {files_disponibili}")
                 if nome_file not in files_disponibili:
                     print(f"File {nome_file} non trovato nella directory")
-                    self.add_message_bubble(f"[Sistema] Errore: File '{nome_file}' non trovato sul server.")
+                    dizionario = {
+                        "mittente": "[Sistema]",
+                        "messaggio": f"Errore: File '{nome_file}' non trovato sul server.",
+                        "orario": user.get_orario()
+                    }
+                    self.add_message_bubble(dizionario)
                     return
 
                 local_file_path = os.path.join(cartella_destinazione, nome_file)
 
                 # Aggiunge un messaggio di progresso nella chat come una bolla
-                self.add_message_bubble(f"[Sistema] Avvio download di {nome_file}...")
+                dizionario = {
+                    "mittente": "[Sistema]",
+                    "messaggio": f"Avvio download di {nome_file}...",
+                    "orario": user.get_orario()
+                }
+                self.add_message_bubble(dizionario)
 
 
                 with open(local_file_path, 'wb') as file:
