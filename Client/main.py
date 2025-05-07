@@ -46,7 +46,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "192.168.79.75"
+ip_server = "192.168.8.201"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -1068,7 +1068,7 @@ class ChatApp(App):
 def ricevi_messaggi():
     while True:
          try:
-             data = s.recv(4096)
+             data = s.recv(8192)
              if data:
                  print(f"Dato ricevuto: {data}")
                  try:
