@@ -386,7 +386,10 @@ class ChatScreen(Screen):
             except Exception as e:
                 print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
 
-        self.contact_buttons.clear()
+        try:
+            self.contact_buttons.clear()
+        except AttributeError:
+            pass
 
 
     def show_ai_status(self, show=True):
