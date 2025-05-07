@@ -214,10 +214,11 @@ def login(messaggio):
             break
     if username_trovato:
         with clients_lock:
-            clients_sockets[username_trovato] = client_socket
             if username_trovato in list(clients_sockets.keys()):
                 client_socket.sendall(b"0")
                 return None
+            clients_sockets[username_trovato] = client_socket
+
         client_socket.sendall(json.dumps(username_trovato).encode('utf-8'))
 
         chat = manda_chat_client( username_trovato)

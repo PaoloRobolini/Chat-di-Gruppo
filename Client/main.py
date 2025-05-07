@@ -221,6 +221,7 @@ def rimuovi_cartella_temp():
 class LoginScreen(Screen):
 
     def on_pre_enter(self, *args):
+        self.ids.login_data_error.text = ""
         self.ids.password.text = ''
         with open("credenziali.txt", 'r') as f:
             self.ids.mail.text = f.read()
