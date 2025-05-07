@@ -11,7 +11,7 @@ from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
 import datetime
 
-HOST = "26.117.59.21"
+HOST = "0.0.0.0"
 PORT = 50000
 FTP_PORT = 21
 server_address = (HOST, PORT)
