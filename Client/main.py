@@ -46,7 +46,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "192.168.8.75"
+ip_server = "192.168.79.75"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -300,6 +300,8 @@ class SigninScreen(Screen):
         return LoginScreen.chiudi(self)
 
     def signin(self):
+
+
         username = self.ids.username.text
         mail = self.ids.mail.text.strip()
         password = self.ids.password.text.strip()
@@ -314,8 +316,11 @@ class SigninScreen(Screen):
 
             if reply == "0":
                 chat_screen = self.manager.get_screen('chat')
-                chat_screen.username = username
+                chat_screen.username = reply
                 self.manager.current = 'chat'
+                reply = reply.replace('"', '')
+                user.set_nome(reply)
+
 
                 thread_manda = threading.Thread(target=manda_messaggi)
                 thread_manda.start()
@@ -342,6 +347,14 @@ class ChatScreen(Screen):
     contact_buttons = ListProperty([])
     selected_contact = StringProperty("Seleziona un contatto")
     _selected_contact_button = None # Aggiunta: variabile per tenere traccia del pulsante selezionato
+
+    def clear_buttons(self):
+        print("entra in clear buttons")
+        try:
+            print("entro nel try")
+            self.contact_buttons.clear()
+        except AttributeError:
+            pass
 
 
     def logout(self):
