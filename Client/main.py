@@ -2,13 +2,15 @@ import base64
 import json
 import multiprocessing
 import os
+import shutil
 import socket
 import threading
 import time
 from ftplib import FTP
 import datetime
 
-from kivy.clock import Clock
+from docutils.nodes import contact
+from kivy.clock import Clock, mainthread
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import StringProperty, ListProperty
 from kivy.lang import Builder
@@ -24,13 +26,12 @@ from kivy.uix.widget import Widget # Importa Widget per lo Spacer
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
-
 import struct
 
 
 Builder.load_file("chat.kv")
 
-ip_server = "127.0.0.1"
+ip_server = "192.168.8.75"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -47,6 +48,7 @@ chat = {}
 global user
 global temp_folder_info
 temp_folder_info = None
+
 
 
 def carica_gruppi():
@@ -204,11 +206,19 @@ def rimuovi_cartella_temp():
 class LoginScreen(Screen):
 
     def on_pre_enter(self, *args):
+        self.ids.login_data_error.text = ""
         self.ids.password.text = ''
         with open("credenziali.txt", 'r') as f:
             self.ids.mail.text = f.read()
             self.ids.ricorda.active = (self.ids.mail.text != '')
 
+
+    def chiudi(self):
+        try:
+            ChatScreen.logout(self)
+        except NameError:
+            pass
+        App.get_running_app().stop()
 
 
     def login(self):
@@ -227,7 +237,7 @@ class LoginScreen(Screen):
             data = s.recv(4096)
             reply = data.decode()
 
-            if reply != "1":
+            if reply != '0' and reply != "1":
                 chat_screen = self.manager.get_screen('chat')
                 chat_screen.username = reply
                 self.manager.current = 'chat'
@@ -263,11 +273,17 @@ class LoginScreen(Screen):
 
             else:
                 self.ids.login_data_error.text = "mail o password non corrispondono"
+                if reply == '0':
+                    self.ids.login_data_error.text = "L'utente è già collegato"
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
 
 
 class SigninScreen(Screen):
+
+    def chiudi(self):
+        return LoginScreen.chiudi(self)
+
     def signin(self):
         username = self.ids.username.text
         mail = self.ids.mail.text.strip()
@@ -324,6 +340,41 @@ class ChatScreen(Screen):
         if thread_ricevi.is_alive():
             print("Il thread ricevi è ancora vivo")
             thread_manda.join()
+
+        for elemento in os.listdir('datiChat'):
+            percorso_elemento = os.path.join('datiChat', elemento)
+            try:
+                if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
+                    os.unlink(percorso_elemento)  # elimina file o link simbolico
+                elif os.path.isdir(percorso_elemento):
+                    shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
+            except Exception as e:
+                print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
+
+        for elemento in os.listdir('datiGruppi'):
+            percorso_elemento = os.path.join('datiGruppi', elemento)
+            try:
+                if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
+                    os.unlink(percorso_elemento)  # elimina file o link simbolico
+                elif os.path.isdir(percorso_elemento):
+                    shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
+            except Exception as e:
+                print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
+
+        for elemento in os.listdir('file_ricevuti'):
+            percorso_elemento = os.path.join('file_ricevuti', elemento)
+            try:
+                if os.path.isfile(percorso_elemento) or os.path.islink(percorso_elemento):
+                    os.unlink(percorso_elemento)  # elimina file o link simbolico
+                elif os.path.isdir(percorso_elemento):
+                    shutil.rmtree(percorso_elemento)  # elimina directory e contenuto
+            except Exception as e:
+                print(f"Errore durante l'eliminazione di {percorso_elemento}: {e}")
+
+        try:
+            self.contact_buttons.clear()
+        except AttributeError:
+            pass
 
 
     def show_ai_status(self, show=True):
@@ -729,12 +780,8 @@ class ChatScreen(Screen):
                 self.add_message_bubble(error_msg)
                 print(f"Errore FTP dettagliato: {e}")
 
-
-
     chiamata_accettata = None
     lock = threading.Lock()
-
-
 
 
 class AggiungiContatto(Screen):
@@ -818,7 +865,8 @@ def processa_messaggio(messaggio):
         else:
             chat_screen.receive_message(messaggio)
 
-    elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata"]:
+    elif "comando" in messaggio and messaggio["comando"] in ["richiesta_chiamata", "chiamata", "chiamata_accettata", "chiamata_rifiutata", "chiamata_terminata"]:
+        print("e` la chiamata terminata")
         chat_screen.receive_call(messaggio)
     else:
         print(f"Comando non gestito: {messaggio['comando']}")
