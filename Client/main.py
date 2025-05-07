@@ -46,7 +46,7 @@ stream_output = p.open(format=FORMAT,
 
 Builder.load_file("chat.kv")
 
-ip_server = "26.117.59.21"
+ip_server = "192.168.8.75"
 porta_server = 50000
 ftp_port = 21
 server = (ip_server, porta_server)
@@ -251,7 +251,7 @@ class LoginScreen(Screen):
             data = s.recv(4096)
             reply = data.decode()
 
-            if reply != "1":
+            if reply != '0' and reply != "1":
                 chat_screen = self.manager.get_screen('chat')
                 chat_screen.username = reply
                 self.manager.current = 'chat'
@@ -287,6 +287,8 @@ class LoginScreen(Screen):
 
             else:
                 self.ids.login_data_error.text = "mail o password non corrispondono"
+                if reply == '0':
+                    self.ids.login_data_error.text = "L'utente è già collegato"
                 self.ids.mail.text = ""
                 self.ids.password.text = ""
 

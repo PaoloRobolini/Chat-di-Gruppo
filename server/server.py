@@ -11,7 +11,7 @@ from pyftpdlib.servers import FTPServer
 from soupsieve.util import lower
 import datetime
 
-HOST = "26.117.59.21"
+HOST = "0.0.0.0"
 PORT = 50000
 FTP_PORT = 21
 server_address = (HOST, PORT)
@@ -215,6 +215,9 @@ def login(messaggio):
     if username_trovato:
         with clients_lock:
             clients_sockets[username_trovato] = client_socket
+            if username_trovato in list(clients_sockets.keys()):
+                client_socket.sendall(b"0")
+                return None
         client_socket.sendall(json.dumps(username_trovato).encode('utf-8'))
 
         chat = manda_chat_client( username_trovato)
@@ -515,9 +518,11 @@ def ai(messaggio, username):
                               "messaggio": risposta, "orario": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
 
     manda_messaggio(messaggio_da_inoltrare, nome_AI, username)
-    messaggio_salvataggio = {"mittente": nome_AI, "destinatario": username, "messaggio": risposta, "orario": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S") }
-    print(messaggio_salvataggio)
-    salva_messaggio('datiChat', messaggio_salvataggio)
+    if risposta:
+        messaggio_salvataggio = {"mittente": nome_AI, "destinatario": username, "messaggio": risposta,
+                                 "orario": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
+        print(messaggio_salvataggio)
+        salva_messaggio('datiChat', messaggio_salvataggio)
 
 
 def inoltra_messaggio(messaggio, logged_in_username):
