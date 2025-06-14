@@ -1,0 +1,14 @@
+{
+    "chat": [
+        {
+            "mittente": "matteo",
+            "messaggio": "Ciao, come stai?",
+            "orario": "16/05/2025 20:02:44"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Ciao! Tutto bene, grazie. Tu come stai?",
+            "orario": "16/05/2025 20:02:44"
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "chat": [
+        {
+            "mittente": "marco",
+            "messaggio": "ciao",
+            "orario": "06/05/2025 19:42:05"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "ciao",
+            "orario": "14/06/2025 09:48:22"
+        }
+    ]
+}
