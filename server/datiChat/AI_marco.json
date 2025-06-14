@@ -79,6 +79,56 @@
             "mittente": "AI",
             "messaggio": "Ciao Marco!",
             "orario": "16/05/2025 19:50:36"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ciao",
+            "orario": "14/06/2025 09:53:57"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Ciao Marco! Come posso aiutarti oggi?",
+            "orario": "14/06/2025 09:53:58"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Sai qual \u00e8 il mio nome?",
+            "orario": "14/06/2025 09:54:18"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Si, il tuo nome \u00e8 Marco.",
+            "orario": "14/06/2025 09:54:18"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Cosa ho scritto a matteo?",
+            "orario": "14/06/2025 09:54:40"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Hai scritto a Matteo:\n\n*   \"ciao\" il 06/05/2025 alle 19:42:05\n*   \"ciao\" il 14/06/2025 alle 09:48:22",
+            "orario": "14/06/2025 09:54:42"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ora?",
+            "orario": "14/06/2025 09:55:05"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Ora cosa vorresti sapere, Marco?",
+            "orario": "14/06/2025 09:55:05"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Cosa ho scirtto ora a metteo?",
+            "orario": "14/06/2025 09:55:18"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Non hai scritto nient'altro a Matteo dopo il 14/06/2025 alle 09:48:22. L'ultimo messaggio che gli hai inviato \u00e8 \"ciao\" in quella data e ora.",
+            "orario": "14/06/2025 09:55:18"
         }
     ]
 }

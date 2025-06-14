@@ -53,7 +53,7 @@ def salva_dati():
     while True:
         try:
             with lock_datiUtente:
-                with open("datiUtenti.json", "w", encoding="utf-8") as file:
+                with open("datiUtente.json", "w", encoding="utf-8") as file:
                     json.dump(datiUtenti, file, ensure_ascii=False, indent=4)
                 print("Dati degli utenti salvati correttamente")
         except Exception as e:
