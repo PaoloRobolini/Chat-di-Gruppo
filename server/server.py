@@ -23,7 +23,7 @@ lock_datiUtente = threading.Lock()
 lock_datiGruppi = threading.Lock()
 
 # Dizionari dei dati degli utenti e dei gruppi
-datiUtenti = {}
+datiUtente = {}
 datiGruppi = {}
 
 
@@ -54,7 +54,7 @@ def salva_dati():
         try:
             with lock_datiUtente:
                 with open("datiUtente.json", "w", encoding="utf-8") as file:
-                    json.dump(datiUtenti, file, ensure_ascii=False, indent=4)
+                    json.dump(datiUtente, file, ensure_ascii=False, indent=4)
                 print("Dati degli utenti salvati correttamente")
         except Exception as e:
             print(f"Eccezione durante il salvatraggio dei dati degli utenti: {e}")
@@ -228,16 +228,16 @@ def login(messaggio):
     mail = messaggio.get("mail")
     password = messaggio.get("password")
     username_trovato = None
+    
     with lock_datiUtente:
-        try:
-            with open('datiUtente.json', 'r', encoding='utf-8') as file:
-                dati = json.load(file)
-        except (FileNotFoundError, json.JSONDecodeError):
-            dati = {"utenti": []}
+        dati = datiUtente
+
+    # Verifico la presenza dell'utente
     for utente in dati.get("utenti", []):
         if utente.get("email") == mail and utente.get("password") == password:
             username_trovato = utente.get("username")
             break
+
     if username_trovato:
         with clients_lock:
             if username_trovato in list(clients_sockets.keys()):
@@ -249,6 +249,7 @@ def login(messaggio):
 
         chat = manda_chat_client( username_trovato)
         gruppi = manda_gruppi_client( username_trovato)
+
         # Invia direttamente le informazioni sui file
         dato_da_inviare = {
             "comando": "files_ready",
@@ -275,38 +276,38 @@ def signin(messaggio):
     username = messaggio.get("username")
     mail = messaggio.get("mail")
     password = messaggio.get("password")
+
     with lock_datiUtente:
-        try:
-            with open('datiUtente.json', 'r', encoding='utf-8') as file:
-                dati = json.load(file)
-        except (FileNotFoundError, json.JSONDecodeError):
-            dati = {"utenti": []}
-        if any(u.get("email") == mail for u in dati.get("utenti", [])):
+        dati = datiUtente
+
+        
+    if any(u.get("email") == mail for u in dati.get("utenti", [])):
             reply = "1"
-        elif "@" not in mail:
-            reply = "2"
-        elif any(u.get("username") == username for u in dati.get("utenti", [])):
-            reply = "3"
-        else:
-            reply = "0"
-            nuovo_utente = {"email": mail, "password": password, "username": username}
-            dati.setdefault("utenti", []).append(nuovo_utente)
-            with open('datiUtente.json', 'w', encoding='utf-8') as file:
-                json.dump(dati, file, indent=4)
+    elif "@" not in mail:
+        reply = "2"
+    elif any(u.get("username") == username for u in dati.get("utenti", [])):
+        reply = "3"
+    else:
+        reply = "0"
+        nuovo_utente = {"email": mail, "password": password, "username": username}
 
-            # Aggiungi l'utente al server FTP usando l'authorizer globale
-            try:
-                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"),
-                                    perm="elradfmw")
-                print(f"Utente {username} aggiunto al server FTP")
-            except Exception as e:
-                print(f"Errore nell'aggiunta dell'utente al server FTP: {e}")
+        with lock_datiUtente:
+            datiUtente.setdefault("utenti", []).append(nuovo_utente)
 
-            with user_ai_chats_lock:
-                if username not in user_ai_chats:
-                    # Inizializza una nuova sessione di chat AI per questo utente
-                    model = genai.GenerativeModel('gemini-2.0-flash')
-                    user_ai_chats[username] = model.start_chat()
+    # Aggiungi l'utente al server FTP usando l'authorizer globale
+    try:
+            ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"),
+                                perm="elradfmw")
+            print(f"Utente {username} aggiunto al server FTP")
+    except Exception as e:
+        print(f"Errore nell'aggiunta dell'utente al server FTP: {e}")
+
+    with user_ai_chats_lock:
+        if username not in user_ai_chats:
+            # Inizializza una nuova sessione di chat AI per questo utente
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            user_ai_chats[username] = model.start_chat()
+    
     client_socket.sendall(reply.encode('utf-8'))
     return username
 
@@ -643,17 +644,16 @@ def setup_ftp_server():
     global ftp_authorizer
 
     # Leggi gli utenti registrati e aggiungili come utenti FTP
-    try:
-        with open('datiUtente.json', 'r', encoding='utf-8') as file:
-            dati = json.load(file)
-            for utente in dati.get("utenti", []):
-                username = utente.get("username")
-                password = utente.get("password")
-                # Aggiungi l'utente con accesso alla cartella file_storage
-                ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"),
-                                    perm="elradfmw")
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Errore nel caricamento degli utenti FTP: {e}")
+    with lock_datiUtente:
+        dati = datiUtente
+
+    for utente in dati.get("utenti", []):
+        username = utente.get("username")
+        password = utente.get("password")
+        # Aggiungi l'utente con accesso alla cartella file_storage
+        ftp_authorizer.add_user(username, password, os.path.join(os.getcwd(), "file_storage"),perm="elradfmw")
+
+    
 
     # Crea l'handler FTP
     handler = FTPHandler
