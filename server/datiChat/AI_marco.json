@@ -139,6 +139,46 @@
             "mittente": "AI",
             "messaggio": "Tutto bene, grazie! Pronto a lavorare.",
             "orario": "14/06/2025 11:16:12"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Hakuna matata",
+            "orario": "17/06/2025 16:59:39"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Carica chat: 'AI'",
+            "orario": "17/06/2025 16:59:41"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "ciao",
+            "orario": "17/06/2025 17:00:04"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Hakuna Matata, Marco! Tutto bene?",
+            "orario": "17/06/2025 17:00:05"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "si grazie",
+            "orario": "17/06/2025 17:00:19"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Ottimo! C'\u00e8 qualcosa in particolare in cui posso aiutarti oggi?",
+            "orario": "17/06/2025 17:00:20"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "no",
+            "orario": "17/06/2025 17:00:25"
+        },
+        {
+            "mittente": "AI",
+            "messaggio": "Perfetto! Se hai bisogno di qualcosa, fammelo sapere. Altrimenti, buona giornata!",
+            "orario": "17/06/2025 17:00:26"
         }
     ]
 }

@@ -732,6 +732,7 @@ def handle_client(client_socket, client_address):
                     mittente = logged_in_username
                     destinatario = messaggio.get("destinatario")
                     nome_file = messaggio.get("nome_file")
+                    orario = messaggio.get("orario")
 
                     # Registra il completamento del trasferimento file
                     messaggio_notifica = f"Ha completato il trasferimento del file: {nome_file} (via FTP)"
@@ -742,7 +743,8 @@ def handle_client(client_socket, client_address):
                         nuovo_messaggio_salvataggio = {
                             "nome_gruppo": destinatario,
                             "mittente": mittente,
-                            "messaggio": messaggio_notifica
+                            "messaggio": messaggio_notifica,
+                            "orario": orario
                         }
                         salva_messaggio('datiGruppi', nuovo_messaggio_salvataggio)
 
@@ -752,13 +754,15 @@ def handle_client(client_socket, client_address):
                             "nome_gruppo": destinatario,
                             "mittente": mittente,
                             "messaggio": messaggio_notifica,
+                            "orario": orario,
                             "ftp": True
                         }
                     else:
                         nuovo_messaggio_salvataggio = {
                             "mittente": mittente,
                             "destinatario": destinatario,
-                            "messaggio": messaggio_notifica
+                            "messaggio": messaggio_notifica,
+                            "orario": orario
                         }
                         salva_messaggio('datiChat', nuovo_messaggio_salvataggio)
 
@@ -767,6 +771,7 @@ def handle_client(client_socket, client_address):
                             "comando": "nuovo_messaggio_privato",
                             "mittente": mittente,
                             "messaggio": messaggio_notifica,
+                            "orario": orario,
                             "ftp": True
                         }
 

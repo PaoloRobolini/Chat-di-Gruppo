@@ -19,6 +19,11 @@
             "mittente": "marco",
             "messaggio": "ciao",
             "orario": "14/06/2025 11:16:21"
+        },
+        {
+            "mittente": "marco",
+            "messaggio": "Ha completato il trasferimento del file: PCTO esercizio SAP 02 - English, problem solving, coding quality, TDD.docx (via FTP)",
+            "orario": null
         }
     ]
 }

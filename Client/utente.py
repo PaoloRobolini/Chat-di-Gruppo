@@ -92,7 +92,8 @@ class utente:
                 "comando": "ftp_file_notification",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file)
+                "nome_file": kwargs.get("nome_file", self.__nome_file),
+                "orario": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             }
         elif comando == "richiesta_chiamata":
             return {
