@@ -319,7 +319,7 @@ class SigninScreen(Screen):
                 chat_screen.username = reply
                 self.manager.current = 'chat'
                 reply = reply.replace('"', '')
-                user.set_nome(reply)
+                user.set_nome(username)
 
 
                 thread_manda = threading.Thread(target=manda_messaggi)
@@ -358,7 +358,6 @@ class ChatScreen(Screen):
 
 
     def logout(self):
-        user.set_nome(None)
         self.manager.current = 'login'
         coda_manda_msg.put(user.crea_azione(comando="logout"))
         chat = {}

@@ -1,26 +1,6 @@
 {
     "utenti": [
         {
-            "email": "prova1@",
-            "password": "prova1",
-            "username": "prova1"
-        },
-        {
-            "email": "prova2@",
-            "password": "prova2",
-            "username": "prova2"
-        },
-        {
-            "email": "b@",
-            "password": "b",
-            "username": "b"
-        },
-        {
-            "email": "a@",
-            "password": "a",
-            "username": "a"
-        },
-        {
             "email": "matteo@",
             "password": "matteo",
             "username": "matteo"
@@ -36,14 +16,9 @@
             "username": "marco"
         },
         {
-            "email": "marco2@",
-            "password": "marco2",
-            "username": "marco2"
-        },
-        {
-            "email": "c@",
-            "password": "c",
-            "username": "c"
+            "email": "prova@",
+            "password": "prova",
+            "username": "prova"
         }
     ]
 }
