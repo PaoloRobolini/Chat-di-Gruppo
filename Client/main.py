@@ -1074,6 +1074,7 @@ def ricevi_messaggi():
                      messaggio = json.loads(data.decode())
                      if messaggio["comando"] == "logout":
                          print("Ho ricevuto il logout")
+                         user.set_nome(None)
                          break
                      else:
                         Clock.schedule_once(lambda dt: processa_messaggio(messaggio))

@@ -4,6 +4,8 @@ import threading
 import os
 import time
 from tempfile import NamedTemporaryFile
+from typing import Union, Tuple, List, Optional
+
 import google.generativeai as genai
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
@@ -363,107 +365,160 @@ def crea_gruppo(messaggio):
     
     client_socket.sendall(b"Gruppo creato o aggiunto con successo")
 
-def prepara_chat_AI(username, nome_utente):
+
+def _leggi_json_file(file_path: str) -> Optional[dict]:
+    """
+    Legge e restituisce il contenuto di un file JSON.
+    È una funzione interna per riusabilità e gestione errori.
+    """
+    try:
+        if not os.path.exists(file_path):
+            return None
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        # Qui puoi aggiungere un log dell'errore, se necessario
+        # print(f"Errore nella lettura del file {file_path}: {e}")
+        return None
+
+
+def _formatta_messaggi_per_gemini(messages: List[dict]) -> List[str]:
+    """
+    Formatta una lista di dizionari di messaggi in stringhe leggibili per Gemini.
+    Gestisce chiavi mancanti con valori di default.
+    """
+    formatted_messages = []
+    for msg in messages:
+        formatted_messages.append(
+            f"{msg.get('mittente', 'Sconosciuto')}: {msg.get('messaggio', '')} il {msg.get('orario', 'data sconosciuta')}"
+        )
+    return formatted_messages
+
+
+
+
+def prepara_chat_AI(username: str, nome_utente: str) -> Union[str, Tuple[str, List[str]]]:
+    """
+    Prepara lo storico di una chat privata specifica.
+    Restituisce un messaggio di errore (str) o una tupla (descrizione, storico formattato).
+    """
     nome_file = genera_nome_file(username, nome_utente)
-
-    storico = []
     cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
+    file_path = os.path.join(cartella_chat, nome_file)
 
-    if nome_file in os.listdir(cartella_chat):
-        with open(os.path.join('datiChat', nome_file), 'r', encoding='utf-8') as f:
-            chat_data = json.load(f)
-        for msg in chat_data.get("chat", []):
-            storico.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
-        return f"Chat privata con '{nome_utente}'", storico
-
+    chat_data = _leggi_json_file(file_path)
+    if chat_data:
+        storico_raw = chat_data.get("chat", [])
+        storico_formattato = _formatta_messaggi_per_gemini(storico_raw)
+        return f"Chat privata con '{nome_utente}'", storico_formattato
     else:
-        return f"Il contatto '{nome_utente}' non esiste"
+        return f"Il contatto '{nome_utente}' non esiste o non ci sono dati di chat validi."
+
+
+def prepara_gruppo_AI(username: str, nome_gruppo: str) -> Union[str, Tuple[str, List[str]]]:
+    """
+    Prepara lo storico di un gruppo specifico.
+    Restituisce un messaggio di errore (str) o una tupla (descrizione, storico formattato).
+    """
+    # Si assume che 'datiGruppi' e 'lock_datiGruppi' siano disponibili globalmente
+    global datiGruppi, lock_datiGruppi
+
+    with lock_datiGruppi:
+        gruppi_utente = [g for g in datiGruppi.get("gruppi", []) if username in g.get("membri", [])]
+
+    if not any(g["nome"] == nome_gruppo for g in gruppi_utente):
+        return f"Non appartieni al gruppo '{nome_gruppo}'."
+
+    cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiGruppi'))
+    file_path = os.path.join(cartella_chat, f"{nome_gruppo}.json")
+
+    gruppo_data = _leggi_json_file(file_path)
+    if gruppo_data:
+        storico_raw = gruppo_data.get("gruppo", [])
+        storico_formattato = _formatta_messaggi_per_gemini(storico_raw)
+        return f"Gruppo '{nome_gruppo}'", storico_formattato
+    else:
+        return f"Il gruppo '{nome_gruppo}' non esiste o non ci sono dati di gruppo validi."
+
+
+# --- FUNZIONI DI GESTIONE (OTTIMIZZATE MA CON FIRMA ORIGINALE) ---
 
 def gestisci_carica_chat(chat, username, nome_utente):
-
+    """
+    Gestisce il caricamento e l'invio dello storico delle chat private a Gemini.
+    Mantiene la firma originale della funzione.
+    """
     if nome_utente == "tutti":
-        all_chats = []
+        all_chats_context = []
         cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiChat'))
+
         for file_name in os.listdir(cartella_chat):
             if file_name.endswith(".json"):
                 chat_name_parts = file_name[:-5].split('_')
                 if username in chat_name_parts:
                     other_user = chat_name_parts[0] if chat_name_parts[1] == username else chat_name_parts[1]
-                    try:
-                        with open(os.path.join(cartella_chat, file_name), 'r', encoding='utf-8') as f:
-                            chat_data = json.load(f)
-                            messages = []
-                            for msg in chat_data.get("chat", []):
-                                messages.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
-                            if messages:
-                                chat_context = f"\nChat con {other_user}:\n" + "\n".join(messages)
-                                all_chats.append(chat_context)
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        continue
 
-        if all_chats:
-            return chat.send_message("Ecco tutte le mie chat private:" + "\n".join(all_chats)).text
-    else:
-        storico = prepara_chat_AI(username, nome_utente)
+                    storico_result = prepara_chat_AI(username, other_user)
 
-        if type(storico) is str:
-            return storico
+                    if isinstance(storico_result, tuple):
+                        desc, storico_messaggi = storico_result
+                        if storico_messaggi:
+                            all_chats_context.append(f"\n--- {desc} ---\n" + "\n".join(storico_messaggi))
+
+        if all_chats_context:
+            return chat.send_message("Ecco tutte le mie chat private:" + "\n".join(all_chats_context)).text
         else:
-            return chat.send_message(f"{storico[0]}:" + "\n".join(storico[1])).text
-
-def prepara_gruppo_AI (username, nome_gruppo):
-    storico = []
-
-    with lock_datiGruppi:
-        gruppi_utente = [g for g in datiGruppi.get("gruppi", []) if username in g.get("membri", [])]
-
-    if nome_gruppo not in gruppi_utente:
-        return f"Non appartieni a questo gruppo"
-
-    cartella_chat = os.path.abspath(os.path.join(os.getcwd(), 'datiGruppi'))
-    if f"{nome_gruppo}.json" in os.listdir(cartella_chat):
-        with open(os.path.join('datiGruppi', f"{nome_gruppo}.json"), 'r', encoding='utf-8') as f:
-            chat_data = json.load(f)
-
-        for msg in chat_data.get("gruppo", []):
-            storico.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
-        return f"Gruppo '{nome_gruppo}'", storico
-
+            return "Nessuno storico chat privato trovato."
     else:
-        return f"Il gruppo '{nome_gruppo}' non esiste"
+        storico_result = prepara_chat_AI(username, nome_utente)
+
+        if isinstance(storico_result, str):
+            return storico_result
+        else:
+            desc, storico_messaggi = storico_result
+            if storico_messaggi:
+                return chat.send_message(f"{desc}\n" + "\n".join(storico_messaggi)).text
+            else:
+                return f"Nessun messaggio trovato per '{nome_utente}'."
+
 
 def gestisci_carica_gruppo(chat, username, nome_gruppo):
+    """
+    Gestisce il caricamento e l'invio dello storico dei gruppi a Gemini.
+    Mantiene la firma originale della funzione.
+    """
     if nome_gruppo == "tutti":
-        all_groups = []
+        all_groups_context = []
+
+        global datiGruppi, lock_datiGruppi
 
         with lock_datiGruppi:
-            dati = datiGruppi
-
-        for gruppo in dati.get("gruppi", []):
+            for gruppo in datiGruppi.get("gruppi", []):
                 if username in gruppo.get("membri", []):
-                    nome_gruppo = gruppo["nome"]
-                    file_gruppo_path = os.path.join("datiGruppi", f"{nome_gruppo}.json")
-                    try:
-                        with open(file_gruppo_path, 'r', encoding='utf-8') as f:
-                            gruppo_data = json.load(f)
-                            messages = []
-                            for msg in gruppo_data.get("gruppo", []):
-                                    messages.append(f"{msg['mittente']}: {msg['messaggio']} il {msg['orario']}")
-                                    if messages:
-                                        group_context = f"\nGruppo {nome_gruppo}:\n" + "\n".join(messages)
-                    except (FileNotFoundError, json.JSONDecodeError):
-                                continue
+                    current_group_name = gruppo["nome"]
 
+                    storico_result = prepara_gruppo_AI(username, current_group_name)
 
-        if all_groups:
-            return str(chat.send_message("Ecco tutti i miei gruppi:" + "\n".join(all_groups)).text)
-    else:
-        storico = prepara_gruppo_AI(username, nome_gruppo)
-        if type(storico) is str:
-            return storico
+                    if isinstance(storico_result, tuple):
+                        desc, storico_messaggi = storico_result
+                        if storico_messaggi:
+                            all_groups_context.append(f"\n--- {desc} ---\n" + "\n".join(storico_messaggi))
+
+        if all_groups_context:
+            return chat.send_message("Ecco tutti i miei gruppi:" + "\n".join(all_groups_context)).text
         else:
-            return chat.send_message(f"{storico[0]}:" + "\n".join(storico[1])).text
+            return "Nessuno storico gruppo trovato."
+    else:
+        storico_result = prepara_gruppo_AI(username, nome_gruppo)
 
+        if isinstance(storico_result, str):
+            return storico_result
+        else:
+            desc, storico_messaggi = storico_result
+            if storico_messaggi:
+                return chat.send_message(f"{desc}\n" + "\n".join(storico_messaggi)).text
+            else:
+                return f"Nessun messaggio trovato per il gruppo '{nome_gruppo}'."
 
 def verifica_nomi(username):
     # Selezione di tutte le chat
