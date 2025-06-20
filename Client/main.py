@@ -405,7 +405,7 @@ class ChatScreen(Screen):
 
 
     def show_ai_status(self, show=True):
-        if show:
+        if show and user.get_destinatario() == "AI":
             self.ids.ai_status.text = "L'AI sta elaborando la risposta..."
             self.ids.ai_status.opacity = 1
         else:
