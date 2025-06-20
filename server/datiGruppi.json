@@ -1,22 +1,3 @@
 {
-    "gruppi": [
-        {
-            "nome": "Gruppo prova",
-            "membri": [
-                "0"
-            ]
-        },
-        {
-            "nome": "prova",
-            "membri": [
-                "marco"
-            ]
-        },
-        {
-            "nome": "prova2",
-            "membri": [
-                "marco"
-            ]
-        }
-    ]
+    "gruppi": []
 }

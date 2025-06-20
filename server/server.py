@@ -697,12 +697,11 @@ def is_in_gruppo(messaggio, logged_in_username):
         client_socket.sendall(b"error_missing_group_name")
 
     with lock_datiGruppi:
-        dati = datiGruppi
-
-    gruppi_utente = []
-    for gruppo in dati.get("gruppi", []):
-        if logged_in_username in gruppo.get("membri"):
-            gruppi_utente.append(gruppo.get("nome"))
+        gruppi_utente = [
+            gruppo.get("nome")
+            for gruppo in datiGruppi.get("gruppi", [])
+            if logged_in_username in gruppo.get("membri", [])  # Aggiunto .get() per sicurezza
+        ]
 
     if nome_gruppo in gruppi_utente:
         client_socket.sendall(b"yes")

@@ -64,7 +64,7 @@ global user
 global temp_folder_info
 temp_folder_info = None
 
-
+elaborazione_ai = False
 
 def carica_gruppi():
     files_chat = [
@@ -360,7 +360,6 @@ class ChatScreen(Screen):
     def logout(self):
         self.manager.current = 'login'
         coda_manda_msg.put(user.crea_azione(comando="logout"))
-        chat = {}
         if thread_manda.is_alive():
             print("Il thread manda è vivo")
             thread_ricevi.join()
@@ -405,7 +404,7 @@ class ChatScreen(Screen):
 
 
     def show_ai_status(self, show=True):
-        if show and user.get_destinatario() == "AI":
+        if show:
             self.ids.ai_status.text = "L'AI sta elaborando la risposta..."
             self.ids.ai_status.opacity = 1
         else:
@@ -453,6 +452,14 @@ class ChatScreen(Screen):
             chat[testo] = [] # Inizializza la chat come lista vuota se non esiste
             self.display_chat_history(testo) # Visualizza la chat vuota
 
+        if user.get_destinatario() == "AI" and elaborazione_ai == True:
+            self.show_ai_status(True)
+        else:
+            self.show_ai_status(False)
+
+
+
+
     def display_chat_history(self, contact):
         self.ids.chat_history_container.clear_widgets()
         last_date = None
@@ -481,6 +488,7 @@ class ChatScreen(Screen):
         )
         date_label.bind(texture_size=date_label.setter('size'))
         date_bubble.add_widget(date_label)
+
         def update_bubble_size(*args):
             date_bubble.size = (date_label.width + date_bubble.padding[0] + date_bubble.padding[2], date_label.height + date_bubble.padding[1] + date_bubble.padding[3])
             date_row.height = date_bubble.height + 8
@@ -569,6 +577,7 @@ class ChatScreen(Screen):
             orario_box.add_widget(Widget(size_hint_x=1))
             orario_box.add_widget(orario_label)
             bubble.add_widget(orario_box)
+
         def update_bubble_size(*args):
             content_height = sum(c.height for c in bubble.children) + bubble.spacing * (len(bubble.children) - 1)
             content_width = max((c.width for c in bubble.children), default=0)
@@ -612,6 +621,7 @@ class ChatScreen(Screen):
 
             # Se il destinatario è l'AI, mostra l'indicatore di stato
             if user.get_destinatario() == "AI":
+                elaborazione_ai = True
                 self.show_ai_status(True)
 
             # Crea e invia il messaggio in modo asincrono
@@ -642,6 +652,7 @@ class ChatScreen(Screen):
         if chat_id == user.get_destinatario():
             if chat_id == "AI":
                 self.show_ai_status(False)
+                elaborazione_ai = False
             Clock.schedule_once(
                 lambda dt: self.add_message_bubble(message_dict)
             )
