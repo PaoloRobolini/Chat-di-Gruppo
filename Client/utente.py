@@ -78,12 +78,6 @@ class utente:
                 "nome_gruppo": kwargs["nome_gruppo"],
                 "mittente": self.__username
             }
-        elif comando == "is_in_gruppo":
-            return {
-                "comando": "is_in_gruppo",
-                "nome_gruppo": kwargs["nome_gruppo"],
-                "mittente": self.__username
-            }
         elif comando == "ftp_file_notification":  # notifica di trasferimento file completato via FTP
             if not self.__destinatario:
                 print("Errore: destinatario non impostato per la notifica FTP")

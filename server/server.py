@@ -687,28 +687,6 @@ def inoltra_chiamata(messaggio, logged_in_username):
     print("esco da inoltra chiamata")
 
 
-def is_in_gruppo(messaggio, logged_in_username):
-    if not logged_in_username:
-        client_socket.sendall(b"error_not_logged_in")
-
-    nome_gruppo = messaggio.get("nome_gruppo")
-
-    if not nome_gruppo:
-        client_socket.sendall(b"error_missing_group_name")
-
-    with lock_datiGruppi:
-        gruppi_utente = [
-            gruppo.get("nome")
-            for gruppo in datiGruppi.get("gruppi", [])
-            if logged_in_username in gruppo.get("membri", [])  # Aggiunto .get() per sicurezza
-        ]
-
-    if nome_gruppo in gruppi_utente:
-        client_socket.sendall(b"yes")
-    else:
-        client_socket.sendall(b"no")
-
-
 def setting_AI(username):
     with user_ai_chats_lock:
         if username in user_ai_chats:
@@ -807,10 +785,6 @@ def handle_client(client_socket, client_address):
                             del clients_sockets[logged_in_username]
                             del user_ai_chats[logged_in_username]
 
-
-
-            elif comando == "is_in_gruppo":
-                is_in_gruppo(messaggio, logged_in_username)
             elif comando == "ftp_file_notification":
                 # Gestisce la notifica di trasferimento file completato via FTP
                 if logged_in_username:

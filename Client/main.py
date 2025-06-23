@@ -66,58 +66,38 @@ temp_folder_info = None
 
 elaborazione_ai = False
 
-def carica_gruppi():
-    files_chat = [
-        f for f in os.listdir('datiGruppi')
-    ]
-
-    for file in files_chat:
-        s.sendall(json.dumps(user.crea_azione(comando="is_in_gruppo", nome_gruppo=file[:-5])).encode())
-        data = s.recv(4096)
-        if data == b"yes":
-            with open(f"datiGruppi/{file}", "r") as f:
-                dati = json.load(f)
-                file = file[:-5]
-                chat[file] = [
-                    {
-                        "mittente": message["mittente"],
-                        "messaggio": message["messaggio"],
-                        "orario": message.get("orario", "")
-                    }
-                    for message in dati['gruppo']
-                ]
-                chat_screen = App.get_running_app().root.get_screen('chat')
-                chat_screen.aggiungi_nuovo_contatto(file)
 
 
-def carica_chat():
-    files_chat = [
-        f for f in os.listdir('datichat')
-    ]
-
-    for i in range(len(files_chat)):
+def carica_messaggi(files):
+    for i in files:
         try:
-            nome_file = files_chat[i]
-            altro_utente = nome_file[:-5]
-            altro_utente = altro_utente.split('_')
-            altro_utente.remove(user.get_nome())
-            altro_utente = altro_utente[0]
 
-            with open('datichat/' + nome_file, 'r') as file:
+            if user.get_nome() in i:
+                altro_utente = i[:-5]
+                altro_utente = altro_utente.split('_')
+                altro_utente.remove(user.get_nome())
+                nome = altro_utente[0]
+                cartella = "datiChat/"
+                chiave = "chat"
+            else:
+                nome = i.replace('.json','')
+                cartella = "datiGruppi/"
+                chiave = "gruppo"
+
+            with open(cartella + i, 'r') as file:
                 dati = json.load(file)
-                chat[altro_utente] = [
+                chat[nome] = [
                     {
                         "mittente": message["mittente"],
                         "messaggio": message["messaggio"],
                         "orario": message.get("orario", "")
                     }
-                    for message in dati['chat']
+                    for message in dati[chiave]
                 ]
                 chat_screen = App.get_running_app().root.get_screen('chat')
-                chat_screen.aggiungi_nuovo_contatto(altro_utente)
+                chat_screen.aggiungi_nuovo_contatto(nome)
         except ValueError:
             ...
-
 
 def scarica_chat(cartella, cartella_temp, files):
 
@@ -265,8 +245,11 @@ class LoginScreen(Screen):
                 scarica_chat('datiChat', dati['cartella'], dati['chat'])
                 scarica_chat('datiGruppi', dati['cartella'], dati['gruppi'])
                 rimuovi_cartella_temp()  # Rimuovi la cartella temporanea dopo aver scaricato tutto
-                carica_chat()
-                carica_gruppi()
+                """carica_chat()
+                carica_gruppi()"""
+
+                carica_messaggi(dati['chat'])
+                carica_messaggi(dati['gruppi'])
 
                 thread_manda = threading.Thread(target=manda_messaggi)
                 thread_manda.start()
