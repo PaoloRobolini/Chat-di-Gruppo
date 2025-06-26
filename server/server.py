@@ -260,11 +260,7 @@ def login(messaggio):
         }
         print(f"File da mandare a {client_address}: {dato_da_inviare}")
         client_socket.sendall(json.dumps(dato_da_inviare).encode())
-        with user_ai_chats_lock:
-            if username_trovato not in user_ai_chats:
-                # Inizializza una nuova sessione di chat AI per questo utente
-                model = genai.GenerativeModel('gemini-2.0-flash')
-                user_ai_chats[username_trovato] = model.start_chat()
+
         return username_trovato
 
     else:
@@ -301,12 +297,6 @@ def signin(messaggio):
         print(f"Utente {username} aggiunto al server FTP")
     except Exception as e:
         print(f"Errore nell'aggiunta dell'utente al server FTP: {e}")
-
-    with user_ai_chats_lock:
-        if username not in user_ai_chats:
-            # Inizializza una nuova sessione di chat AI per questo utente
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            user_ai_chats[username] = model.start_chat()
 
     client_socket.sendall(reply.encode('utf-8'))
     return username
@@ -574,8 +564,12 @@ def ai(messaggio, username):
     salva_messaggio('datiChat', messaggio_salvataggio)
 
     with user_ai_chats_lock:
-        if username in user_ai_chats:
-            chat = user_ai_chats[username]
+        if username not in user_ai_chats:
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            user_ai_chats[username] = model.start_chat()
+            setting_AI(username)
+
+        chat = user_ai_chats[username]
 
     # Gestione comandi speciali
     msg = messaggio.get("messaggio")
@@ -758,19 +752,14 @@ def handle_client(client_socket, client_address):
 
             if comando == "login":
                 logged_in_username = login(messaggio)
-                setting = threading.Thread(target=setting_AI, args=(logged_in_username,))
-                setting.start()
             elif comando == "signin":
                 logged_in_username = signin(messaggio)
-                setting = threading.Thread(target=setting_AI, args=(logged_in_username,))
-                setting.start()
             elif comando == "crea_gruppo":
                 crea_gruppo(messaggio)
             elif comando == "messaggio":
                 inoltra = threading.Thread(target=inoltra_messaggio, args=(messaggio, logged_in_username,))
                 inoltra.start()
             elif comando == "logout":
-
                 if logged_in_username:
 
                     messaggio_da_inoltrare = {

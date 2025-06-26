@@ -9,16 +9,6 @@
             "mittente": "AI",
             "messaggio": "Ciao Marco! Cosa posso fare per te oggi?",
             "orario": "23/06/2025 14:44:24"
-        },
-        {
-            "mittente": "marco",
-            "messaggio": "ciao",
-            "orario": "26/06/2025 17:25:25"
-        },
-        {
-            "mittente": "AI",
-            "messaggio": "Ciao! Come posso aiutarti oggi?",
-            "orario": "26/06/2025 17:25:26"
         }
     ]
 }
