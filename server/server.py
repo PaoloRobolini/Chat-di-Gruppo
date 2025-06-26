@@ -565,7 +565,7 @@ def ai(messaggio, username):
 
     with user_ai_chats_lock:
         if username not in user_ai_chats:
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             user_ai_chats[username] = model.start_chat()
             setting_AI(username)
 
