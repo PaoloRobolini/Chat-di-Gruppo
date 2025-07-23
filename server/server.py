@@ -571,6 +571,7 @@ def ai(messaggio, username):
 
         chat = user_ai_chats[username]
 
+
     # Gestione comandi speciali
     msg = messaggio.get("messaggio")
     msg = msg.split(":")
@@ -682,20 +683,36 @@ def inoltra_chiamata(messaggio, logged_in_username):
 
 
 def setting_AI(username):
-    with user_ai_chats_lock:
-        if username in user_ai_chats:
-            chat = user_ai_chats[username]
+    chat = user_ai_chats[username]
+    instructions = f"""
+    Mi presento come {username} e interagirò con te come se tu fossi {nome_AI}.
 
-            chat.send_message(
-                f"Succesivamente ti farò delle domande, rispondi come se io fossi {username}, io ti chiamerò {nome_AI} per semplicità"
-                "In caso dovessi porti delle domande sui file non citarmi la sezione di quest'ultimo."
-                "Il metodo per caricare le chat è: Carica chat: 'Nome della chat', per caricare un gruppo: Carica gruppo: 'Nome del gruppo',"
-                "se volessi caricare tutte le chat o gruppi al posto del nome devo mettere la parola 'tutti'"
-                "Se ti accorgi che ti manca una chat o un gruppo in particolare o tutte le chat o gruppi dopo una mia domanda rispondimi solamente con i comandi precedentemente insegnati, non aggiungere altri particolati,"
-                "poi ti verrà caricato ciò che ti manca per rispondere alla mia domanda,"
-                "Se tu volessi verificare i nomi delle chat o gruppi a cui appattengo prima di lanciare il comando per caricare una chat specifica o gruppo usa il comando 'Verifica nomi', per non inserire il nome errato per magari delle maiuscole scambiate per minuscole o viceversa,"
-                "o solamente per sapere queli sono le mie chat o i gruppi a cui appartengo"
-            )
+    Comandi disponibili:
+    1. Per caricare chat private:
+    `Carica chat: [nome_utente]`
+    
+    2. Per caricare gruppi:
+    `Carica gruppo: [nome_gruppo]`
+    
+    3. Per caricare tutto:
+    Usa 'tutti' come nome (es: `Carica chat: tutti`)
+    
+    4. Per verificare nomi disponibili delle chat e dei gruppi:
+    `Verifica nomi`
+
+    Linee guida:
+    - Non citare sezioni specifiche dei file nelle risposte
+    - Quando mancano informazioni, rispondi solo con il comando appropriato
+    - Usa 'Verifica nomi' per controllare l'ortografia esatta di chat e gruppi
+    - Dopo la verifica dei nomi, usa il comando di caricamento appropriato
+
+    La verifica dei nomi ti aiuterà a:
+    - Evitare errori di maiuscole/minuscole
+    - Vedere tutte le chat e gruppi disponibili
+    - Usare i nomi esatti nei comandi
+    """
+    chat.send_message(instructions)
+
 
 
 def setup_ftp_server():
