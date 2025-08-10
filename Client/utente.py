@@ -1,19 +1,25 @@
+import time
+from datetime import datetime
+
+
 class utente:
     def __init__(self, mail="", password="", username=""):
         self.__username = username
         self.__mail = mail
         self.__password = password
         self.__destinatario = None
+        self.__destinatario_chiamata = None
         self.__nome_file = None
-        self.__file = None
-        self.__file_lenght = None
-        self.__file_position = None
+        self.__pacchetto_audio = None
 
     def set_nome(self, nome):
         self.__username = nome
 
     def get_nome(self):
         return self.__username
+
+    def get_password(self):
+        return self.__password
 
     def set_destinatario(self, destinatario):
         self.__destinatario = destinatario
@@ -26,24 +32,19 @@ class utente:
 
     def get_nome_file(self):
         return self.__nome_file
+    def set_pacchetto_audio(self, pacchetto_audio):
+        self.__pacchetto_audio = pacchetto_audio
+    def get_pacchetto_audio(self):
+        return self.__pacchetto_audio
 
-    def set_file(self, file):
-        self.__file = file
+    def set_destinatario_chiamata(self, destinatario_chiamata):
+        self.__destinatario_chiamata = destinatario_chiamata
 
-    def get_file(self):
-        return self.__file
+    def get_destinatario_chiamata(self):
+        return self.__destinatario_chiamata
 
-    def set_file_lenght(self, file_lenght):
-        self.__file_lenght = file_lenght
-
-    def get_file_lenght(self):
-        return self.__file_lenght
-
-    def set_file_position(self, file_position):
-        self.__file_position = file_position
-
-    def get_file_position(self):
-        return self.__file_position
+    def get_orario(self):
+        datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     def crea_azione(self, **kwargs):
         comando = kwargs.get("comando")
@@ -68,7 +69,8 @@ class utente:
                 "comando": "messaggio",
                 "mittente": self.__username,
                 "destinatario": self.__destinatario,
-                "messaggio": kwargs["messaggio"]
+                "messaggio": kwargs["messaggio"],
+                "orario": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             }
         elif comando == "crea_gruppo":  # crea un messaggio per un gruppo
             return {
@@ -76,62 +78,52 @@ class utente:
                 "nome_gruppo": kwargs["nome_gruppo"],
                 "mittente": self.__username
             }
-        elif comando == "is_in_gruppo":
+        elif comando == "ftp_file_notification":  # notifica di trasferimento file completato via FTP
+            if not self.__destinatario:
+                print("Errore: destinatario non impostato per la notifica FTP")
+                return None
             return {
-                "comando": "is_in_gruppo",
-                "nome_gruppo": kwargs["nome_gruppo"],
+                "comando": "ftp_file_notification",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+                "nome_file": kwargs.get("nome_file", self.__nome_file),
+                "orario": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            }
+        elif comando == "richiesta_chiamata":
+            return {
+                "comando": "richiesta_chiamata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario
+            }
+        elif comando == "chiamata":
+            return {
+                "comando": "chiamata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario_chiamata,
+                "pacchetto_audio": self.__pacchetto_audio
+            }
+        elif comando == "chiamata_accettata":
+            return {
+                "comando": "chiamata_accettata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+            }
+        elif comando == "chiamata_rifiutata":
+            return {
+                "comando": "chiamata_rifiutata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario,
+            }
+        elif comando == "chiamata_terminata":
+            return {
+                "comando": "chiamata_terminata",
+                "mittente": self.__username,
+                "destinatario": self.__destinatario_chiamata,
+            }
+        elif comando == "logout":
+            return {
+                "comando": "logout",
                 "mittente": self.__username
-            }
-        elif comando == "file":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per invio file")
-                return None
-            return {
-                "comando": "file",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": self.__nome_file,
-                "file": self.__file,
-                "file_lenght": self.__file_lenght,
-                "file_position": self.__file_position
-            }
-        # Comandi per il nuovo sistema di trasferimento file
-        elif comando == "inizia_trasferimento_file":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per iniziare trasferimento file")
-                return None
-            return {
-                "comando": "inizia_trasferimento_file",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file),
-                "file_size": kwargs.get("file_size", 0)
-            }
-        elif comando == "trasferimento_file_chunk":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per inviare chunk")
-                return None
-            return {
-                "comando": "trasferimento_file_chunk",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file),
-                "chunk": kwargs.get("chunk"),
-                "chunk_id": kwargs.get("chunk_id", 0),
-                "total_chunks": kwargs.get("total_chunks", 1),
-                "chunk_size": kwargs.get("chunk_size", 512),
-                "file_size": kwargs.get("file_size", 0)
-            }
-        elif comando == "fine_trasferimento_file":
-            if not self.__destinatario:
-                print("Errore: destinatario non impostato per completare trasferimento")
-                return None
-            return {
-                "comando": "fine_trasferimento_file",
-                "mittente": self.__username,
-                "destinatario": self.__destinatario,
-                "nome_file": kwargs.get("nome_file", self.__nome_file),
-                "file_size": kwargs.get("file_size", 0)
             }
         else:
             print(f"Comando sconosciuto: {comando}")
