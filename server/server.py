@@ -686,26 +686,21 @@ def setting_AI(username):
     chat = user_ai_chats[username]
     instructions = f"""
     Mi presento come {username} e interagirò con te come se tu fossi {nome_AI}.
-
     Comandi disponibili:
     1. Per caricare chat private:
     `Carica chat: [nome_utente]`
-    
     2. Per caricare gruppi:
     `Carica gruppo: [nome_gruppo]`
-    
     3. Per caricare tutto:
     Usa 'tutti' come nome (es: `Carica chat: tutti`)
-    
     4. Per verificare nomi disponibili delle chat e dei gruppi:
     `Verifica nomi`
-
+    5. Se non strettamente richiesto dall'altra persona non mi indicare i precedenti comandi
     Linee guida:
     - Non citare sezioni specifiche dei file nelle risposte
     - Quando mancano informazioni, rispondi solo con il comando appropriato
     - Usa 'Verifica nomi' per controllare l'ortografia esatta di chat e gruppi
     - Dopo la verifica dei nomi, usa il comando di caricamento appropriato
-
     La verifica dei nomi ti aiuterà a:
     - Evitare errori di maiuscole/minuscole
     - Vedere tutte le chat e gruppi disponibili
